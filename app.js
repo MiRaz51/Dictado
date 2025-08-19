@@ -366,6 +366,41 @@ function initVoces() {
 }
 initVoces();
 
+// --- Desbloqueo de TTS en móviles (requiere gesto del usuario) ---
+let ttsUnlocked = false;
+function unlockTTS() {
+  if (ttsUnlocked) return;
+  try {
+    // Cancelar estados previos y reanudar
+    speechSynthesis.cancel();
+    speechSynthesis.resume();
+    // Utterance silenciosa muy corta para habilitar el canal de voz
+    const u = new SpeechSynthesisUtterance(' ');
+    u.lang = (selectedVoice && selectedVoice.lang) ? selectedVoice.lang : 'es-ES';
+    u.volume = 0.0; // silencioso
+    u.rate = 1.0;
+    u.onend = () => {
+      ttsUnlocked = true;
+    };
+    // Algunos navegadores requieren el speak en try/catch
+    try { speechSynthesis.speak(u); } catch(_) { ttsUnlocked = true; }
+  } catch(_) { ttsUnlocked = true; }
+  // Remover listeners una vez desbloqueado
+  if (document._ttsUnlockHandlers) {
+    const { click, touch } = document._ttsUnlockHandlers;
+    try { document.removeEventListener('click', click, { capture: true }); } catch(_) {}
+    try { document.removeEventListener('touchstart', touch, { capture: true }); } catch(_) {}
+    document._ttsUnlockHandlers = null;
+  }
+}
+try {
+  const click = () => unlockTTS();
+  const touch = () => unlockTTS();
+  document.addEventListener('click', click, { capture: true, passive: true });
+  document.addEventListener('touchstart', touch, { capture: true, passive: true });
+  document._ttsUnlockHandlers = { click, touch };
+} catch(_) {}
+
 // --- Banco de errores ---
 function cargarBancoErrores() {
   try {
