@@ -389,13 +389,10 @@ let isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(n
 function updateEnableAudioButton() {
   try {
     const btn = document.getElementById('btnEnableAudio');
-    const diagBtn = document.getElementById('btnDiagnostic');
     if (!btn) return;
     // En móvil, mostrar hasta que esté completamente desbloqueado
     const shouldShow = isMobile && (!ttsUnlocked || !voicesReady);
     btn.style.display = shouldShow ? '' : 'none';
-    // Mostrar diagnóstico siempre en móvil para debug
-    if (diagBtn) diagBtn.style.display = isMobile ? '' : 'none';
   } catch(_) {}
 }
 
