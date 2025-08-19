@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Práctica de Ortografía</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="topbar">
+    <div class="inner">
+      <div class="brandmark"><span class="dot"></span> Dictado Español</div>
+      <div style="font-size: 12px; color: var(--muted);">Práctica de ortografía</div>
+    </div>
+  </div>
+  <div class="container">
+  <h2><span class="brand">Práctica</span> de Ortografía</h2>
+  <p id="metaAlumnoCurso" class="meta" style="display:none;"></p>
+
+  <!-- Página 1: Configuración -->
+  <section id="page-config" class="page active">
+    <div class="card" style="margin: 12px 0;">
+      <div style="margin-bottom:8px;">
+        <label for="alumno"><strong>Alumno</strong>: </label>
+        <input id="alumno" type="text" placeholder="Nombre y apellido" style="max-width: 320px;" tabindex="1">
+        <div id="alumnoError" class="help-error">Este campo es obligatorio.</div>
+        <label for="curso" style="margin-left: 12px;"><strong>Curso/Grupo</strong>: </label>
+        <input id="curso" type="text" placeholder="Ej.: 3°A" style="width: 120px;" tabindex="2">
+        <div id="cursoError" class="help-error">Este campo es obligatorio.</div>
+      </div>
+      <label for="filtroLetras"><strong>Letras a reforzar</strong> (separa con comas, ej.: r, rr, s): </label>
+      <input id="filtroLetras" type="text" placeholder="ej.: r, rr, s" style="max-width: 320px;" tabindex="3">
+      <div style="margin-top:6px;">
+        <label>
+          <input id="todasLasLetras" type="checkbox" tabindex="4"> La palabra debe contener <em>todas</em> las letras indicadas
+        </label>
+      </div>
+      <br>
+      <label for="cantidad"><strong>Cantidad de palabras</strong>: </label>
+      <input id="cantidad" type="number" min="1" step="1" placeholder="vacío = 50" style="width: 90px;" tabindex="5">
+      <div class="hint">Si dejas vacía la cantidad, se tomarán 50 palabras (o menos si no hay tantas). La cantidad siempre se limita al máximo disponible.</div>
+      
+      <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+        <label>
+          <input id="strictMode" type="checkbox" checked tabindex="7"> Modo estricto (solo español)
+        </label>
+        <button class="btn-ghost" type="button" onclick="actualizarDiccionarioHunspell()" tabindex="8">Actualizar diccionario</button>
+      </div>
+      
+    </div>
+    <div class="actions">
+      <button id="btnNext" class="btn-ghost" onclick="goNextFromConfig()" disabled tabindex="6">Siguiente ▸</button>
+    </div>
+  </section>
+
+  <!-- Página 2: Ejercicio -->
+  <section id="page-game" class="page">
+    <p>Selecciona un nivel de dificultad:</p>
+    <div class="actions" style="margin-top: 6px;">
+      <button class="btn-ghost" onclick="goToPage('page-config')">◂ Volver</button>
+      <button id="btnNivelFacil" onclick="iniciarJuego('facil')">🌱 Nivel Fácil</button>
+      <button id="btnNivelMedio" onclick="iniciarJuego('medio')">🌿 Nivel Medio</button>
+      <button id="btnNivelDificil" onclick="iniciarJuego('dificil')">🌳 Nivel Difícil</button>
+    </div>
+    <div id="juego" class="card" style="display:none; margin-top:14px;">
+      <div class="avance-row">
+        <div class="progress" aria-label="Progreso de palabras">
+          <div id="progressFill" class="progress-fill" style="width:0%"></div>
+        </div>
+        <div id="progressText" class="progress-text">0/0</div>
+      </div>
+      <div class="row" style="margin-top:6px; display:flex; gap:10px; align-items:center;">
+        <button id="btnSpeak" onclick="reproducirPalabra()">🔊 Reproducir palabra</button>
+        <input type="text" id="respuesta" placeholder="Escribe aquí" style="flex: 1 1 280px;">
+        <button onclick="comprobar()">Comprobar</button>
+      </div>
+      <p id="resultado" class="status"></p>
+      <p id="marcador" class="status"></p>
+      <div class="actions" style="margin-top:8px;">
+        <button id="btnToReport" style="display:none;" onclick="goToReportFromGame()">Siguiente ▸</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Página 3: Reporte final -->
+  <section id="page-report" class="page">
+    <div class="actions" style="margin-top: 6px;">
+      <button class="btn-ghost" onclick="goToPage('page-config')">◂ Nueva lección</button>
+      <button class="btn-ghost" onclick="irAlEjercicio()">Ir al ejercicio</button>
+      <button onclick="generarReportePDF()">⬇️ Descargar PDF</button>
+    </div>
+    <div class="card" style="margin-top: 14px;">
+      <div id="reporteFinal" class="status"></div>
+    </div>
+  </section>
+
+  <!-- Librerías para generar PDF en el navegador -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.0/dist/jspdf.plugin.autotable.min.js"></script>
+  <!-- Hunspell wrapper (Typo.js) para Modo estricto -->
+  <script src="https://cdn.jsdelivr.net/npm/typo-js@1.2.1/typo.min.js"></script>
+  <script src="app.js"></script>
+  </div>
+</body>
+</html>
