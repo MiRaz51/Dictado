@@ -641,6 +641,20 @@ async function prepararNivelesDinamicos() {
         }
       }
     });
+    
+    // Deshabilitar sugerencias del teclado móvil de forma programática
+    if (isMobile) {
+      resp.addEventListener('focus', () => {
+        // Forzar atributos anti-sugerencias
+        resp.setAttribute('autocomplete', 'new-password');
+        resp.setAttribute('autocorrect', 'off');
+        resp.setAttribute('autocapitalize', 'none');
+        resp.setAttribute('spellcheck', 'false');
+        // Hack para algunos teclados Android
+        resp.style.webkitUserSelect = 'text';
+        resp.style.webkitTouchCallout = 'none';
+      });
+    }
   }
   // Página inicial
   goToPage('page-config');
