@@ -52,6 +52,20 @@ async function ensureHunspellES_ANY() {
       }
     } catch(_) {}
 
+// --- Utilidades de diagnóstico ---
+function diagnosticoTTS() {
+  try {
+    const voces = (typeof speechSynthesis !== 'undefined') ? speechSynthesis.getVoices() : [];
+    console.log('[TTS] voces:', voces?.length, voces);
+    console.log('[TTS] voicesReady:', voicesReady, 'ttsUnlocked:', ttsUnlocked);
+    alert(`Diagnóstico TTS\nVoces: ${voces?.length || 0}\nvoicesReady: ${voicesReady}\nttsUnlocked: ${ttsUnlocked}`);
+  } catch (e) { console.log('diag error', e); }
+}
+function probarVoz() {
+  try { unlockTTS(); } catch(_) {}
+  try { reproducirPalabra(true); } catch(_) {}
+}
+
     if (!aff || !dic) {
       // Descargar desde LibreOffice/dictionaries (es_ANY)
       const urlAff = 'https://raw.githubusercontent.com/LibreOffice/dictionaries/master/es/es_ANY.aff';
@@ -356,11 +370,13 @@ function initVoces() {
   const intentar = () => {
     selectedVoice = elegirVozEspanol();
     voicesReady = !!selectedVoice;
+    try { updateEnableAudioButton(); } catch(_) {}
   };
   intentar();
   if (!voicesReady) {
     window.speechSynthesis.onvoiceschanged = () => {
       intentar();
+      try { updateEnableAudioButton(); } catch(_) {}
     };
   }
 }
@@ -368,9 +384,36 @@ initVoces();
 
 // --- Desbloqueo de TTS en móviles (requiere gesto del usuario) ---
 let ttsUnlocked = false;
+function updateEnableAudioButton() {
+  try {
+    const btn = document.getElementById('btnEnableAudio');
+    if (!btn) return;
+    // Mostrar si no está desbloqueado o aún no hay voces
+    const shouldShow = !ttsUnlocked || !voicesReady;
+    btn.style.display = shouldShow ? '' : 'none';
+  } catch(_) {}
+}
 function unlockTTS() {
   if (ttsUnlocked) return;
   try {
+    // Despertar WebAudio (algunos navegadores lo requieren)
+    try {
+      if (!window._audioCtx) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) window._audioCtx = new Ctx();
+      }
+      if (window._audioCtx && window._audioCtx.state !== 'running') {
+        window._audioCtx.resume?.();
+        // Pulso inaudible muy corto
+        const osc = window._audioCtx.createOscillator();
+        const gain = window._audioCtx.createGain();
+        gain.gain.value = 0.0001;
+        osc.connect(gain).connect(window._audioCtx.destination);
+        osc.start();
+        setTimeout(() => { try { osc.stop(); osc.disconnect(); gain.disconnect(); } catch(_) {} }, 60);
+      }
+    } catch(_) {}
+
     // Cancelar estados previos y reanudar
     speechSynthesis.cancel();
     speechSynthesis.resume();
@@ -381,10 +424,12 @@ function unlockTTS() {
     u.rate = 1.0;
     u.onend = () => {
       ttsUnlocked = true;
+      updateEnableAudioButton();
     };
     // Algunos navegadores requieren el speak en try/catch
     try { speechSynthesis.speak(u); } catch(_) { ttsUnlocked = true; }
   } catch(_) { ttsUnlocked = true; }
+  updateEnableAudioButton();
   // Remover listeners una vez desbloqueado
   if (document._ttsUnlockHandlers) {
     const { click, touch } = document._ttsUnlockHandlers;
@@ -1009,10 +1054,11 @@ function attachEnterNavigationConfig() {
 try {
   window.addEventListener('DOMContentLoaded', () => {
     attachEnterNavigationConfig();
+    try { updateEnableAudioButton(); } catch(_) {}
   });
 } catch(_) {}
 
-function reproducirPalabra() {
+function reproducirPalabra(fromUser = false) {
   const speakBtn = document.getElementById("btnSpeak");
   const palabra = palabras[indice];
   if (!palabra) return;
@@ -1049,6 +1095,26 @@ function reproducirPalabra() {
     }
   };
   msg.onerror = () => { if (speakBtn) speakBtn.disabled = false; };
+
+  // Si viene de un gesto directo del usuario, hablar inmediatamente (sin spacer ni delay)
+  if (fromUser === true) {
+    try { unlockTTS(); } catch(_) {}
+    const input = document.getElementById('respuesta');
+    if (input) { input.focus(); }
+    lastStartTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    try { speechSynthesis.speak(msg); } catch(_) {}
+    // Si no comienza de inmediato (algunos móviles), reintentar brevemente
+    let tries = 0;
+    const ensureSpeak = () => {
+      tries++;
+      if (speechSynthesis.speaking || tries > 3) return;
+      try { speechSynthesis.resume(); } catch(_) {}
+      try { speechSynthesis.speak(msg); } catch(_) {}
+      setTimeout(ensureSpeak, 150);
+    };
+    setTimeout(ensureSpeak, 120);
+    return;
+  }
 
   // Pequeño retraso + utterance espaciador para evitar truncamientos iniciales
   setTimeout(() => {

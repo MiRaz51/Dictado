@@ -66,8 +66,9 @@
         </div>
         <div id="progressText" class="progress-text">0/0</div>
       </div>
-      <div class="row" style="margin-top:6px; display:flex; gap:10px; align-items:center;">
-        <button id="btnSpeak" onclick="reproducirPalabra()">🔊 Reproducir palabra</button>
+      <div class="row" style="margin-top:6px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <button id="btnSpeak" onclick="reproducirPalabra(true)">🔊 Reproducir palabra</button>
+        <button id="btnEnableAudio" class="btn-ghost" style="display:none;" onclick="unlockTTS(); reproducirPalabra(true)">Permitir audio</button>
         <input type="text" id="respuesta" placeholder="Escribe aquí" style="flex: 1 1 280px;">
         <button onclick="comprobar()">Comprobar</button>
       </div>
