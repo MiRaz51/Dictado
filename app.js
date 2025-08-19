@@ -382,69 +382,99 @@ function initVoces() {
 }
 initVoces();
 
-// --- Desbloqueo de TTS en móviles (requiere gesto del usuario) ---
+// --- TTS móvil mejorado ---
 let ttsUnlocked = false;
+let isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
 function updateEnableAudioButton() {
   try {
     const btn = document.getElementById('btnEnableAudio');
+    const diagBtn = document.getElementById('btnDiagnostic');
     if (!btn) return;
-    // Mostrar si no está desbloqueado o aún no hay voces
-    const shouldShow = !ttsUnlocked || !voicesReady;
+    // En móvil, mostrar hasta que esté completamente desbloqueado
+    const shouldShow = isMobile && (!ttsUnlocked || !voicesReady);
     btn.style.display = shouldShow ? '' : 'none';
+    // Mostrar diagnóstico siempre en móvil para debug
+    if (diagBtn) diagBtn.style.display = isMobile ? '' : 'none';
   } catch(_) {}
 }
-function unlockTTS() {
-  if (ttsUnlocked) return;
-  try {
-    // Despertar WebAudio (algunos navegadores lo requieren)
-    try {
-      if (!window._audioCtx) {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (Ctx) window._audioCtx = new Ctx();
-      }
-      if (window._audioCtx && window._audioCtx.state !== 'running') {
-        window._audioCtx.resume?.();
-        // Pulso inaudible muy corto
-        const osc = window._audioCtx.createOscillator();
-        const gain = window._audioCtx.createGain();
-        gain.gain.value = 0.0001;
-        osc.connect(gain).connect(window._audioCtx.destination);
-        osc.start();
-        setTimeout(() => { try { osc.stop(); osc.disconnect(); gain.disconnect(); } catch(_) {} }, 60);
-      }
-    } catch(_) {}
 
-    // Cancelar estados previos y reanudar
-    speechSynthesis.cancel();
-    speechSynthesis.resume();
-    // Utterance silenciosa muy corta para habilitar el canal de voz
-    const u = new SpeechSynthesisUtterance(' ');
-    u.lang = (selectedVoice && selectedVoice.lang) ? selectedVoice.lang : 'es-ES';
-    u.volume = 0.0; // silencioso
-    u.rate = 1.0;
-    u.onend = () => {
+function unlockTTS() {
+  if (ttsUnlocked) return Promise.resolve();
+  
+  return new Promise((resolve) => {
+    try {
+      // Forzar carga de voces primero
+      const voices = speechSynthesis.getVoices();
+      if (voices.length === 0) {
+        // Esperar a que se carguen las voces
+        speechSynthesis.onvoiceschanged = () => {
+          selectedVoice = elegirVozEspanol();
+          voicesReady = !!selectedVoice;
+          updateEnableAudioButton();
+        };
+      }
+      
+      // Cancelar y reanudar
+      speechSynthesis.cancel();
+      speechSynthesis.resume();
+      
+      // Test utterance muy simple
+      const testMsg = new SpeechSynthesisUtterance('test');
+      testMsg.volume = 0.01; // muy bajo pero audible
+      testMsg.rate = 2.0; // rápido
+      testMsg.lang = 'es-ES';
+      
+      testMsg.onstart = () => {
+        ttsUnlocked = true;
+        updateEnableAudioButton();
+        speechSynthesis.cancel(); // cancelar el test
+        resolve();
+      };
+      
+      testMsg.onerror = () => {
+        ttsUnlocked = true; // asumir que está ok
+        updateEnableAudioButton();
+        resolve();
+      };
+      
+      testMsg.onend = () => {
+        ttsUnlocked = true;
+        updateEnableAudioButton();
+        resolve();
+      };
+      
+      // Intentar hablar
+      speechSynthesis.speak(testMsg);
+      
+      // Timeout de seguridad
+      setTimeout(() => {
+        if (!ttsUnlocked) {
+          ttsUnlocked = true;
+          updateEnableAudioButton();
+          resolve();
+        }
+      }, 1000);
+      
+    } catch(e) {
+      console.log('TTS unlock error:', e);
       ttsUnlocked = true;
       updateEnableAudioButton();
-    };
-    // Algunos navegadores requieren el speak en try/catch
-    try { speechSynthesis.speak(u); } catch(_) { ttsUnlocked = true; }
-  } catch(_) { ttsUnlocked = true; }
-  updateEnableAudioButton();
-  // Remover listeners una vez desbloqueado
-  if (document._ttsUnlockHandlers) {
-    const { click, touch } = document._ttsUnlockHandlers;
-    try { document.removeEventListener('click', click, { capture: true }); } catch(_) {}
-    try { document.removeEventListener('touchstart', touch, { capture: true }); } catch(_) {}
-    document._ttsUnlockHandlers = null;
-  }
+      resolve();
+    }
+  });
 }
-try {
-  const click = () => unlockTTS();
-  const touch = () => unlockTTS();
-  document.addEventListener('click', click, { capture: true, passive: true });
-  document.addEventListener('touchstart', touch, { capture: true, passive: true });
-  document._ttsUnlockHandlers = { click, touch };
-} catch(_) {}
+
+// Auto-unlock en primer gesto
+if (isMobile) {
+  const autoUnlock = () => {
+    unlockTTS();
+    document.removeEventListener('touchstart', autoUnlock, { capture: true });
+    document.removeEventListener('click', autoUnlock, { capture: true });
+  };
+  document.addEventListener('touchstart', autoUnlock, { capture: true, passive: true });
+  document.addEventListener('click', autoUnlock, { capture: true, passive: true });
+}
 
 // --- Banco de errores ---
 function cargarBancoErrores() {
@@ -1058,81 +1088,89 @@ try {
   });
 } catch(_) {}
 
-function reproducirPalabra(fromUser = false) {
+async function reproducirPalabra(fromUser = false) {
   const speakBtn = document.getElementById("btnSpeak");
   const palabra = palabras[indice];
   if (!palabra) return;
 
-  // Cancelar/reanudar para evitar solapamientos y estados pausados
+  // En móvil, asegurar unlock primero
+  if (isMobile && fromUser) {
+    await unlockTTS();
+  }
+
+  // Esperar voces si no están listas
+  if (!voicesReady) {
+    let attempts = 0;
+    while (!voicesReady && attempts < 10) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+      selectedVoice = elegirVozEspanol();
+      voicesReady = !!selectedVoice;
+    }
+  }
+
+  // Cancelar/reanudar
   try { speechSynthesis.cancel(); } catch (_) {}
   try { speechSynthesis.resume(); } catch (_) {}
 
-  // Construir utterance principal
+  // Construir utterance
   const msg = new SpeechSynthesisUtterance(palabra);
-  const lang = (selectedVoice && selectedVoice.lang) ? selectedVoice.lang : 'es-ES';
-  msg.lang = lang;
-  if (selectedVoice) msg.voice = selectedVoice;
-  msg.rate = 0.75; // más claro (más lento)
-  msg.pitch = 1.0;
-  msg.volume = 1.0;
+  
+  // Configuración robusta para móviles
+  if (isMobile) {
+    msg.lang = 'es-ES'; // fijo para móvil
+    msg.rate = 0.8;
+    msg.pitch = 1.0;
+    msg.volume = 1.0;
+    // No asignar voz específica en móvil, dejar que el sistema elija
+  } else {
+    const lang = (selectedVoice && selectedVoice.lang) ? selectedVoice.lang : 'es-ES';
+    msg.lang = lang;
+    if (selectedVoice) msg.voice = selectedVoice;
+    msg.rate = 0.75;
+    msg.pitch = 1.0;
+    msg.volume = 1.0;
+  }
 
   msg.onstart = () => {
     if (speakBtn) speakBtn.disabled = true;
-    // Limpiar confirmación previa
     const res = document.getElementById('resultado');
     if (res) { res.innerHTML = ''; res.className = ''; }
   };
+  
   msg.onend = () => {
     if (speakBtn) speakBtn.disabled = false;
-    // Si terminó muy rápido, reintentar una vez para evitar cortes
-    const tNow = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    const dur = tNow - (lastStartTime || tNow);
-    if (dur < 250 && !reproducirPalabra._retried) {
-      reproducirPalabra._retried = true;
-      setTimeout(() => reproducirPalabra(), 350);
-    } else {
-      reproducirPalabra._retried = false;
+    // Retry logic solo para desktop
+    if (!isMobile) {
+      const tNow = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+      const dur = tNow - (lastStartTime || tNow);
+      if (dur < 250 && !reproducirPalabra._retried) {
+        reproducirPalabra._retried = true;
+        setTimeout(() => reproducirPalabra(), 350);
+        return;
+      }
     }
+    reproducirPalabra._retried = false;
   };
-  msg.onerror = () => { if (speakBtn) speakBtn.disabled = false; };
+  
+  msg.onerror = (e) => {
+    console.log('TTS error:', e);
+    if (speakBtn) speakBtn.disabled = false;
+  };
 
-  // Si viene de un gesto directo del usuario, hablar inmediatamente (sin spacer ni delay)
-  if (fromUser === true) {
-    try { unlockTTS(); } catch(_) {}
-    const input = document.getElementById('respuesta');
-    if (input) { input.focus(); }
-    lastStartTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-    try { speechSynthesis.speak(msg); } catch(_) {}
-    // Si no comienza de inmediato (algunos móviles), reintentar brevemente
-    let tries = 0;
-    const ensureSpeak = () => {
-      tries++;
-      if (speechSynthesis.speaking || tries > 3) return;
-      try { speechSynthesis.resume(); } catch(_) {}
-      try { speechSynthesis.speak(msg); } catch(_) {}
-      setTimeout(ensureSpeak, 150);
-    };
-    setTimeout(ensureSpeak, 120);
-    return;
+  // Enfocar input
+  const input = document.getElementById('respuesta');
+  if (input) { input.focus(); }
+  
+  lastStartTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+  
+  // Hablar directamente (especialmente importante en móvil)
+  try {
+    speechSynthesis.speak(msg);
+    console.log('TTS: Speaking word:', palabra);
+  } catch(e) {
+    console.log('TTS speak error:', e);
   }
-
-  // Pequeño retraso + utterance espaciador para evitar truncamientos iniciales
-  setTimeout(() => {
-    const input = document.getElementById('respuesta');
-    if (input) { input.focus(); }
-    const spacer = new SpeechSynthesisUtterance(' ');
-    spacer.lang = msg.lang;
-    spacer.volume = 0.0; // silencioso
-    spacer.rate = 1.0;
-    spacer.onend = () => {
-      lastStartTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-      speechSynthesis.speak(msg);
-    };
-    try { speechSynthesis.speak(spacer); } catch(_) {
-      lastStartTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-      speechSynthesis.speak(msg);
-    }
-  }, 500);
 }
 
 function comprobar() {
