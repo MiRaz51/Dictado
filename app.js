@@ -1422,6 +1422,14 @@ function seleccionarNivel(nivel) {
   iniciarJuego(nivel);
 }
 
+// Hacer funciones disponibles globalmente para GitHub Pages
+window.seleccionarNivel = seleccionarNivel;
+window.goToPage = goToPage;
+window.goNextFromConfig = goNextFromConfig;
+window.irAlEjercicio = irAlEjercicio;
+window.generarReportePDF = generarReportePDF;
+window.generarPracticaManual = generarPracticaManual;
+
 async function iniciarJuego(nivel) {
   console.log(`[DEBUG] Iniciando juego con nivel: ${nivel}`);
   
