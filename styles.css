@@ -37,6 +37,27 @@ body {
 
 .container { width: 100%; max-width: 980px; padding: 28px 20px 56px; }
 
+/* Responsive fixes for mobile */
+@media (max-width: 768px) {
+  .row {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  
+  .row input[type="text"] {
+    width: 100% !important;
+    flex: none !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+  
+  .row button {
+    width: 100% !important;
+    flex: none !important;
+  }
+}
+
 .topbar {
   position: sticky; top: 0; z-index: 10;
   background: #ffffffcc;

@@ -1,54 +1,274 @@
-// 📌 Listas de palabras por niveles
-const palabrasPorNivel = {
-  facil: ["gato", "perro", "mesa", "silla", "casa", "flor", "pan", "luz", "cielo", "sol"],
-  medio: ["camión", "árbol", "fácil", "zapato", "ventana", "película", "corazón", "fútbol", "música", "avión"],
-  dificil: ["otorrinolaringólogo", "murciélago", "paralelepípedo", "idiosincrasia", "hipopótamo", 
-            "circunferencia", "electrodoméstico", "extraordinario", "biblioteca", "metamorfosis"]
+// ============================================================================
+// CONFIGURACIÓN Y CONSTANTES CENTRALIZADAS
+// ============================================================================
+
+const CONFIG = {
+  // URLs y archivos
+  RAE_WORD_LIST_URL: './palabras_todas_no_conjugaciones.txt',
+  FALLBACK_WORD_LIST_URL: './Diccionario.Espanol.136k.palabras.txt',
+  RAE_CACHE_KEY: 'rae_words_oficial_cache_v1',
+  RAE_CACHE_TTL_MS: 30 * 24 * 60 * 60 * 1000, // 30 días
+  CACHE_KEY: "es_words_50k_cache_v1",
+  CACHE_TTL_MS: 7 * 24 * 60 * 60 * 1000, // 7 días
+  
+  // Hunspell
+  HUNS_AFF_KEY: 'hunspell_es_ANY_aff_v1',
+  HUNS_DIC_KEY: 'hunspell_es_ANY_dic_v1',
+  HUNS_TTL_MS: 1000 * 60 * 60 * 24 * 30, // 30 días
+  
+  // Parámetros
+  PARAMS_KEY: 'dictado_params_v1',
+  ERROR_BANK_KEY: 'dictado_error_bank_v1',
+  MEANING_CACHE_KEY: 'dictado_meaning_cache_v1',
+  
+  // Límites y configuración
+  MAX_WORD_LENGTH: 15,
+  MIN_WORD_LENGTH: 2,
+  DEFAULT_WORD_COUNT: 50,
+  MAX_CONSIDERED_WORDS: 20000,
+  
+  // TTS
+  TTS_RATE: 0.75,
+  TTS_MOBILE_RATE: 0.8,
+  TTS_VOLUME: 1.0,
+  TTS_PITCH: 1.0,
+  
+  // Tiempos
+  WORD_DELAY_MS: 2200,
+  FIRST_WORD_DELAY_MS: 700,
+  VOICE_WAIT_MS: 200,
+  MAX_VOICE_ATTEMPTS: 8
 };
 
-// 📦 Config de diccionario externo (HermitDave es_50k)
-const WORDS_URL = "https://raw.githubusercontent.com/hermitdave/FrequencyWords/master/content/2018/es/es_50k.txt";
-const CACHE_KEY = "es_words_50k_cache_v1";
-const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
-// Lista negra básica de términos a excluir por defecto (no considerados léxico escolar/RAE en este contexto)
+// 📌 Listas de palabras por niveles
+const palabrasPorNivel = {
+  facil: ["gato", "perro", "mesa", "casa", "flor", "pan", "luz", "sol", "agua", "niño", 
+          "mamá", "papá", "amor", "vida", "día", "año", "mano", "pie", "ojo", "boca"],
+  medio: ["camión", "árbol", "fácil", "zapato", "ventana", "película", "corazón", "fútbol", "música", "avión",
+          "teléfono", "computadora", "refrigerador", "bicicleta", "automóvil", "universidad", "hospital", 
+          "biblioteca", "restaurante", "supermercado"],
+  dificil: ["otorrinolaringólogo", "paralelepípedo", "electroencefalografía", "esternocleidomastoideo", 
+            "pseudohipoparatiroidismo", "pneumonoultramicroscopicsilicovolcanoconiósis", "hipopotomonstrosesquipedaliofobia",
+            "anticonstitucionalísimamente", "desoxirribonucleótido", "tetrahidroxicannabinol"]
+};
+
+// ============================================================================
+// UTILIDADES DE CACHÉ Y PERSISTENCIA
+// ============================================================================
+
+class CacheManager {
+  static get(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      console.warn(`Error reading cache key ${key}:`, e);
+      return null;
+    }
+  }
+
+  static set(key, data) {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+      return true;
+    } catch (e) {
+      console.warn(`Error writing cache key ${key}:`, e);
+      return false;
+    }
+  }
+
+  static remove(key) {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (e) {
+      console.warn(`Error removing cache key ${key}:`, e);
+      return false;
+    }
+  }
+
+  static isExpired(timestamp, ttl) {
+    return Date.now() - timestamp > ttl;
+  }
+}
+// Lista negra expandida de términos a excluir por defecto (no considerados léxico escolar/RAE en este contexto)
 const EXCLUDE_DEFAULT = new Set([
-  'allah'
+  'allah', 'wifi', 'web', 'chat', 'email', 'online', 'software', 'hardware', 'internet',
+  'blog', 'mouse', 'click', 'link', 'spam', 'hacker', 'backup', 'update', 'download',
+  'upload', 'login', 'logout', 'password', 'username', 'hashtag', 'selfie', 'streaming',
+  'podcast', 'youtuber', 'influencer', 'gamer', 'app', 'smartphone', 'tablet', 'laptop',
+  'bluetooth', 'usb', 'led', 'lcd', 'hd', 'dvd', 'cd', 'mp3', 'jpeg', 'pdf', 'html',
+  'css', 'javascript', 'python', 'java', 'php', 'sql', 'api', 'url', 'http', 'https',
+  'ftp', 'dns', 'ip', 'vpn', 'ssl', 'seo', 'cms', 'crm', 'erp', 'b2b', 'b2c',
+  'startup', 'freelance', 'coworking', 'networking', 'brainstorming', 'feedback',
+  'workshop', 'webinar', 'tutorial', 'demo', 'beta', 'alpha', 'release', 'patch',
+  'bug', 'debug', 'script', 'code', 'coding', 'developer', 'frontend', 'backend',
+  'fullstack', 'framework', 'library', 'plugin', 'widget', 'template', 'theme',
+  'responsive', 'mobile', 'desktop', 'server', 'hosting', 'domain', 'subdomain',
+  'database', 'query', 'table', 'field', 'record', 'index', 'cache', 'cookie',
+  'session', 'token', 'encryption', 'firewall', 'antivirus', 'malware', 'phishing',
+  'trojan', 'virus', 'worm', 'ransomware', 'adware', 'spyware', 'rootkit',
+  'keylogger', 'botnet', 'ddos', 'dos', 'exploit', 'vulnerability', 'patch',
+  'hotfix', 'rollback', 'deployment', 'staging', 'production', 'testing',
+  'quality', 'assurance', 'agile', 'scrum', 'kanban', 'sprint', 'backlog',
+  'user', 'story', 'epic', 'feature', 'requirement', 'specification', 'documentation',
+  'manual', 'guide', 'faq', 'support', 'helpdesk', 'ticket', 'issue', 'request',
+  'enhancement', 'improvement', 'optimization', 'performance', 'scalability',
+  'availability', 'reliability', 'maintainability', 'usability', 'accessibility',
+  'compatibility', 'interoperability', 'portability', 'reusability', 'modularity',
+  'extensibility', 'flexibility', 'robustness', 'stability', 'consistency',
+  'integrity', 'security', 'privacy', 'confidentiality', 'authentication',
+  'authorization', 'audit', 'compliance', 'governance', 'risk', 'management'
+]);
+
+// Lista de prefijos y sufijos comunes en préstamos lingüísticos
+const FOREIGN_PREFIXES = new Set([
+  'cyber', 'e-', 'mega', 'super', 'ultra', 'multi', 'inter', 'trans', 'pre', 'post',
+  'anti', 'pro', 'auto', 'semi', 'pseudo', 'quasi', 'neo', 'retro', 'meta'
+]);
+
+const FOREIGN_SUFFIXES = new Set([
+  'ing', 'tion', 'sion', 'ness', 'ment', 'able', 'ible', 'ful', 'less', 'ship',
+  'ward', 'wise', 'like', 'ism', 'ist', 'ity', 'fy', 'ize', 'ise', 'age',
+  'ance', 'ence', 'ous', 'ious', 'eous', 'uous', 'ary', 'ery', 'ory', 'ive'
+]);
+
+// Patrones de palabras que no son típicamente españolas
+const NON_SPANISH_PATTERNS = [
+  /^[bcdfghjklmnpqrstvwxyz]{4,}$/i, // 4+ consonantes seguidas
+  /[qwxy](?![u])/i, // q sin u, w, x, y en posiciones no españolas
+  /k[^aeiou]/i, // k seguida de consonante
+  /[aeiou]{4,}/i, // 4+ vocales seguidas
+  /^[aeiou][aeiou][aeiou]/i, // 3 vocales al inicio
+  /[bcdfghjklmnpqrstvwxyz][bcdfghjklmnpqrstvwxyz][bcdfghjklmnpqrstvwxyz]/i, // 3 consonantes seguidas
+  /[^aeiouñ][^aeiouñ][^aeiouñ][^aeiouñ]/i, // 4 consonantes seguidas (incluyendo ñ como vocal)
+];
+
+// Diccionario básico de palabras españolas comunes para validación rápida
+const SPANISH_CORE_WORDS = new Set([
+  'el', 'la', 'de', 'que', 'y', 'a', 'en', 'un', 'es', 'se', 'no', 'te', 'lo', 'le',
+  'da', 'su', 'por', 'son', 'con', 'para', 'al', 'del', 'los', 'las', 'una', 'como',
+  'pero', 'sus', 'le', 'ya', 'o', 'porque', 'cuando', 'muy', 'sin', 'sobre', 'también',
+  'me', 'hasta', 'donde', 'quien', 'desde', 'todos', 'durante', 'todo', 'ella', 'ser',
+  'dos', 'él', 'tiempo', 'casa', 'día', 'vida', 'hombre', 'mundo', 'año', 'estado',
+  'país', 'agua', 'parte', 'lugar', 'trabajo', 'gobierno', 'persona', 'momento',
+  'mano', 'manera', 'vez', 'caso', 'noche', 'aquí', 'palabra', 'mayor', 'cada',
+  'nuevo', 'otros', 'mismo', 'ese', 'bajo', 'tanto', 'estos', 'hacer', 'otro',
+  'forma', 'mucho', 'poco', 'bien', 'saber', 'qué', 'cómo', 'cuál', 'cuándo',
+  'dónde', 'quién', 'cuánto', 'más', 'menos', 'mejor', 'peor', 'grande', 'pequeño',
+  'bueno', 'malo', 'primero', 'último', 'siguiente', 'anterior', 'arriba', 'abajo',
+  'dentro', 'fuera', 'cerca', 'lejos', 'antes', 'después', 'ahora', 'entonces',
+  'siempre', 'nunca', 'hoy', 'ayer', 'mañana', 'tarde', 'noche', 'día', 'semana',
+  'mes', 'año', 'hora', 'minuto', 'segundo', 'momento', 'vez', 'veces'
 ]);
 
 // Nivel dinámico construido desde diccionario externo (cuando esté listo)
 let palabrasPorNivelDinamico = null;
 let cargandoDiccionario = false;
 
+// Variables globales refactorizadas (mantenidas para compatibilidad)
 let palabras = [];
 let indice = 0;
 let aciertos = 0;
 let currentNivel = null;
-let resultsLog = []; // {fechaISO, nivel, palabra, respuesta, correcto, tiempoMs}
+let resultsLog = [];
+
+// Función para sincronizar con el nuevo estado
+function syncWithGameState() {
+  palabras = gameState.words;
+  indice = gameState.currentIndex;
+  aciertos = gameState.correctAnswers;
+  currentNivel = gameState.currentLevel;
+  resultsLog = gameState.resultsLog;
+}
+
+function syncToGameState() {
+  gameState.words = palabras;
+  gameState.currentIndex = indice;
+  gameState.correctAnswers = aciertos;
+  gameState.currentLevel = currentNivel;
+  gameState.resultsLog = resultsLog;
+}
 
 // --- Hunspell (Typo.js) modo estricto ---
 let typoEs = null;            // instancia Typo
 let hunspellLoading = false;  // bandera de carga
 let hunspellReady = null;     // Promise
 
-const HUNS_AFF_KEY = 'hunspell_es_ANY_aff_v1';
-const HUNS_DIC_KEY = 'hunspell_es_ANY_dic_v1';
-const HUNS_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 días
+// ============================================================================
+// GESTIÓN DE ESTADO DEL JUEGO
+// ============================================================================
+
+class GameState {
+  constructor() {
+    this.reset();
+  }
+
+  reset() {
+    this.words = [];
+    this.currentIndex = 0;
+    this.correctAnswers = 0;
+    this.currentLevel = null;
+    this.resultsLog = [];
+    this.sessionStartISO = null;
+    this.lastStartTime = 0;
+  }
+
+  getCurrentWord() {
+    return this.words[this.currentIndex];
+  }
+
+  hasMoreWords() {
+    return this.currentIndex < this.words.length;
+  }
+
+  nextWord() {
+    this.currentIndex++;
+  }
+
+  addResult(word, userAnswer, isCorrect, timeMs) {
+    this.resultsLog.push({
+      fechaISO: new Date().toISOString(),
+      nivel: this.currentLevel || "-",
+      palabra: word,
+      respuesta: userAnswer,
+      correcto: isCorrect ? "Sí" : "No",
+      tiempoMs
+    });
+  }
+
+  getStats() {
+    const total = this.words.length;
+    const correct = this.correctAnswers;
+    const incorrect = total - correct;
+    const percentage = total ? Math.round((correct / total) * 100) : 0;
+    
+    return { total, correct, incorrect, percentage };
+  }
+
+  getErrors() {
+    return this.resultsLog.filter(r => r.correcto === 'No');
+  }
+}
+
+// Instancia global del estado del juego
+const gameState = new GameState();
 
 async function ensureHunspellES_ANY() {
   if (typoEs) return typoEs;
   if (hunspellReady) return hunspellReady;
   hunspellReady = (async () => {
-    // Intentar cache local
+    // Intentar cache local usando CacheManager
     let aff = null, dic = null;
     try {
-      const affRaw = localStorage.getItem(HUNS_AFF_KEY);
-      const dicRaw = localStorage.getItem(HUNS_DIC_KEY);
-      const now = Date.now();
-      if (affRaw && dicRaw) {
-        const a = JSON.parse(affRaw); const d = JSON.parse(dicRaw);
-        if (a && d && (now - a.ts < HUNS_TTL_MS) && (now - d.ts < HUNS_TTL_MS)) {
-          aff = a.data; dic = d.data;
-        }
+      const cachedAff = CacheManager.get(CONFIG.HUNS_AFF_KEY);
+      const cachedDic = CacheManager.get(CONFIG.HUNS_DIC_KEY);
+      
+      if (cachedAff && cachedDic && 
+          !CacheManager.isExpired(cachedAff.ts, CONFIG.HUNS_TTL_MS) &&
+          !CacheManager.isExpired(cachedDic.ts, CONFIG.HUNS_TTL_MS)) {
+        aff = cachedAff.data;
+        dic = cachedDic.data;
       }
     } catch(_) {}
 
@@ -74,10 +294,9 @@ function probarVoz() {
       if (!rAff.ok || !rDic.ok) throw new Error('No se pudo cargar Hunspell es_ANY');
       aff = await rAff.text();
       dic = await rDic.text();
-      try {
-        localStorage.setItem(HUNS_AFF_KEY, JSON.stringify({ ts: Date.now(), data: aff }));
-        localStorage.setItem(HUNS_DIC_KEY, JSON.stringify({ ts: Date.now(), data: dic }));
-      } catch(_) {}
+      // Guardar en caché usando CacheManager
+      CacheManager.set(CONFIG.HUNS_AFF_KEY, { ts: Date.now(), data: aff });
+      CacheManager.set(CONFIG.HUNS_DIC_KEY, { ts: Date.now(), data: dic });
     }
     typoEs = new Typo('es_ANY', aff, dic, { platform: 'any' });
     return typoEs;
@@ -85,32 +304,153 @@ function probarVoz() {
   return hunspellReady;
 }
 
+// Función mejorada de validación de palabras españolas
+// Filtrar palabras RAE por nivel (simplificado)
+function filtrarPalabrasRAE(words, nivel) {
+  const lengthRanges = {
+    1: [3, 5],   // Básico: 3-5 letras
+    2: [4, 7],   // Intermedio: 4-7 letras
+    3: [5, 10],  // Avanzado: 5-10 letras
+    4: [3, 15]   // Experto: 3-15 letras
+  };
+  
+  const [minLen, maxLen] = lengthRanges[nivel] || [3, 10];
+  
+  return words.filter(word => {
+    if (!word || word.length < minLen || word.length > maxLen) return false;
+    
+    // Filtros básicos (las palabras RAE ya son puras)
+    if (word.includes('-') || word.includes('.')) return false;
+    if (word.match(/^[^a-záéíóúüñ]/i)) return false;
+    
+    return true;
+  });
+}
+
+// Validar palabra escrita por el usuario
+function validarPalabraUsuario(userWord, correctWord) {
+  const user = String(userWord || '').trim().toLowerCase();
+  const correct = String(correctWord || '').trim().toLowerCase();
+  
+  if (!user || !correct) return false;
+  
+  // Comparación exacta
+  if (user === correct) return true;
+  
+  // Permitir variaciones de acentos comunes
+  const normalizeAccents = (str) => {
+    return str
+      .replace(/[áà]/g, 'a')
+      .replace(/[éè]/g, 'e')
+      .replace(/[íì]/g, 'i')
+      .replace(/[óò]/g, 'o')
+      .replace(/[úù]/g, 'u');
+  };
+  
+  return normalizeAccents(user) === normalizeAccents(correct);
+}
+
 async function checkSpanish(word) {
   try {
-    const t = await ensureHunspellES_ANY();
-    if (!t) return true; // si falla, no bloquear
-    // Probar tal cual, en minúsculas y capitalizada (nombres propios)
-    const w = String(word || '').trim();
+    const w = String(word || '').trim().toLowerCase();
     if (!w) return false;
+    
+    // Si tenemos la lista RAE, usar esa para validación
+    if (raeWordsData.wordsSet.size > 0) {
+      return raeWordsData.wordsSet.has(w);
+    }
+    
+    // Validación rápida: si está en el diccionario básico, es válida
+    if (SPANISH_CORE_WORDS.has(w)) return true;
+    
+    // Aplicar filtros locales antes de consultar Hunspell
+    if (!isLikelySpanish(w)) return false;
+    
+    const t = await ensureHunspellES_ANY();
+    if (!t) {
+      // Si Hunspell falla, usar solo validación local
+      return isLikelySpanish(w) && !hasNonSpanishCharacteristics(w);
+    }
+    
+    // Probar tal cual, en minúsculas y capitalizada (nombres propios)
     if (t.check(w)) return true;
-    const low = w.toLowerCase();
-    if (low !== w && t.check(low)) return true;
     const cap = w.charAt(0).toUpperCase() + w.slice(1);
     if (cap !== w && t.check(cap)) return true;
+    
     return false;
-  } catch(_) { return true; }
+  } catch(_) { 
+    // Si hay error, usar validación local como respaldo
+    const w = String(word || '').trim().toLowerCase();
+    return isLikelySpanish(w) && !hasNonSpanishCharacteristics(w);
+  }
+}
+
+// Función auxiliar para determinar si una palabra parece española
+function isLikelySpanish(word) {
+  if (!word || typeof word !== 'string') return false;
+  
+  const w = word.toLowerCase().trim();
+  
+  // Debe contener solo caracteres del español
+  if (!/^[a-záéíóúüñ]+$/.test(w)) return false;
+  
+  // Debe tener al menos una vocal y una consonante
+  if (!/[aeiouáéíóúü]/.test(w) || !/[bcdfghjklmnñpqrstvwxyz]/.test(w)) return false;
+  
+  // No debe estar en la lista negra
+  if (EXCLUDE_DEFAULT.has(w)) return false;
+  
+  // Verificar patrones no españoles
+  if (NON_SPANISH_PATTERNS.some(pattern => pattern.test(w))) return false;
+  
+  return true;
+}
+
+// Función auxiliar para detectar características no españolas
+function hasNonSpanishCharacteristics(word) {
+  if (!word || typeof word !== 'string') return true;
+  
+  const w = word.toLowerCase().trim();
+  
+  // Verificar dígrafos extranjeros
+  if (/(kh|sh|th|ph|gh|ck|dg|ng|nk|sch|tch|wh|zh)/i.test(w)) return true;
+  
+  // Verificar consonantes dobles no españolas
+  if (/(bb|cc|dd|ff|gg|hh|jj|kk|mm|nn|pp|qq|ss|tt|vv|ww|xx|yy|zz)/i.test(w)) return true;
+  
+  // Verificar combinaciones poco españolas
+  if (/(tz|ck|dj|gn|kn|pn|ps|pt|sc|sk|sl|sm|sn|sp|st|sw|tw|wr|xc|xt|yl|yn|ys|yt)/i.test(w)) return true;
+  
+  // Verificar terminaciones extranjeras
+  if (/h$/.test(w)) return true;
+  
+  // Verificar prefijos y sufijos extranjeros
+  const hasForeignPrefix = Array.from(FOREIGN_PREFIXES).some(prefix => w.startsWith(prefix));
+  const hasForeignSuffix = Array.from(FOREIGN_SUFFIXES).some(suffix => w.endsWith(suffix));
+  
+  return hasForeignPrefix || hasForeignSuffix;
 }
 
 // Refresca el diccionario Hunspell (borra cache y fuerza nueva descarga en el próximo uso)
 function actualizarDiccionarioHunspell() {
-  try {
-    localStorage.removeItem(HUNS_AFF_KEY);
-    localStorage.removeItem(HUNS_DIC_KEY);
-  } catch(_) {}
+  // Usar CacheManager para limpiar caché
+  CacheManager.remove(CONFIG.HUNS_AFF_KEY);
+  CacheManager.remove(CONFIG.HUNS_DIC_KEY);
+  
   // Reset de instancias para que se vuelva a cargar
   typoEs = null;
   hunspellReady = null;
-  try { alert('Diccionario actualizado. Se recargará al iniciar el próximo ejercicio en modo estricto.'); } catch(_) {}
+  
+  showUserMessage('Diccionario actualizado. Se recargará al iniciar el próximo ejercicio en modo estricto.');
+}
+
+// Función auxiliar para mostrar mensajes al usuario
+function showUserMessage(message, type = 'info') {
+  try {
+    alert(message);
+  } catch(_) {
+    console.log(`[${type.toUpperCase()}] ${message}`);
+  }
 }
 
 // Obtiene un resumen breve desde Wikipedia en español usando el endpoint REST v1.
@@ -144,16 +484,36 @@ async function generarReportePDF() {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF('p', 'pt', 'a4');
   try {
+    console.log(`[DEBUG PDF] resultsLog al iniciar PDF:`, resultsLog);
+    console.log(`[DEBUG PDF] resultsLog.length:`, resultsLog?.length);
+    console.log(`[DEBUG PDF] gameState.resultsLog:`, gameState.resultsLog);
+    
     const alumno = (document.getElementById('alumno')?.value || '').trim();
     const curso = (document.getElementById('curso')?.value || '').trim();
-    const nivel = currentNivel || '-';
+    const nivel = gameState.currentLevel || currentNivel || '-';
     const filtroLetras = (document.getElementById('filtroLetras')?.value || '').trim();
     const todas = document.getElementById('todasLasLetras')?.checked ? 'Sí' : 'No';
     const cant = (document.getElementById('cantidad')?.value || '').trim() || 'todas';
-    const total = Array.isArray(resultsLog) ? resultsLog.length : 0;
-    const correctas = Array.isArray(resultsLog) ? resultsLog.filter(r => r.correcto === 'Sí').length : 0;
+    
+    // Intentar obtener resultados de múltiples fuentes
+    let resultados = [];
+    if (Array.isArray(resultsLog) && resultsLog.length > 0) {
+      resultados = resultsLog;
+      console.log(`[DEBUG PDF] Usando resultsLog global: ${resultados.length} elementos`);
+    } else if (Array.isArray(gameState.resultsLog) && gameState.resultsLog.length > 0) {
+      resultados = gameState.resultsLog;
+      console.log(`[DEBUG PDF] Usando gameState.resultsLog: ${resultados.length} elementos`);
+    } else {
+      console.log(`[DEBUG PDF] No hay resultados disponibles en ninguna fuente`);
+    }
+    
+    const total = resultados.length;
+    const correctas = resultados.filter(r => r.correcto === 'Sí').length;
     const porcentaje = total ? Math.round((correctas / total) * 100) : 0;
-    const fechaSesion = sessionStartISO ? new Date(sessionStartISO).toLocaleString() : new Date().toLocaleString();
+    
+    // Usar gameState.sessionStartISO o fallback a sessionStartISO global
+    const fechaInicio = gameState.sessionStartISO || sessionStartISO;
+    const fechaSesion = fechaInicio ? new Date(fechaInicio).toLocaleString() : new Date().toLocaleString();
 
     // Página 1: Resumen (similar a hoja "Resumen")
     pdf.setFontSize(18);
@@ -194,40 +554,99 @@ async function generarReportePDF() {
     }
 
     // Página 2: Detalle (similar a hoja "Detalle")
-    if (Array.isArray(resultsLog) && resultsLog.length > 0 && pdf.autoTable) {
+    console.log(`[DEBUG PDF] Resultados para segunda página: ${resultados.length} elementos`);
+    console.log(`[DEBUG PDF] pdf.autoTable disponible: ${!!pdf.autoTable}`);
+    
+    // Siempre agregar la segunda página si hay resultados
+    if (resultados.length > 0) {
       pdf.addPage();
       pdf.setFontSize(14);
       pdf.text('Detalle de intentos', 40, 40);
       pdf.setFontSize(10);
       pdf.text(`Alumno: ${alumno || '-'}  ·  Curso/Grupo: ${curso || '-'}  ·  Nivel: ${nivel}`, 40, 58);
 
-      const head2 = [[ 'Fecha','Nivel','Palabra','Respuesta','Correcto','Tiempo (ms)','Significado' ]];
-      const body2 = resultsLog.map(r => [
-        r.fechaISO,
-        r.nivel,
-        r.palabra,
-        r.respuesta,
-        r.correcto,
-        String(r.tiempoMs ?? ''),
-        getCachedMeaning(r.palabra) || ''
-      ]);
-      pdf.autoTable({
-        startY: 70,
-        head: head2,
-        body: body2,
-        styles: { fontSize: 9, cellPadding: 3 },
-        headStyles: { fillColor: [15, 99, 245], halign: 'center', valign: 'middle', textColor: 255 },
-        columnStyles: {
-          0: { cellWidth: 90 },
-          1: { cellWidth: 30 },
-          2: { cellWidth: 70 },
-          3: { cellWidth: 70 },
-          4: { cellWidth: 30, halign: 'center' },
-          5: { cellWidth: 40, halign: 'right' },
-          6: { cellWidth: 'auto' }
-        },
-        margin: { left: 40, right: 30 }
-      });
+      if (pdf.autoTable) {
+        const head2 = [[ 'Fecha','Nivel','Palabra','Respuesta','Correcto','Tiempo (ms)','Significado' ]];
+        const body2 = await Promise.all(resultados.map(async r => {
+          // Buscar significado solo para palabras incorrectas
+          let significado = '';
+          const esIncorrecta = r.correcto !== 'Sí' && r.correcto !== true;
+          
+          if (esIncorrecta) {
+            significado = getCachedMeaning(r.palabra) || '';
+            if (!significado) {
+              try {
+                significado = await fetchSignificadoPreciso(r.palabra) || 'Definición no disponible';
+              } catch(_) {
+                significado = 'Definición no disponible';
+              }
+            }
+            // Limitar longitud del significado para evitar desbordamiento
+            if (significado.length > 150) {
+              significado = significado.substring(0, 147) + '...';
+            }
+          }
+          
+          return [
+            r.fechaISO || '',
+            r.nivel || '',
+            r.palabra || '',
+            r.respuesta || '',
+            r.correcto || '',
+            String(r.tiempoMs ?? ''),
+            significado
+          ];
+        }));
+        pdf.autoTable({
+          startY: 70,
+          head: head2,
+          body: body2,
+          styles: { fontSize: 9, cellPadding: 3 },
+          headStyles: { fillColor: [15, 99, 245], halign: 'center', valign: 'middle', textColor: 255 },
+          columnStyles: {
+            0: { cellWidth: 90 },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 70 },
+            3: { cellWidth: 70 },
+            4: { cellWidth: 30, halign: 'center' },
+            5: { cellWidth: 40, halign: 'right' },
+            6: { cellWidth: 160, overflow: 'linebreak', cellPadding: 2 }
+          },
+          margin: { left: 40, right: 40 },
+          didParseCell: function (data) {
+            // Colorear la columna "Palabra" (índice 2) según si es correcta
+            if (data.column.index === 2) {
+              const rowIndex = data.row.index;
+              const resultado = resultados[rowIndex];
+              if (resultado) {
+                const esCorrecta = resultado.correcto === 'Sí' || resultado.correcto === true;
+                data.cell.styles.textColor = esCorrecta ? [0, 128, 0] : [220, 53, 69]; // Verde o rojo
+              }
+            }
+            // Colorear la columna "Respuesta" (índice 3) según si es correcta
+            if (data.column.index === 3) {
+              const rowIndex = data.row.index;
+              const resultado = resultados[rowIndex];
+              if (resultado) {
+                const esCorrecta = resultado.correcto === 'Sí' || resultado.correcto === true;
+                data.cell.styles.textColor = esCorrecta ? [0, 128, 0] : [220, 53, 69]; // Verde o rojo
+              }
+            }
+          }
+        });
+      } else {
+        // Fallback si autoTable no está disponible
+        let yPos = 80;
+        pdf.setFontSize(8);
+        resultados.forEach((r, index) => {
+          if (yPos > 750) { // Nueva página si se acaba el espacio
+            pdf.addPage();
+            yPos = 40;
+          }
+          pdf.text(`${index + 1}. ${r.palabra} → "${r.respuesta}" (${r.correcto}) - ${r.tiempoMs}ms`, 40, yPos);
+          yPos += 15;
+        });
+      }
     }
 
     const ts = new Date();
@@ -243,51 +662,40 @@ async function generarReportePDF() {
   }
 }
 
-// Configurar que Enter avance al siguiente campo en la página de configuración
+// ============================================================================
+// NAVEGACIÓN OPTIMIZADA CON ENTER
+// ============================================================================
+
 function configurarEnterSiguiente() {
-  const order = [
-    'alumno',
-    'curso',
-    'filtroLetras',
-    'cantidad',
-    'todasLasLetras',
-    'btnNext',
-  ];
-  const getEl = id => document.getElementById(id);
-  const focusIdx = (idx) => {
-    const id = order[idx];
-    const el = getEl(id);
-    if (!el) return;
-    if (id === 'btnNext') {
-      el.focus();
-      return;
+  const fieldOrder = ['alumno', 'curso', 'filtroLetras', 'cantidad', 'btnNext'];
+  
+  const focusElement = (elementId) => {
+    const element = document.getElementById(elementId);
+    if (!element) return false;
+    
+    element.focus();
+    if (element.select && elementId !== 'btnNext') {
+      try { element.select(); } catch(_) {}
     }
-    el.focus();
-    if (el.select) { try { el.select(); } catch(_) {} }
+    return true;
   };
-  order.forEach((id, i) => {
-    const el = getEl(id);
-    if (!el) return;
-    el.addEventListener('keydown', (e) => {
+  
+  fieldOrder.forEach((id, index) => {
+    const element = document.getElementById(id);
+    if (!element) return;
+    
+    element.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter') return;
       e.preventDefault();
-      // Si estamos en el último, ejecutar siguiente
+      
       if (id === 'btnNext') {
         goNextFromConfig();
         return;
       }
-      // Si estamos en el checkbox, pasar al botón Siguiente
-      if (id === 'todasLasLetras') {
-        const btn = getEl('btnNext');
-        if (btn) btn.focus();
-        return;
-      }
-      // Foco al siguiente elemento disponible
-      let j = i + 1;
-      while (j < order.length) {
-        const nextEl = getEl(order[j]);
-        if (nextEl) { focusIdx(j); break; }
-        j++;
+      
+      // Buscar siguiente elemento válido
+      for (let i = index + 1; i < fieldOrder.length; i++) {
+        if (focusElement(fieldOrder[i])) break;
       }
     });
   });
@@ -311,6 +719,64 @@ async function fetchDesdeWikcionario(palabra) {
   return linea.replace(/^\s*\(.*?\)\s*/, '').trim();
 }
 let sessionStartISO = null;
+
+// ============================================================================
+// UTILIDADES OPTIMIZADAS
+// ============================================================================
+
+// Función optimizada para mezclar arrays (Fisher-Yates)
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// Función optimizada para obtener elementos del DOM
+function getElement(id) {
+  return document.getElementById(id);
+}
+
+// Función optimizada para mostrar/ocultar elementos
+function toggleElement(id, show) {
+  const element = getElement(id);
+  if (element) {
+    element.style.display = show ? '' : 'none';
+  }
+  return element;
+}
+
+// Función optimizada para limpiar campos de entrada
+function clearInputs(...ids) {
+  ids.forEach(id => {
+    const element = getElement(id);
+    if (element) {
+      if (element.type === 'checkbox') {
+        element.checked = false;
+      } else {
+        element.value = '';
+      }
+    }
+  });
+}
+
+// Función optimizada para validar campos requeridos
+function validateRequiredFields(fields) {
+  const errors = [];
+  
+  fields.forEach(({ id, name }) => {
+    const element = getElement(id);
+    const value = (element?.value || '').trim();
+    
+    if (!value) {
+      errors.push({ id, name, element });
+    }
+  });
+  
+  return errors;
+}
 
 // Control del estado habilitado del botón "Siguiente" en la página de configuración
 function updateNextEnabled() {
@@ -475,13 +941,11 @@ if (isMobile) {
 
 // --- Banco de errores ---
 function cargarBancoErrores() {
-  try {
-    const raw = localStorage.getItem(getErrorBankKey());
-    return raw ? JSON.parse(raw) : {};
-  } catch (_) { return {}; }
+  return CacheManager.get(getErrorBankKey()) || {};
 }
+
 function guardarBancoErrores(bank) {
-  try { localStorage.setItem(getErrorBankKey(), JSON.stringify(bank)); } catch (_) {}
+  CacheManager.set(getErrorBankKey(), bank);
 }
 function registrarError(palabra) {
   const bank = cargarBancoErrores();
@@ -498,21 +962,22 @@ function normalizar(texto) {
 
 // Carga/caché del diccionario
 async function obtenerListaFrecuencias() {
-  try {
-    const cacheRaw = localStorage.getItem(CACHE_KEY);
-    if (cacheRaw) {
-      const { ts, data } = JSON.parse(cacheRaw);
-      if (Date.now() - ts < CACHE_TTL_MS && Array.isArray(data) && data.length > 0) {
-        return data;
-      }
-    }
-  } catch (e) {
-    // ignorar errores de parseo
+  // Verificar caché usando CacheManager
+  const cached = CacheManager.get(CONFIG.CACHE_KEY);
+  if (cached && !CacheManager.isExpired(cached.ts, CONFIG.CACHE_TTL_MS) && 
+      Array.isArray(cached.data) && cached.data.length > 0) {
+    console.log(`[DEBUG CARGA] Usando palabras desde caché: ${cached.data.length} palabras`);
+    return cached.data;
   }
 
-  const resp = await fetch(WORDS_URL);
-  if (!resp.ok) throw new Error("No se pudo descargar la lista de palabras");
+  console.log(`[DEBUG CARGA] Intentando cargar desde: ${CONFIG.RAE_WORD_LIST_URL}`);
+  const resp = await fetch(CONFIG.RAE_WORD_LIST_URL);
+  if (!resp.ok) {
+    console.log(`[DEBUG CARGA] Error cargando archivo principal, código: ${resp.status}`);
+    throw new Error("No se pudo descargar la lista de palabras");
+  }
   const text = await resp.text();
+  console.log(`[DEBUG CARGA] Archivo cargado exitosamente, tamaño: ${text.length} caracteres`);
   // Formato: "palabra frecuencia" por línea
   const lines = text.split(/\r?\n/);
   const data = [];
@@ -520,9 +985,11 @@ async function obtenerListaFrecuencias() {
   const reEspanol = /^[a-záéíóúüñ]+$/; // solo letras del español en minúsculas
   const reVocal = /[aeiouáéíóúü]/;
   const reConsonante = /[bcdfghjklmnñpqrstvwxyz]/;
-  // Heurísticas conservadoras para evitar préstamos y grafías no propias del español estándar
+  // Heurísticas expandidas para evitar préstamos y grafías no propias del español estándar
   const reFinalH = /h$/;                 // casi inexistente en español estándar
-  const reForeignDigraphs = /(kh|sh|th|ph|gh)/; // comunes en préstamos
+  const reForeignDigraphs = /(kh|sh|th|ph|gh|ck|dg|ng|nk|sch|tch|wh|zh)/i; // comunes en préstamos
+  const reDoubleConsonants = /(bb|cc|dd|ff|gg|hh|jj|kk|ll|mm|nn|pp|qq|ss|tt|vv|ww|xx|yy|zz)/i; // consonantes dobles no españolas (excepto rr, ll, cc en algunos casos)
+  const reUncommonCombos = /(tz|ck|dj|gn|kn|pn|ps|pt|sc|sk|sl|sm|sn|sp|st|sw|tw|wr|xc|xt|yl|yn|ys|yt)/i; // combinaciones poco españolas
   for (const line of lines) {
     if (!line) continue;
     const parts = line.trim().split(/\s+/);
@@ -538,9 +1005,25 @@ async function obtenerListaFrecuencias() {
     if (palabra.length < 2) continue;
     // Lista negra por defecto
     if (EXCLUDE_DEFAULT.has(palabra)) continue;
-    // Evitar terminaciones y dígrafos poco españoles
+    // Aplicar filtros avanzados de patrones no españoles
     if (reFinalH.test(palabra)) continue;
     if (reForeignDigraphs.test(palabra)) continue;
+    if (reDoubleConsonants.test(palabra)) continue;
+    if (reUncommonCombos.test(palabra)) continue;
+    
+    // Verificar patrones generales no españoles
+    if (NON_SPANISH_PATTERNS.some(pattern => pattern.test(palabra))) continue;
+    
+    // Verificar prefijos y sufijos extranjeros
+    const haseForeignPrefix = Array.from(FOREIGN_PREFIXES).some(prefix => palabra.startsWith(prefix));
+    const hasForeignSuffix = Array.from(FOREIGN_SUFFIXES).some(suffix => palabra.endsWith(suffix));
+    if (haseForeignPrefix || hasForeignSuffix) continue;
+    
+    // Filtro adicional: palabras demasiado largas (posibles compuestos técnicos)
+    if (palabra.length > 15) continue;
+    
+    // Filtro adicional: palabras con números o caracteres especiales
+    if (/[0-9_\-@#$%&*+=<>{}\[\]\|\\/:;"'`~^]/.test(palabra)) continue;
     // Debe tener al menos una vocal y una consonante (evita solo vocales o solo consonantes)
     if (!reVocal.test(palabra) || !reConsonante.test(palabra)) continue;
     // Evitar cadenas de la misma letra repetida (p.ej. "aaaa", "ssss")
@@ -551,9 +1034,8 @@ async function obtenerListaFrecuencias() {
   }
   // Ordenar por mayor frecuencia primero
   data.sort((a, b) => b.freq - a.freq);
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data }));
-  } catch (_) {}
+  // Guardar en caché usando CacheManager
+  CacheManager.set(CONFIG.CACHE_KEY, { ts: Date.now(), data });
   return data;
 }
 
@@ -562,19 +1044,127 @@ async function prepararNivelesDinamicos() {
   cargandoDiccionario = true;
   try {
     const data = await obtenerListaFrecuencias();
-    // Construir niveles por rangos de ranking
-    // fácil: top 2000, medio: 2001-10000, difícil: 10001-20000
-    const maxConsideradas = 20000; // limita el tamaño en memoria
-    const top = data.slice(0, maxConsideradas).map(d => d.palabra);
-    const facil = top.slice(0, 2000);
-    const medio = top.slice(2000, 10000);
-    const dificil = top.slice(10000);
+    console.log(`[DEBUG DINAMICO] Datos cargados: ${data.length} palabras`);
+    
+    // Construir niveles por rangos de ranking y criterios de dificultad mejorados
+    const top = data.slice(0, CONFIG.MAX_CONSIDERED_WORDS).map(d => d.palabra);
+    
+    // Nivel Fácil: palabras comunes con desafíos ortográficos básicos
+    const facilCandidatas = top.slice(0, 2000);
+    const facil = facilCandidatas.filter(palabra => {
+      return palabra.length >= 4 && palabra.length <= 7 && 
+             (/[áéíóúüñ]/.test(palabra) || // incluir acentos y ñ
+              palabra.includes('ll') || palabra.includes('rr') ||
+              palabra.includes('ch') || palabra.includes('qu') ||
+              /[bv]/.test(palabra) || /[gj]/.test(palabra)) && // b/v, g/j
+             !/[qwxyz]/.test(palabra); // evitar letras muy raras
+    }).slice(0, 600);
+    console.log(`[DEBUG DINAMICO] Nivel Fácil: ${facil.length} palabras de ${facilCandidatas.length} candidatas`);
+    console.log(`[DEBUG DINAMICO] Ejemplos fácil:`, facil.slice(0, 5));
+    
+    // Nivel Medio: palabras con múltiples desafíos ortográficos
+    const medioCandidatas = top.slice(1000, 8000);
+    const medio = medioCandidatas.filter(palabra => {
+      return palabra.length >= 6 && palabra.length <= 10 &&
+             ((/[áéíóúüñ]/.test(palabra) && /[bvgj]/.test(palabra)) || // acentos + b/v o g/j
+              /[áéíóúüñ].*[áéíóúüñ]/.test(palabra) || // múltiples acentos
+              (palabra.includes('cc') || palabra.includes('sc')) ||
+              (palabra.includes('mp') || palabra.includes('mb')) ||
+              /[hx]/.test(palabra) || // h muda, x
+              palabra.includes('gu') || palabra.includes('qu'));
+    }).slice(0, 800);
+    console.log(`[DEBUG DINAMICO] Nivel Medio: ${medio.length} palabras de ${medioCandidatas.length} candidatas`);
+    console.log(`[DEBUG DINAMICO] Ejemplos medio:`, medio.slice(0, 5));
+    
+    // Nivel Difícil: palabras muy complejas y desafiantes
+    const dificilCandidatas = top.slice(3000);
+    const dificil = dificilCandidatas.filter(palabra => {
+      return (palabra.length >= 9 || // palabras muy largas
+             (/[áéíóúüñ].*[áéíóúüñ].*[áéíóúüñ]/.test(palabra)) || // 3+ acentos
+             (palabra.includes('cc') && /[áéíóúüñ]/.test(palabra)) ||
+             (palabra.includes('sc') && palabra.length >= 8) ||
+             palabra.includes('xc') || palabra.includes('mn') ||
+             palabra.includes('pt') || palabra.includes('ct') ||
+             /[wy]/.test(palabra) || // letras muy raras
+             (/^[aeiou].*[aeiou].*[aeiou].*[aeiou]/.test(palabra) && palabra.length >= 8)) && // 4+ vocales en palabras largas
+             palabra.length <= 15; // evitar palabras excesivamente largas
+    }).slice(0, 500);
+    console.log(`[DEBUG DINAMICO] Nivel Difícil: ${dificil.length} palabras de ${dificilCandidatas.length} candidatas`);
+    console.log(`[DEBUG DINAMICO] Ejemplos difícil:`, dificil.slice(0, 5));
+    
     palabrasPorNivelDinamico = { facil, medio, dificil };
+    console.log(`[DEBUG DINAMICO] Niveles dinámicos preparados exitosamente`);
   } catch (e) {
     // si falla, mantener null para usar la base local
     console.warn("Fallo al preparar niveles dinámicos:", e);
   } finally {
     cargandoDiccionario = false;
+  }
+}
+
+// Función para filtrar solo letras/combinaciones difíciles de aprendizaje
+function filtrarLetrasEspanol(input) {
+  const valorOriginal = input.value;
+  
+  // Todas las letras y combinaciones permitidas
+  const elementosPermitidos = [
+    'b', 'v', 'g', 'j', 'c', 'z', 's', 'h', 'x', 'y', 'w',
+    'll', 'rr', 'ch', 'qu', 'gu', 'gü',
+    'br', 'bl', 'cr', 'cl', 'dr', 'fl', 'fr', 'gl', 'gr', 'pl', 'pr', 'tr',
+    'cc', 'sc', 'xc', 'mp', 'mb', 'nv', 'nf', 'nm'
+  ];
+  
+  let resultado = '';
+  
+  // Permitir solo caracteres que forman parte de elementos válidos
+  for (let i = 0; i < valorOriginal.length; i++) {
+    const charActual = valorOriginal[i].toLowerCase();
+    
+    // Si es el primer carácter o estamos construyendo
+    if (resultado.length === 0) {
+      // Verificar si puede ser inicio de algún elemento válido
+      let puedeSerInicio = false;
+      
+      for (const elemento of elementosPermitidos) {
+        if (elemento.startsWith(charActual)) {
+          puedeSerInicio = true;
+          break;
+        }
+      }
+      
+      if (puedeSerInicio) {
+        resultado += valorOriginal[i];
+      }
+    } else {
+      // Ya tenemos algo, verificar si al agregar este carácter sigue siendo válido
+      const posibleElemento = (resultado + valorOriginal[i]).toLowerCase();
+      let esValido = false;
+      
+      // Verificar si es exactamente un elemento válido
+      if (elementosPermitidos.includes(posibleElemento)) {
+        resultado += valorOriginal[i];
+        break; // Elemento completo encontrado, terminar
+      } else {
+        // Verificar si puede ser parte de un elemento más largo
+        for (const elemento of elementosPermitidos) {
+          if (elemento.startsWith(posibleElemento)) {
+            resultado += valorOriginal[i];
+            esValido = true;
+            break;
+          }
+        }
+        
+        if (!esValido) {
+          break; // No puede formar ningún elemento válido
+        }
+      }
+    }
+  }
+  
+  // Solo actualizar si es diferente
+  if (valorOriginal !== resultado) {
+    input.value = resultado;
+    input.setSelectionRange(resultado.length, resultado.length);
   }
 }
 
@@ -597,7 +1187,7 @@ async function prepararNivelesDinamicos() {
   // Refrescar meta inicial (se mostrará solo en page-game)
   refreshMetaAlumnoCurso();
   // Guardar al cambiar parámetros
-  ["alumno","curso","filtroLetras","cantidad","todasLasLetras"].forEach(id => {
+  ["alumno","curso","filtroLetras","cantidad"].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     const ev = (el.type === 'checkbox') ? 'change' : 'input';
@@ -724,12 +1314,12 @@ function goNextFromConfig() {
   refreshMetaAlumnoCurso();
   // Siempre iniciar una NUEVA sesión
   try {
-    sessionStartISO = new Date().toISOString();
-    palabras = [];
-    indice = 0;
-    aciertos = 0;
-    currentNivel = null;
-    resultsLog = [];
+    const now = new Date().toISOString();
+    sessionStartISO = now;
+    gameState.sessionStartISO = now;
+    gameState.reset();
+    // Sincronizar variables globales con gameState
+    syncWithGameState();
   } catch(_) {}
 
   // Limpiar UI de juego y reporte
@@ -761,70 +1351,87 @@ function goNextFromConfig() {
   refreshMetaAlumnoCurso(true);
 }
 
-// Mostrar debajo del título el Alumno y Curso/Grupo cuando corresponda
+// ============================================================================
+// ACTUALIZACIÓN DE METADATOS OPTIMIZADA
+// ============================================================================
+
 function refreshMetaAlumnoCurso(forceVisible = null) {
   const meta = document.getElementById('metaAlumnoCurso');
   if (!meta) return;
+  
   const alumno = (document.getElementById('alumno')?.value || '').trim();
-  const curso  = (document.getElementById('curso')?.value || '').trim();
-  // Etiqueta de nivel legible
-  const nivelMap = { facil: 'Fácil', medio: 'Medio', dificil: 'Difícil' };
-  const nivelTxt = currentNivel ? (nivelMap[currentNivel] || currentNivel) : null;
-  const partes = [
+  const curso = (document.getElementById('curso')?.value || '').trim();
+  
+  const parts = [
     `Alumno: ${alumno || '-'}`,
-    `Curso/Grupo: ${curso || '-'}`,
+    `Curso/Grupo: ${curso || '-'}`
   ];
-  if (nivelTxt) partes.push(`Nivel: ${nivelTxt}`);
-  // En reporte, incluir fecha/hora de la sesión si existe
-  const enReporte = !!document.getElementById('page-report')?.classList.contains('active');
-  if (enReporte && sessionStartISO) {
+  
+  // Agregar nivel si existe
+  if (currentNivel) {
+    const levelNames = { facil: 'Fácil', medio: 'Medio', dificil: 'Difícil' };
+    parts.push(`Nivel: ${levelNames[currentNivel] || currentNivel}`);
+  }
+  
+  // Agregar fecha en reporte
+  const isReportPage = document.getElementById('page-report')?.classList.contains('active');
+  if (isReportPage && sessionStartISO) {
     try {
-      const dt = new Date(sessionStartISO);
-      partes.push(`Fecha: ${dt.toLocaleString()}`);
+      const date = new Date(sessionStartISO);
+      parts.push(`Fecha: ${date.toLocaleString()}`);
     } catch(_) {}
   }
-  const texto = partes.join(' · ');
-  meta.textContent = texto;
+  
+  meta.textContent = parts.join(' · ');
+  
   // Determinar visibilidad
-  let visible;
-  if (forceVisible === null) {
-    const enJuego = !!document.getElementById('page-game')?.classList.contains('active');
-    const enReporte2 = !!document.getElementById('page-report')?.classList.contains('active');
-    visible = enJuego || enReporte2;
-  } else {
-    visible = !!forceVisible;
+  const shouldShow = forceVisible !== null ? forceVisible : 
+    (document.getElementById('page-game')?.classList.contains('active') || isReportPage);
+  meta.style.display = shouldShow ? '' : 'none';
+}
+
+// Nueva función para seleccionar nivel y configurar acentos
+function seleccionarNivel(nivel) {
+  console.log(`[DEBUG] Seleccionando nivel: ${nivel}`);
+  
+  const acentosCheckbox = document.getElementById('acentosObligatorios');
+  
+  // Configurar checkbox según el nivel
+  if (nivel === 'facil') {
+    // Básico: siempre deshabilitado, forzar a false sin importar estado previo
+    acentosCheckbox.checked = false;
+    acentosCheckbox.disabled = true;
+  } else if (nivel === 'medio' || nivel === 'dificil') {
+    // Medio y Difícil: habilitar checkbox y respetar la elección del usuario
+    acentosCheckbox.disabled = false;
+    // NO cambiar el checked, mantener lo que el usuario había elegido
   }
-  meta.style.display = visible ? '' : 'none';
+  
+  // Bloquear todos los botones de nivel una vez seleccionado
+  const bF = document.getElementById('btnNivelFacil');
+  const bM = document.getElementById('btnNivelMedio');
+  const bD = document.getElementById('btnNivelDificil');
+  [bF, bM, bD].forEach(b => { if (b) b.disabled = true; });
+  
+  // Marcar el nivel seleccionado
+  [bF, bM, bD].forEach(b => { if (b) b.classList.remove('btn-selected'); });
+  const map = { facil: bF, medio: bM, dificil: bD };
+  if (map[nivel]) map[nivel].classList.add('btn-selected');
+  
+  // Iniciar el juego
+  iniciarJuego(nivel);
 }
 
 async function iniciarJuego(nivel) {
-  // Ir a página de juego y ocultar inmediatamente el reporte de refuerzo
-  goToPage('page-game');
-  // Deshabilitar botones de nivel y marcar seleccionado
-  try {
-    const bF = document.getElementById('btnNivelFacil');
-    const bM = document.getElementById('btnNivelMedio');
-    const bD = document.getElementById('btnNivelDificil');
-    [bF,bM,bD].forEach(b => { if (b) { b.disabled = true; b.classList.remove('btn-selected'); } });
-    const map = { facil: bF, medio: bM, dificil: bD };
-    if (map[nivel]) map[nivel].classList.add('btn-selected');
-  } catch(_) {}
-  try {
-    const rep0 = document.getElementById('reporteFinal');
-    if (rep0) { rep0.innerHTML = ''; rep0.style.display = 'none'; }
-  } catch (_) {}
-  // Marcar inicio de sesión
-  sessionStartISO = new Date().toISOString();
-  // Validar datos del alumno y curso antes de iniciar
+  console.log(`[DEBUG] Iniciando juego con nivel: ${nivel}`);
+  
+  // Validar campos obligatorios
   const alumnoEl2 = document.getElementById('alumno');
   const cursoEl2 = document.getElementById('curso');
   const alumnoVal = (alumnoEl2?.value || '').trim();
   const cursoVal = (cursoEl2?.value || '').trim();
   if (!alumnoVal || !cursoVal) {
-    const faltantes = [];
-    if (!alumnoVal) faltantes.push('Alumno');
-    if (!cursoVal) faltantes.push('Curso/Grupo');
-    const msg = `Falta completar: ${faltantes.join(' y ')}.`;
+    const msg = 'Faltan datos de alumno o curso.';
     // Mensaje emergente
     try { alert(msg); } catch(_) {}
     const res = document.getElementById('resultado');
@@ -863,6 +1470,10 @@ async function iniciarJuego(nivel) {
   const fuente = palabrasPorNivelDinamico || palabrasPorNivel;
   // Base por nivel
   let base = [...fuente[nivel]];
+  
+  console.log(`[DEBUG NIVEL] Usando fuente: ${palabrasPorNivelDinamico ? 'DINAMICA' : 'ESTATICA'}`);
+  console.log(`[DEBUG NIVEL] Nivel: ${nivel}, palabras disponibles: ${base.length}`);
+  console.log(`[DEBUG NIVEL] Primeras 10 palabras del nivel ${nivel}:`, base.slice(0, 10));
   currentNivel = nivel;
   guardarParametros(); // asegurar persistencia al iniciar
   // Actualizar meta para que muestre también el nivel
@@ -871,9 +1482,19 @@ async function iniciarJuego(nivel) {
   const juego = document.getElementById('juego');
   if (juego) juego.style.display = '';
 
+  // Bloquear checkbox de acentos y botón volver durante el juego
+  const acentosCheckbox = document.getElementById('acentosObligatorios');
+  if (acentosCheckbox) {
+    acentosCheckbox.disabled = true;
+  }
+  
+  const btnVolver = document.getElementById('btnVolverGame');
+  if (btnVolver) {
+    btnVolver.disabled = true;
+  }
+
   // Leer parámetros de UI
   const rawFiltro = document.getElementById("filtroLetras").value || "";
-  const matchAll = document.getElementById("todasLasLetras").checked;
   const cantidadInput = parseInt(document.getElementById("cantidad").value, 10);
 
   // Normalizar filtro: lista de fragmentos/letras, sin vacíos
@@ -890,33 +1511,51 @@ async function iniciarJuego(nivel) {
   if (filtros.length > 0) {
     candidatas = base.filter(p => {
       const pn = normalizar(p);
-      if (matchAll) {
-        return filtros.every(f => pn.includes(f));
-      } else {
-        return filtros.some(f => pn.includes(f));
-      }
+      // Siempre requerir que contenga TODAS las letras especificadas
+      return filtros.every(f => pn.includes(f));
     });
   }
 
-  // Modo estricto: validar con Hunspell es_ANY
+  // Modo estricto: validar con sistema mejorado de filtrado
   try {
     const strict = !!document.getElementById('strictMode')?.checked;
     if (strict) {
-      await ensureHunspellES_ANY();
+      console.log(`Aplicando modo estricto a ${candidatas.length} palabras candidatas...`);
       const filtered = [];
+      let processedCount = 0;
+      
       for (const w of candidatas) {
-        // Evitar bloquear por fallos de red: checkSpanish maneja errores devolviendo true
-        if (await checkSpanish(w)) filtered.push(w);
+        processedCount++;
+        // Mostrar progreso cada 100 palabras
+        if (processedCount % 100 === 0) {
+          console.log(`Procesadas ${processedCount}/${candidatas.length} palabras...`);
+        }
+        
+        if (await checkSpanish(w)) {
+          filtered.push(w);
+        }
       }
+      
+      console.log(`Filtrado completado: ${filtered.length}/${candidatas.length} palabras válidas`);
       candidatas = filtered;
-      // Notificaciones si queda muy poco o nada
+      
+      // Notificaciones mejoradas con más información
       if (candidatas.length === 0) {
-        try { alert('Modo estricto: no hay palabras válidas tras el filtro. Ajusta los filtros de letras, la cantidad, o desactiva el modo estricto.'); } catch(_) {}
+        try { 
+          alert('Modo estricto: no hay palabras válidas tras el filtro avanzado. Sugerencias:\n• Ajusta los filtros de letras\n• Reduce la cantidad solicitada\n• Desactiva temporalmente el modo estricto'); 
+        } catch(_) {}
       } else if (candidatas.length < 5) {
-        try { alert('Modo estricto: muy pocas palabras válidas. Considera relajar filtros o desactivar temporalmente el modo estricto.'); } catch(_) {}
+        try { 
+          alert(`Modo estricto: solo ${candidatas.length} palabras válidas encontradas. Para obtener más palabras:\n• Relaja los filtros de letras\n• Desactiva temporalmente el modo estricto`); 
+        } catch(_) {}
+      } else if (candidatas.length < 20) {
+        console.log(`Advertencia: Solo ${candidatas.length} palabras válidas. Considera relajar los filtros para obtener más variedad.`);
       }
     }
-  } catch(_) {}
+  } catch(error) {
+    console.error('Error en modo estricto:', error);
+    // En caso de error, mantener las candidatas sin filtrar
+  }
 
   // Si no hay candidatas, avisar y salir
   if (candidatas.length === 0) {
@@ -929,11 +1568,8 @@ async function iniciarJuego(nivel) {
     return;
   }
 
-  // Mezclar aleatoriamente (Fisher–Yates shuffle)
-  for (let i = candidatas.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [candidatas[i], candidatas[j]] = [candidatas[j], candidatas[i]];
-  }
+  // Mezclar usando función optimizada
+  candidatas = shuffleArray(candidatas);
 
   // Cantidad: si el usuario ingresa un número válido, usarlo tal cual;
   // si deja vacío, usar 50 (o menos si no hay tantas candidatas)
@@ -961,12 +1597,8 @@ async function iniciarJuego(nivel) {
       usados.add(key);
     }
   }
-  // Mezclar selección final para distribuir aleatoriamente las reforzadas entre el resto
-  for (let i = seleccion.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [seleccion[i], seleccion[j]] = [seleccion[j], seleccion[i]];
-  }
-  palabras = seleccion;
+  // Mezclar selección final
+  palabras = shuffleArray(seleccion);
 
   indice = 0;
   aciertos = 0;
@@ -993,7 +1625,7 @@ async function iniciarJuego(nivel) {
       const input = document.getElementById('respuesta');
       if (input) input.focus();
       reproducirPalabra();
-    }, 700);
+    }, CONFIG.FIRST_WORD_DELAY_MS);
   };
   if (!voicesReady) {
     // Esperar a que se carguen las voces (máx ~1.6s)
@@ -1004,38 +1636,38 @@ async function iniciarJuego(nivel) {
         clearInterval(iv);
         startFirst();
       }
-    }, 200);
+    }, CONFIG.VOICE_WAIT_MS);
   } else {
     startFirst();
   }
 }
 
 // Persistencia de parámetros en localStorage
-const PARAMS_KEY = 'dictado_params_v1';
+// ============================================================================
+// GESTIÓN DE PARÁMETROS REFACTORIZADA
+// ============================================================================
+
 function guardarParametros() {
   const params = {
     alumno: document.getElementById('alumno')?.value || '',
     curso: document.getElementById('curso')?.value || '',
     filtroLetras: document.getElementById('filtroLetras')?.value || '',
     cantidad: document.getElementById('cantidad')?.value || '',
-    todas: !!document.getElementById('todasLasLetras')?.checked,
     strict: !!document.getElementById('strictMode')?.checked,
   };
-  try { localStorage.setItem(PARAMS_KEY, JSON.stringify(params)); } catch (_) {}
+  CacheManager.set(CONFIG.PARAMS_KEY, params);
   return params;
 }
+
 function cargarParametros() {
-  try {
-    const raw = localStorage.getItem(PARAMS_KEY);
-    if (!raw) return;
-    const p = JSON.parse(raw);
-    if (p.alumno) document.getElementById('alumno').value = p.alumno;
-    if (p.curso) document.getElementById('curso').value = p.curso;
-    if (typeof p.filtroLetras === 'string') document.getElementById('filtroLetras').value = p.filtroLetras;
-    if (typeof p.cantidad === 'string' || typeof p.cantidad === 'number') document.getElementById('cantidad').value = p.cantidad;
-    if (typeof p.todas === 'boolean') document.getElementById('todasLasLetras').checked = p.todas;
-    if (typeof p.strict === 'boolean') document.getElementById('strictMode').checked = p.strict;
-  } catch (_) {}
+  const p = CacheManager.get(CONFIG.PARAMS_KEY);
+  if (!p) return;
+  
+  if (p.alumno) document.getElementById('alumno').value = p.alumno;
+  if (p.curso) document.getElementById('curso').value = p.curso;
+  if (typeof p.filtroLetras === 'string') document.getElementById('filtroLetras').value = p.filtroLetras;
+  if (typeof p.cantidad === 'string' || typeof p.cantidad === 'number') document.getElementById('cantidad').value = p.cantidad;
+  if (typeof p.strict === 'boolean') document.getElementById('strictMode').checked = p.strict;
 }
 
 // --- Navegación con Enter en configuración ---
@@ -1059,7 +1691,7 @@ function attachEnterNavigationConfig() {
   try {
     const page = document.getElementById('page-config');
     if (!page) return;
-    const elements = page.querySelectorAll('#alumno, #curso, #filtroLetras, #todasLasLetras, #cantidad, #strictMode');
+    const elements = page.querySelectorAll('#alumno, #curso, #filtroLetras, #cantidad, #strictMode');
     elements.forEach(el => {
       const handler = (ev) => {
         if (ev.key === 'Enter') {
@@ -1102,7 +1734,11 @@ try {
 async function reproducirPalabra(fromUser = false) {
   const speakBtn = document.getElementById("btnSpeak");
   const palabra = palabras[indice];
-  if (!palabra) return;
+  console.log(`[DEBUG] reproducirPalabra() llamada. Índice: ${indice}, palabra: ${palabra}`);
+  if (!palabra) {
+    console.log(`[DEBUG] No hay palabra en índice ${indice}, saliendo de reproducirPalabra()`);
+    return;
+  }
 
   // En móvil, asegurar unlock primero
   if (isMobile && fromUser) {
@@ -1191,12 +1827,24 @@ function comprobar() {
   const tEnd = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
   const tiempoMs = Math.max(0, Math.round(tEnd - lastStartTime));
 
-  if (normalizar(entrada) === normalizar(palabraCorrecta)) {
+  // Verificar si los acentos son obligatorios
+  const acentosObligatorios = document.getElementById('acentosObligatorios')?.checked || false;
+  
+  let esCorrect;
+  if (acentosObligatorios) {
+    // Comparación exacta (con acentos)
+    esCorrect = entrada.toLowerCase() === palabraCorrecta.toLowerCase();
+  } else {
+    // Comparación sin acentos (modo actual)
+    esCorrect = normalizar(entrada) === normalizar(palabraCorrecta);
+  }
+
+  if (esCorrect) {
     resultado.innerHTML = "✅ ¡Correcto!";
     resultado.className = "correcto";
     aciertos++;
   } else {
-    resultado.innerHTML = "❌ Incorrecto. Era: " + palabraCorrecta;
+    resultado.innerHTML = `<span style="color: #6c757d;">❌ Incorrecto. Escribiste:</span> <strong style="color: #dc3545;">"${entrada}"</strong> <span style="color: #6c757d;">| Era:</span> <strong style="color: #28a745;">"${palabraCorrecta}"</strong>`;
     resultado.className = "incorrecto";
     // Registrar en banco de errores
     registrarError(palabraCorrecta);
@@ -1208,11 +1856,13 @@ function comprobar() {
     nivel: currentNivel || "-",
     palabra: palabraCorrecta,
     respuesta: entrada,
-    correcto: normalizar(entrada) === normalizar(palabraCorrecta) ? "Sí" : "No",
+    correcto: esCorrect ? "Sí" : "No",
     tiempoMs
   });
 
   indice++;
+  console.log(`[DEBUG] Después de incrementar índice: ${indice}, total palabras: ${palabras.length}`);
+  
   // Actualizar barra de progreso
   try {
     const total = palabras.length;
@@ -1229,9 +1879,11 @@ function comprobar() {
   try { speechSynthesis.cancel(); } catch (_) {}
 
   if (indice < palabras.length) {
-    // Esperar un poco más para evitar cortes y permitir comprensión
-    setTimeout(() => { reproducirPalabra(); }, 2200);
+    console.log(`[DEBUG] Continuando con siguiente palabra. Índice: ${indice}, palabra: ${palabras[indice]}`);
+    // No reproducir automáticamente, esperar a que el usuario presione Enter
+    console.log(`[DEBUG] Esperando Enter del usuario para reproducir la siguiente palabra`);
   } else {
+    console.log(`[DEBUG] Juego terminado. Índice: ${indice}, total: ${palabras.length}`);
     const total = palabras.length;
     const correctas = aciertos;
     const incorrectas = total - correctas;
@@ -1239,6 +1891,13 @@ function comprobar() {
 
     document.getElementById("marcador").innerHTML =
       `Juego terminado. Aciertos: ${correctas}/${total} (${porcentaje}%)`;
+
+    // Desbloquear solo checkbox de acentos al terminar el juego
+    // El botón volver permanece bloqueado para forzar ir al reporte
+    const acentosCheckbox = document.getElementById('acentosObligatorios');
+    if (acentosCheckbox) {
+      acentosCheckbox.disabled = false;
+    }
 
     // Mostrar reporte de palabras incorrectas con significados
     const errores = resultsLog.filter(r => r.correcto === 'No');
@@ -1258,7 +1917,7 @@ function comprobar() {
         html += '<ul style="margin:6px 0 0 18px;">';
         errores.forEach((e, idx) => {
           const itemId = `def_${idx}`;
-          html += `<li><strong>${e.palabra}</strong> — escrito: "${e.respuesta}"<div id="${itemId}" style="color:#334155; margin-top:2px;">Buscando significado...</div></li>`;
+          html += `<li><strong style="color:#dc3545;">${e.palabra}</strong> — escrito: "<span style="color:#dc3545;">${e.respuesta}</span>"<div id="${itemId}" style="color:#334155; margin-top:2px;">Buscando significado...</div></li>`;
         });
         html += '</ul></div>';
       } else {
@@ -1329,12 +1988,22 @@ function irAlEjercicio() {
   if (juego) juego.style.display = 'none'; // oculto el recuadro hasta que se elija nivel e inicie
 
   // Rehabilitar botones de nivel y limpiar selección
-  try {
-    const bF = document.getElementById('btnNivelFacil');
-    const bM = document.getElementById('btnNivelMedio');
-    const bD = document.getElementById('btnNivelDificil');
-    [bF,bM,bD].forEach(b => { if (b) { b.disabled = false; b.classList.remove('btn-selected'); } });
-  } catch(_) {}
+  const bF = document.getElementById('btnNivelFacil');
+  const bM = document.getElementById('btnNivelMedio');
+  const bD = document.getElementById('btnNivelDificil');
+  [bF,bM,bD].forEach(b => { if (b) { b.disabled = false; b.classList.remove('btn-selected'); } });
+  
+  // Rehabilitar botón volver y checkbox de acentos al limpiar juego
+  const btnVolver = document.getElementById('btnVolverGame');
+  if (btnVolver) {
+    btnVolver.disabled = false;
+  }
+  
+  const acentosCheckbox = document.getElementById('acentosObligatorios');
+  if (acentosCheckbox) {
+    acentosCheckbox.disabled = false;
+    acentosCheckbox.checked = false;
+  }
 
   // Volver a la página del juego (selector de nivel visible)
   goToPage('page-game');
@@ -1345,13 +2014,11 @@ function irAlEjercicio() {
 // --- Diccionario: obtener significado con caché ---
 const MEANING_CACHE_KEY = 'dictado_meaning_cache_v1';
 function cargarCacheSignificados() {
-  try {
-    const raw = localStorage.getItem(MEANING_CACHE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch(_) { return {}; }
+  return CacheManager.get(CONFIG.MEANING_CACHE_KEY) || {};
 }
+
 function guardarCacheSignificados(cache) {
-  try { localStorage.setItem(MEANING_CACHE_KEY, JSON.stringify(cache)); } catch(_) {}
+  CacheManager.set(CONFIG.MEANING_CACHE_KEY, cache);
 }
 function getCachedMeaning(palabra) {
   try {
@@ -1416,43 +2083,94 @@ async function fetchSignificado(palabra) {
       return defW;
     }
   } catch(_) {}
-  // Intento 4: Wikcionario sin tildes
+  // Intento 4: RAE API (más preciso para español)
   try {
-    const base2 = normalizar(palabra).replace(/_/g,'');
-    const defW2 = sanitizeMeaning(await fetchDesdeWikcionario(base2));
-    if (defW2) {
-      cache[key] = { def: defW2, ts: Date.now() };
-      guardarCacheSignificados(cache);
-      return defW2;
+    const raeResp = await fetch(`https://dle.rae.es/data/search?w=${encodeURIComponent(palabra)}`);
+    if (raeResp.ok) {
+      const raeData = await raeResp.json();
+      if (raeData.res && raeData.res.length > 0) {
+        const primerResultado = raeData.res[0];
+        if (primerResultado.header) {
+          const defRAE = sanitizeMeaning(primerResultado.header);
+          if (defRAE) {
+            cache[key] = { def: defRAE, ts: Date.now() };
+            guardarCacheSignificados(cache);
+            return defRAE;
+          }
+        }
+      }
     }
   } catch(_) {}
-  // Intento 5: Resumen de Wikipedia en español (útil para nombres propios y conceptos)
+  
+  return null; // No se encontró definición
+}
+
+// Nueva función con fuentes más precisas para español
+async function fetchSignificadoPreciso(palabra) {
+  const key = normalizar(palabra);
+  const cache = cargarCacheSignificados();
+  if (cache[key] && cache[key].def) return cache[key].def;
+  
+  // Intento 1: Fundéu (Fundación del Español Urgente) - muy preciso
   try {
-    const defWp = sanitizeMeaning(await fetchDesdeWikipediaEs(palabra));
-    if (defWp) {
-      cache[key] = { def: defWp, ts: Date.now() };
-      guardarCacheSignificados(cache);
-      return defWp;
+    const fundeuResp = await fetch(`https://www.fundeu.es/consulta/${encodeURIComponent(palabra)}`);
+    if (fundeuResp.ok) {
+      const fundeuText = await fundeuResp.text();
+      const definicion = extraerDefinicionFundeu(fundeuText);
+      if (definicion) {
+        cache[key] = { def: definicion, ts: Date.now() };
+        guardarCacheSignificados(cache);
+        return definicion;
+      }
     }
   } catch(_) {}
-  // Intento 6: Wikipedia con primera letra en mayúscula (nombres propios)
+  
+  // Intento 2: WordReference ES-ES (muy confiable)
   try {
-    const cap = palabra.charAt(0).toUpperCase() + palabra.slice(1);
-    const defWp2 = sanitizeMeaning(await fetchDesdeWikipediaEs(cap));
-    if (defWp2) {
-      cache[key] = { def: defWp2, ts: Date.now() };
-      guardarCacheSignificados(cache);
-      return defWp2;
+    const wrResp = await fetch(`https://www.wordreference.com/definicion/${encodeURIComponent(palabra)}`);
+    if (wrResp.ok) {
+      const wrText = await wrResp.text();
+      const definicion = extraerDefinicionWordReference(wrText);
+      if (definicion) {
+        cache[key] = { def: definicion, ts: Date.now() };
+        guardarCacheSignificados(cache);
+        return definicion;
+      }
     }
   } catch(_) {}
-  // Intento 7: Wikipedia con forma normalizada (sin tildes)
+  
+  // Intento 3: Usar la función original como fallback
+  const fallback = await fetchSignificado(palabra);
+  if (fallback) {
+    return fallback;
+  }
+  
+  return null; // No se encontró definición
+}
+
+// Función para extraer definición de Fundéu
+function extraerDefinicionFundeu(html) {
   try {
-    const base3 = normalizar(palabra).replace(/_/g,'');
-    const defWp3 = sanitizeMeaning(await fetchDesdeWikipediaEs(base3));
-    if (defWp3) {
-      cache[key] = { def: defWp3, ts: Date.now() };
-      guardarCacheSignificados(cache);
-      return defWp3;
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const content = doc.querySelector('.entry-content, .post-content, .content');
+    if (content) {
+      const text = content.textContent.trim();
+      const sentences = text.split('.').filter(s => s.length > 20);
+      return sentences[0] ? sentences[0].trim() + '.' : null;
+    }
+  } catch(_) {}
+  return null;
+}
+
+// Función para extraer definición de WordReference
+function extraerDefinicionWordReference(html) {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const definition = doc.querySelector('.definition, .sense, .trans');
+    if (definition) {
+      return definition.textContent.trim();
     }
   } catch(_) {}
   return null;
@@ -1471,6 +2189,116 @@ function extraerDefinicionBreve(apiData) {
     }
     return null;
   } catch(_) { return null; }
+}
+
+// Función para generar PDF de práctica manual
+function generarPracticaManual() {
+  console.log('=== INICIO PRÁCTICA MANUAL ===');
+  
+  // Test básico primero - igual que la versión que funcionaba
+  try {
+    if (!window.jspdf) {
+      alert('jsPDF no está cargado. Verifica que las librerías estén incluidas.');
+      return;
+    }
+    
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF();
+    
+    // Obtener resultados del ejercicio
+    let resultados = [];
+    if (Array.isArray(resultsLog) && resultsLog.length > 0) {
+      resultados = resultsLog;
+    } else if (Array.isArray(gameState.resultsLog) && gameState.resultsLog.length > 0) {
+      resultados = gameState.resultsLog;
+    }
+
+    // Verificar si hay datos del ejercicio
+    if (!resultados || resultados.length === 0) {
+      // Si no hay datos, crear PDF básico
+      pdf.setFontSize(16);
+      pdf.text('Práctica Manual de Ortografía', 20, 30);
+      pdf.text('Completa primero un ejercicio para generar práctica', 20, 50);
+      pdf.save('practica-manual-sin-datos.pdf');
+      alert('No hay datos del ejercicio. Completa primero un ejercicio.');
+      return;
+    }
+
+    // Filtrar palabras incorrectas
+    const palabrasIncorrectas = resultados.filter(r => {
+      const esCorrecta = r.correcto === 'Sí' || r.correcto === true || r.correcto === 'Si';
+      return !esCorrecta;
+    });
+
+    if (palabrasIncorrectas.length === 0) {
+      // Si no hay incorrectas, crear PDF básico
+      pdf.setFontSize(16);
+      pdf.text('Práctica Manual de Ortografía', 20, 30);
+      pdf.text('¡Excelente! No hay palabras incorrectas para practicar', 20, 50);
+      pdf.save('practica-manual-sin-errores.pdf');
+      alert('¡Excelente! No hay palabras incorrectas para practicar.');
+      return;
+    }
+
+    // Extraer palabras correctas únicas
+    const palabrasCorrectas = [...new Set(palabrasIncorrectas.map(r => r.palabra))];
+    console.log('Palabras a practicar:', palabrasCorrectas);
+
+    // Crear PDF con cuadrícula
+    const pdf2 = new jsPDF('portrait', 'pt', 'a4');
+    
+    // Título
+    pdf2.setFontSize(16);
+    pdf2.text('Práctica Manual de Ortografía', 40, 40);
+    
+    const alumnoTexto = document.getElementById('alumno')?.value || 'Alumno';
+    const cursoTexto = document.getElementById('curso')?.value || 'Curso';
+    
+    pdf2.setFontSize(10);
+    pdf2.text(`Alumno: ${alumnoTexto}  ·  Curso/Grupo: ${cursoTexto}`, 40, 60);
+    pdf2.text(`Palabras a practicar: ${palabrasCorrectas.length}`, 40, 75);
+
+    // Cuadrícula simple
+    const startY = 100;
+    const cellWidth = 110;
+    const cellHeight = 60;
+    const cols = 4;
+    const rows = 10;
+    
+    let wordIndex = 0;
+    
+    for (let row = 0; row < rows && wordIndex < palabrasCorrectas.length; row++) {
+      for (let col = 0; col < cols && wordIndex < palabrasCorrectas.length; col++) {
+        const x = 40 + (col * cellWidth);
+        const y = startY + (row * cellHeight);
+        
+        // Dibujar celda
+        pdf2.rect(x, y, cellWidth, cellHeight);
+        
+        // Escribir palabra
+        pdf2.setFontSize(12);
+        pdf2.text(palabrasCorrectas[wordIndex], x + 5, y + 20);
+        
+        // Líneas para práctica
+        for (let line = 1; line <= 3; line++) {
+          const lineY = y + 20 + (line * 10);
+          pdf2.line(x + 5, lineY, x + cellWidth - 5, lineY);
+        }
+        
+        wordIndex++;
+      }
+    }
+    
+    // Descargar
+    const fecha = new Date().toISOString().slice(0, 10);
+    const nombreArchivo = `practica-manual-${alumnoTexto.replace(/\s+/g, '-')}-${fecha}.pdf`;
+    pdf2.save(nombreArchivo);
+    console.log('PDF generado exitosamente');
+    
+  } catch (error) {
+    console.error('Error en práctica manual:', error);
+    alert('Error generando PDF: ' + error.message);
+  }
 }
 
 // (Eliminadas funciones de Excel/CSV: construirWorkbookDesdeResultados, generarReporteExcel, generarCSVfallback)
