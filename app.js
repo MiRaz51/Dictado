@@ -656,7 +656,14 @@ async function generarReportePDF() {
     const cursoSlug = (curso).replace(/[^\w\-]+/g,'_');
     const meta = [alumnoSlug, cursoSlug].filter(Boolean).join('_');
     const base = `Reporte_Final_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}`;
-    pdf.save(meta ? `${base}_${meta}.pdf` : `${base}.pdf`);
+    const fileName = meta ? `${base}_${meta}.pdf` : `${base}.pdf`;
+    
+    pdf.save(fileName);
+    
+    // Mostrar confirmación después de la descarga
+    setTimeout(() => {
+      alert(`✅ Reporte PDF descargado exitosamente:\n${fileName}`);
+    }, 500);
   } catch (e) {
     console.error('Fallo al generar PDF', e);
     try { alert('Ocurrió un error al generar el PDF.'); } catch(_) {}
@@ -2330,7 +2337,11 @@ function generarPracticaManual() {
       pdf.text('Práctica Manual de Ortografía', 20, 30);
       pdf.text('Completa primero un ejercicio para generar práctica', 20, 50);
       pdf.save('practica-manual-sin-datos.pdf');
-      alert('No hay datos del ejercicio. Completa primero un ejercicio.');
+      
+      // Mostrar confirmación después de la descarga
+      setTimeout(() => {
+        alert('✅ Archivo descargado: practica-manual-sin-datos.pdf\n\nNota: Completa primero un ejercicio para generar práctica.');
+      }, 500);
       return;
     }
 
@@ -2346,7 +2357,11 @@ function generarPracticaManual() {
       pdf.text('Práctica Manual de Ortografía', 20, 30);
       pdf.text('¡Excelente! No hay palabras incorrectas para practicar', 20, 50);
       pdf.save('practica-manual-sin-errores.pdf');
-      alert('¡Excelente! No hay palabras incorrectas para practicar.');
+      
+      // Mostrar confirmación después de la descarga
+      setTimeout(() => {
+        alert('✅ Archivo descargado: practica-manual-sin-errores.pdf\n\n¡Excelente! No hay palabras incorrectas para practicar.');
+      }, 500);
       return;
     }
 
@@ -2404,6 +2419,11 @@ function generarPracticaManual() {
     const nombreArchivo = `practica-manual-${alumnoTexto.replace(/\s+/g, '-')}-${fecha}.pdf`;
     pdf2.save(nombreArchivo);
     console.log('PDF generado exitosamente');
+    
+    // Mostrar confirmación después de la descarga
+    setTimeout(() => {
+      alert(`✅ Práctica Manual descargada exitosamente:\n${nombreArchivo}`);
+    }, 500);
     
   } catch (error) {
     console.error('Error en práctica manual:', error);
