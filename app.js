@@ -1712,7 +1712,7 @@ async function iniciarJuego(nivel) {
         respuestaInput.setAttribute('autocorrect', 'off');
         respuestaInput.setAttribute('autocapitalize', 'off');
         respuestaInput.setAttribute('spellcheck', 'false');
-        respuestaInput.setAttribute('inputmode', 'none');
+        respuestaInput.setAttribute('inputmode', 'text');
         
         // Desactivar extensiones de corrección
         respuestaInput.setAttribute('data-gramm', 'false');
