@@ -1715,13 +1715,25 @@ async function iniciarJuego(nivel) {
       
       // Enfocar el campo de texto después del scroll y forzar deshabilitación de corrector
       setTimeout(() => {
+        // Configurar eventos para manejo dinámico del readonly
+        respuestaInput.addEventListener('click', function() {
+          this.removeAttribute('readonly');
+          this.setAttribute('inputmode', 'text');
+          setTimeout(() => this.focus(), 10);
+        });
+        
+        respuestaInput.addEventListener('blur', function() {
+          this.setAttribute('readonly', 'true');
+          this.setAttribute('inputmode', 'none');
+        });
+        
         respuestaInput.focus();
         
         // Configurar input para deshabilitar corrector y sugerencias
         respuestaInput.setAttribute('autocomplete', 'off');
         respuestaInput.setAttribute('autocorrect', 'off');
         respuestaInput.setAttribute('spellcheck', 'false');
-        respuestaInput.setAttribute('inputmode', 'verbatim');
+        respuestaInput.setAttribute('inputmode', 'none');
         respuestaInput.setAttribute('enterkeyhint', 'done');
         respuestaInput.setAttribute('data-ms-editor', 'false');
         respuestaInput.setAttribute('data-gramm', 'false');
@@ -1729,6 +1741,7 @@ async function iniciarJuego(nivel) {
         respuestaInput.setAttribute('data-enable-grammarly', 'false');
         respuestaInput.setAttribute('data-gramm-mode', 'false');
         respuestaInput.setAttribute('data-lt-installed', 'false');
+        respuestaInput.setAttribute('readonly', 'true');
         
         // Método adicional para iOS Safari
         if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
