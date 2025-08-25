@@ -1714,18 +1714,18 @@ async function iniciarJuego(nivel) {
       setTimeout(() => {
         respuestaInput.focus();
         
-        // Forzar deshabilitación de corrector ortográfico en móviles
+        // Configurar input para deshabilitar corrector y sugerencias
         respuestaInput.setAttribute('autocomplete', 'off');
         respuestaInput.setAttribute('autocorrect', 'off');
-        respuestaInput.setAttribute('autocapitalize', 'off');
         respuestaInput.setAttribute('spellcheck', 'false');
-        respuestaInput.setAttribute('inputmode', 'text');
-        
-        // Desactivar extensiones de corrección
+        respuestaInput.setAttribute('inputmode', 'verbatim');
+        respuestaInput.setAttribute('enterkeyhint', 'done');
+        respuestaInput.setAttribute('data-ms-editor', 'false');
         respuestaInput.setAttribute('data-gramm', 'false');
         respuestaInput.setAttribute('data-gramm_editor', 'false');
         respuestaInput.setAttribute('data-enable-grammarly', 'false');
-        respuestaInput.setAttribute('data-ms-editor', 'false');
+        respuestaInput.setAttribute('data-gramm-mode', 'false');
+        respuestaInput.setAttribute('data-lt-installed', 'false');
         
         // Método adicional para iOS Safari
         if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
