@@ -141,14 +141,53 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 .progress-fill { position: absolute; left:0; top:0; bottom:0; width:0; background: linear-gradient(90deg, #22c55e, #16a34a); transition: width .3s ease; }
 .progress-text { font-size: 13px; color: #1f2937; font-weight: 600; min-width: 48px; text-align: right; }
 
+/* Formulario responsive */
+.form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.form-field {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.form-field input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 /* --- Responsive (móvil) --- */
 @media (max-width: 640px) {
   .container { padding: 20px 14px 40px; }
   .topbar .inner { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
   h2 { font-size: 24px; }
 
+  /* Formulario en móvil: campos apilados */
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .form-field {
+    min-width: 0;
+  }
+
   /* Forzar inputs a ocupar ancho completo, incluso si tienen width inline */
-  input[type="text"], input[type="number"], select { width: 100% !important; }
+  input[type="text"], input[type="number"], select { 
+    width: 100% !important; 
+    box-sizing: border-box;
+  }
 
   /* Apilar acciones y botones cómodos al tacto */
   .actions { gap: 8px; }

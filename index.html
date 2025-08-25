@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Práctica de Ortografía</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,34 +17,18 @@
   <!-- Página 1: Configuración -->
   <section id="page-config" class="page active">
     <div class="card" style="margin: 12px 0;">
-      <div style="margin-bottom:8px;">
-        <label for="alumno"><strong>Alumno</strong>: </label>
-        <input id="alumno" type="text" placeholder="Nombre y apellido" style="max-width: 320px;" tabindex="1">
-        <div id="alumnoError" class="help-error">Este campo es obligatorio.</div>
-        <label for="curso" style="margin-left: 12px;"><strong>Curso/Grupo</strong>: </label>
-        <input id="curso" type="text" placeholder="Ej.: 3°A" style="width: 120px;" tabindex="2">
-        <div id="cursoError" class="help-error">Este campo es obligatorio.</div>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="alumno"><strong>Participante</strong>:</label>
+          <input id="alumno" type="text" placeholder="Nombre y apellido" tabindex="1">
+          <div id="alumnoError" class="help-error">Este campo es obligatorio.</div>
+        </div>
+        <div class="form-field">
+          <label for="curso"><strong>Curso/Grupo</strong>:</label>
+          <input id="curso" type="text" placeholder="Ej.: 3°A" tabindex="2">
+          <div id="cursoError" class="help-error">Este campo es obligatorio.</div>
+        </div>
       </div>
-      <label for="filtroLetras"><strong>Letras a reforzar</strong> (solo una letra o combinación, ej.: rr): </label>
-      <input id="filtroLetras" type="text" placeholder="ej.: rr" style="max-width: 320px;" tabindex="3" oninput="filtrarLetrasEspanol(this)">
-      <div class="hint" style="font-size: 12px; color: #666; margin-top: 4px;">
-        <strong>Letras individuales:</strong> b, v, g, j, c, z, s, h, x, y, w<br>
-        <strong>Dígrafos:</strong> ll, rr, ch, qu, gu, gü<br>
-        <strong>Grupos consonánticos:</strong> br, bl, cr, cl, dr, fl, fr, gl, gr, pl, pr, tr<br>
-        <strong>Combinaciones ortográficas:</strong> cc, sc, xc, mp, mb, nv, nf, nm
-      </div>
-      <br>
-      <label for="cantidad"><strong>Cantidad de palabras</strong>: </label>
-      <input id="cantidad" type="number" min="1" step="1" placeholder="vacío = 50" style="width: 90px;" tabindex="5">
-      <div class="hint">Si dejas vacía la cantidad, se tomarán 50 palabras (o menos si no hay tantas). La cantidad siempre se limita al máximo disponible.</div>
-      
-      <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
-        <label>
-          <input id="strictMode" type="checkbox" checked tabindex="7"> Modo estricto (solo español)
-        </label>
-        <button class="btn-ghost" type="button" onclick="actualizarDiccionarioHunspell()" tabindex="8">Actualizar diccionario</button>
-      </div>
-      
     </div>
     <div class="actions">
       <button id="btnNext" class="btn-ghost" onclick="goNextFromConfig()" disabled tabindex="6">Siguiente ▸</button>
@@ -53,11 +37,37 @@
 
   <!-- Página 2: Ejercicio -->
   <section id="page-game" class="page">
-    <p>Selecciona un nivel de dificultad:</p>
+    <div class="card" style="margin: 12px 0;">
+      <!-- 1. Cantidad de palabras -->
+      <label for="cantidad"><strong>Cantidad de palabras</strong>: </label>
+      <input id="cantidad" type="number" min="1" step="1" placeholder="vacío = 50" style="width: 90px;" tabindex="1" onkeydown="handleEnterNavigation(event, 'filtroLetras')">
+      <div class="hint">Al no ingresar cantidad, será 50 palabras como máximo disponible.</div>
+      <br><br>
+      
+      <!-- 3. Letras a reforzar -->
+      <label for="filtroLetras"><strong>Letras a reforzar</strong> (solo una letra o combinación, ej.: rr): </label>
+      <input id="filtroLetras" type="text" placeholder="ej.: rr" style="max-width: 320px;" tabindex="2" oninput="filtrarLetrasEspanol(this)" onkeydown="handleEnterNavigation(event, 'acentosObligatorios')">
+      <div class="hint" style="font-size: 12px; color: #666; margin-top: 4px;">
+        <strong>Letras individuales:</strong> b, v, g, j, c, z, s, h, x, y, w<br>
+        <strong>Dígrafos:</strong> ll, rr, ch, qu, gu, gü<br>
+        <strong>Grupos consonánticos:</strong> br, bl, cr, cl, dr, fl, fr, gl, gr, pl, pr, tr<br>
+        <strong>Combinaciones ortográficas:</strong> cc, sc, xc, mp, mb, nv, nf, nm
+      </div>
+      <br>
+      
+      <!-- 5. Modo estricto y Actualizar diccionario -->
+      <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+        <label>
+          <input id="strictMode" type="checkbox" checked tabindex="5" onkeydown="handleEnterNavigation(event, 'btnActualizarDict')"> Modo estricto (solo español)
+        </label>
+        <button id="btnActualizarDict" class="btn-ghost" type="button" onclick="actualizarDiccionarioHunspell()" tabindex="6" onkeydown="handleEnterNavigation(event, 'btnNivelFacil')">Actualizar diccionario</button>
+      </div>
+    </div>
     
+    <!-- 2. Acentos obligatorios -->
     <div style="margin-top: 10px; margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
       <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-        <input id="acentosObligatorios" type="checkbox" style="margin: 0;">
+        <input id="acentosObligatorios" type="checkbox" style="margin: 0;" tabindex="3" onkeydown="handleEnterNavigation(event, 'btnNivelFacil')">
         <span>Acentos obligatorios (más difícil)</span>
       </label>
       <div id="acentosHelp" style="font-size: 12px; color: #666; margin-top: 4px;">
@@ -65,11 +75,13 @@
       </div>
     </div>
     
+    <p>Selecciona un nivel de dificultad:</p>
+    
     <div class="actions" style="margin-top: 6px;">
       <button id="btnVolverGame" class="btn-ghost" onclick="goToPage('page-config')">◂ Volver</button>
-      <button id="btnNivelFacil" onclick="seleccionarNivel('facil')">🌱 Nivel Fácil</button>
-      <button id="btnNivelMedio" onclick="seleccionarNivel('medio')">🌿 Nivel Medio</button>
-      <button id="btnNivelDificil" onclick="seleccionarNivel('dificil')">🌳 Nivel Difícil</button>
+      <button id="btnNivelFacil" onclick="seleccionarNivel('facil')" onkeydown="handleArrowNavigation(event, 'btnNivelMedio', 'btnNivelDificil')">🌱 Nivel Fácil</button>
+      <button id="btnNivelMedio" onclick="seleccionarNivel('medio')" onkeydown="handleArrowNavigation(event, 'btnNivelDificil', 'btnNivelFacil')">🌿 Nivel Medio</button>
+      <button id="btnNivelDificil" onclick="seleccionarNivel('dificil')" onkeydown="handleArrowNavigation(event, 'btnNivelFacil', 'btnNivelMedio')">🌳 Nivel Difícil</button>
     </div>
     <div id="juego" class="card" style="display:none; margin-top:14px;">
       <div class="avance-row">
@@ -81,7 +93,7 @@
       <div class="row" style="margin-top:6px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <button id="btnSpeak" onclick="reproducirPalabra(true)">🔊 Reproducir palabra</button>
         <button id="btnEnableAudio" class="btn-ghost" style="display:none;" onclick="unlockTTS(); reproducirPalabra(true)">Permitir audio</button>
-        <input type="text" id="respuesta" placeholder="Escribe aquí" style="flex: 1 1 200px; min-width: 0; max-width: 100%;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" data-ms-editor="false">
+        <input type="text" id="respuesta" placeholder="Escribe aquí" style="flex: 1 1 200px; min-width: 0; max-width: 100%;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none" data-ms-editor="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false">
         <button onclick="comprobar()">Comprobar</button>
       </div>
       <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
@@ -97,9 +109,9 @@
   <!-- Página 3: Reporte final -->
   <section id="page-report" class="page">
     <div class="actions" style="margin-top: 6px;">
-      <button class="btn-ghost" onclick="goToPage('page-config')">◂ Nueva lección</button>
-      <button class="btn-ghost" onclick="irAlEjercicio()">Ir al ejercicio</button>
-      <button onclick="generarReportePDF()">⬇️ Descargar PDF</button>
+      <button class="btn-ghost" onclick="goToPage('page-config')">◂ Nueva Sesión</button>
+      <button class="btn-ghost" onclick="irAlEjercicio()">Nuevo ejercicio</button>
+      <button onclick="generarReportePDF()">⬇️ Reporte PDF</button>
       <button onclick="generarPracticaManual()">📝 Práctica Manual</button>
     </div>
     <div class="card" style="margin-top: 14px;">

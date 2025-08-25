@@ -494,6 +494,7 @@ async function generarReportePDF() {
     const filtroLetras = (document.getElementById('filtroLetras')?.value || '').trim();
     const todas = document.getElementById('todasLasLetras')?.checked ? 'Sí' : 'No';
     const cant = (document.getElementById('cantidad')?.value || '').trim() || 'todas';
+    const acentosObligatorios = document.getElementById('acentosObligatorios')?.checked ? 'Sí' : 'No';
     
     // Intentar obtener resultados de múltiples fuentes
     let resultados = [];
@@ -529,8 +530,8 @@ async function generarReportePDF() {
         ['Total palabras', String(total)],
         ['Aciertos', String(correctas)],
         ['Porcentaje', porcentaje + '%'],
-        ['Filtro letras', filtroLetras || '-'],
-        ['Requiere todas', todas],
+        ['Letras a reforzar', filtroLetras || '-'],
+        ['Acentos obligatorios', acentosObligatorios],
         ['Cantidad solicitada', String(cant)],
         ['Alumno', alumno || '-'],
         ['Curso/Grupo', curso || '-'],
@@ -1257,9 +1258,22 @@ function goToPage(pageId) {
   const ids = ['page-config','page-game','page-report'];
   ids.forEach(id => {
     const el = document.getElementById(id);
-    if (!el) return;
-    el.classList.toggle('active', id === pageId);
+    if (el) {
+      el.classList.toggle('active', id === pageId);
+    }
   });
+  
+  // Preseleccionar primer campo cuando se abre la página 2
+  if (pageId === 'page-game') {
+    setTimeout(() => {
+      const cantidadField = document.getElementById('cantidad');
+      if (cantidadField && !cantidadField.disabled) {
+        cantidadField.focus();
+        try { cantidadField.select(); } catch (_) {}
+      }
+    }, 100);
+  }
+  
   // Si navegamos al reporte, asegurarnos de mostrarlo
   if (pageId === 'page-report') {
     const rep = document.getElementById('reporteFinal');
@@ -1363,7 +1377,7 @@ function refreshMetaAlumnoCurso(forceVisible = null) {
   const curso = (document.getElementById('curso')?.value || '').trim();
   
   const parts = [
-    `Alumno: ${alumno || '-'}`,
+    `Participante: ${alumno || '-'}`,
     `Curso/Grupo: ${curso || '-'}`
   ];
   
@@ -1394,17 +1408,27 @@ function refreshMetaAlumnoCurso(forceVisible = null) {
 function seleccionarNivel(nivel) {
   console.log(`[DEBUG] Seleccionando nivel: ${nivel}`);
   
+  // Bloquear todos los elementos de configuración
+  const cantidad = document.getElementById('cantidad');
+  const filtroLetras = document.getElementById('filtroLetras');
+  const strictMode = document.getElementById('strictMode');
   const acentosCheckbox = document.getElementById('acentosObligatorios');
+  const btnActualizar = document.querySelector('button[onclick="actualizarDiccionarioHunspell()"]');
   
-  // Configurar checkbox según el nivel
+  // Deshabilitar todos los controles
+  if (cantidad) cantidad.disabled = true;
+  if (filtroLetras) filtroLetras.disabled = true;
+  if (strictMode) strictMode.disabled = true;
+  if (btnActualizar) btnActualizar.disabled = true;
+  
+  // Configurar checkbox de acentos según el nivel
   if (nivel === 'facil') {
     // Básico: siempre deshabilitado, forzar a false sin importar estado previo
     acentosCheckbox.checked = false;
     acentosCheckbox.disabled = true;
   } else if (nivel === 'medio' || nivel === 'dificil') {
-    // Medio y Difícil: habilitar checkbox y respetar la elección del usuario
-    acentosCheckbox.disabled = false;
-    // NO cambiar el checked, mantener lo que el usuario había elegido
+    // Medio y Difícil: deshabilitar pero mantener el valor seleccionado
+    acentosCheckbox.disabled = true;
   }
   
   // Bloquear todos los botones de nivel una vez seleccionado
@@ -1422,6 +1446,47 @@ function seleccionarNivel(nivel) {
   iniciarJuego(nivel);
 }
 
+// Función para navegación con Enter entre campos
+function handleEnterNavigation(event, nextElementId) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    event.stopPropagation();
+    console.log(`[DEBUG] Navegando de ${event.target.id} a ${nextElementId}`);
+    
+    // Usar setTimeout para evitar conflictos con otros event handlers
+    setTimeout(() => {
+      const nextElement = document.getElementById(nextElementId);
+      if (nextElement && !nextElement.disabled) {
+        nextElement.focus();
+        console.log(`[DEBUG] Focus puesto en ${nextElementId}`);
+        // Si es un input de texto, seleccionar todo el contenido
+        if (nextElement.type === 'text' || nextElement.type === 'number') {
+          try { nextElement.select(); } catch (_) {}
+        }
+      } else {
+        console.log(`[DEBUG] Elemento ${nextElementId} no encontrado o deshabilitado`);
+      }
+    }, 10);
+  }
+}
+
+// Función para navegación con flechas entre botones de nivel
+function handleArrowNavigation(event, rightElementId, leftElementId) {
+  if (event.key === 'ArrowRight') {
+    event.preventDefault();
+    const rightElement = document.getElementById(rightElementId);
+    if (rightElement && !rightElement.disabled) {
+      rightElement.focus();
+    }
+  } else if (event.key === 'ArrowLeft') {
+    event.preventDefault();
+    const leftElement = document.getElementById(leftElementId);
+    if (leftElement && !leftElement.disabled) {
+      leftElement.focus();
+    }
+  }
+}
+
 // Hacer funciones disponibles globalmente para GitHub Pages
 window.seleccionarNivel = seleccionarNivel;
 window.goToPage = goToPage;
@@ -1429,6 +1494,8 @@ window.goNextFromConfig = goNextFromConfig;
 window.irAlEjercicio = irAlEjercicio;
 window.generarReportePDF = generarReportePDF;
 window.generarPracticaManual = generarPracticaManual;
+window.handleEnterNavigation = handleEnterNavigation;
+window.handleArrowNavigation = handleArrowNavigation;
 
 async function iniciarJuego(nivel) {
   console.log(`[DEBUG] Iniciando juego con nivel: ${nivel}`);
@@ -1623,6 +1690,45 @@ async function iniciarJuego(nivel) {
   } catch(_) {}
   document.getElementById("juego").style.display = "block";
 
+  // Scroll automático al campo de texto para mejor UX en móviles y desktop
+  setTimeout(() => {
+    const juegoElement = document.getElementById("juego");
+    const respuestaInput = document.getElementById("respuesta");
+    
+    if (juegoElement && respuestaInput) {
+      // Scroll suave al elemento del juego
+      juegoElement.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'center',
+        inline: 'nearest'
+      });
+      
+      // Enfocar el campo de texto después del scroll y forzar deshabilitación de corrector
+      setTimeout(() => {
+        respuestaInput.focus();
+        
+        // Forzar deshabilitación de corrector ortográfico en móviles
+        respuestaInput.setAttribute('autocomplete', 'off');
+        respuestaInput.setAttribute('autocorrect', 'off');
+        respuestaInput.setAttribute('autocapitalize', 'off');
+        respuestaInput.setAttribute('spellcheck', 'false');
+        respuestaInput.setAttribute('inputmode', 'none');
+        
+        // Desactivar extensiones de corrección
+        respuestaInput.setAttribute('data-gramm', 'false');
+        respuestaInput.setAttribute('data-gramm_editor', 'false');
+        respuestaInput.setAttribute('data-enable-grammarly', 'false');
+        respuestaInput.setAttribute('data-ms-editor', 'false');
+        
+        // Método adicional para iOS Safari
+        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+          respuestaInput.style.webkitUserSelect = 'text';
+          respuestaInput.style.webkitTouchCallout = 'none';
+        }
+      }, 500);
+    }
+  }, 100);
+
   // Estabilizar TTS para la primera reproducción: esperar voces y pequeño retraso
   try { speechSynthesis.cancel(); } catch (_) {}
   try { speechSynthesis.resume(); } catch (_) {}
@@ -1699,24 +1805,20 @@ function attachEnterNavigationConfig() {
   try {
     const page = document.getElementById('page-config');
     if (!page) return;
-    const elements = page.querySelectorAll('#alumno, #curso, #filtroLetras, #cantidad, #strictMode');
+    // Solo aplicar a elementos de page-config, NO a page-game
+    const elements = page.querySelectorAll('#alumno, #curso');
     elements.forEach(el => {
       const handler = (ev) => {
         if (ev.key === 'Enter') {
           ev.preventDefault();
           ev.stopPropagation();
-          // Si estamos en cantidad, solo enfocar Siguiente (no hacer click automático)
-          if (ev.currentTarget && ev.currentTarget.id === 'cantidad') {
-            const btn = document.getElementById('btnNext');
-            if (btn) { btn.focus(); return; }
-          }
           focusNextByTabIndex(ev.currentTarget);
         }
       };
       el.addEventListener('keydown', handler);
     });
 
-    // Capturar Enter a nivel de sección para evitar comportamiento por defecto
+    // Capturar Enter solo en page-config
     const captureHandler = (ev) => {
       if (ev.key === 'Enter') {
         const t = ev.target;
