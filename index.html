@@ -126,6 +126,24 @@
   <!-- Hunspell wrapper (Typo.js) para Modo estricto -->
   <script src="https://cdn.jsdelivr.net/npm/typo-js@1.2.1/typo.min.js"></script>
   <script src="app.js"></script>
+  
+  <!-- Modal personalizado para confirmación de descarga -->
+  <div id="downloadModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">✅ Descarga Completada</h3>
+        <span class="modal-close" onclick="closeDownloadModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p id="modalMessage">Archivo descargado exitosamente</p>
+        <div class="modal-actions">
+          <button id="openFileBtn" class="btn-primary" onclick="openDownloadedFile()">📂 Abrir Archivo</button>
+          <button class="btn-ghost" onclick="closeDownloadModal()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
   </div>
 </body>
 </html>

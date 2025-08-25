@@ -662,7 +662,7 @@ async function generarReportePDF() {
     
     // Mostrar confirmación después de la descarga
     setTimeout(() => {
-      alert(`✅ Reporte PDF descargado exitosamente:\n${fileName}`);
+      showDownloadModal('Reporte PDF', fileName);
     }, 500);
   } catch (e) {
     console.error('Fallo al generar PDF', e);
@@ -2340,7 +2340,7 @@ function generarPracticaManual() {
       
       // Mostrar confirmación después de la descarga
       setTimeout(() => {
-        alert('✅ Archivo descargado: practica-manual-sin-datos.pdf\n\nNota: Completa primero un ejercicio para generar práctica.');
+        showDownloadModal('Práctica Manual', 'practica-manual-sin-datos.pdf', 'Completa primero un ejercicio para generar práctica.');
       }, 500);
       return;
     }
@@ -2360,7 +2360,7 @@ function generarPracticaManual() {
       
       // Mostrar confirmación después de la descarga
       setTimeout(() => {
-        alert('✅ Archivo descargado: practica-manual-sin-errores.pdf\n\n¡Excelente! No hay palabras incorrectas para practicar.');
+        showDownloadModal('Práctica Manual', 'practica-manual-sin-errores.pdf', '¡Excelente! No hay palabras incorrectas para practicar.');
       }, 500);
       return;
     }
@@ -2422,7 +2422,7 @@ function generarPracticaManual() {
     
     // Mostrar confirmación después de la descarga
     setTimeout(() => {
-      alert(`✅ Práctica Manual descargada exitosamente:\n${nombreArchivo}`);
+      showDownloadModal('Práctica Manual', nombreArchivo);
     }, 500);
     
   } catch (error) {
@@ -2430,5 +2430,80 @@ function generarPracticaManual() {
     alert('Error generando PDF: ' + error.message);
   }
 }
+
+// ============================================================================
+// MODAL PERSONALIZADO PARA CONFIRMACIÓN DE DESCARGA
+// ============================================================================
+
+let currentDownloadedFile = null;
+
+function showDownloadModal(fileType, fileName, extraMessage = '') {
+  currentDownloadedFile = fileName;
+  
+  const modal = document.getElementById('downloadModal');
+  const title = document.getElementById('modalTitle');
+  const message = document.getElementById('modalMessage');
+  
+  title.textContent = `✅ ${fileType} Descargado`;
+  
+  let messageText = `Archivo descargado exitosamente:\n${fileName}`;
+  if (extraMessage) {
+    messageText += `\n\n${extraMessage}`;
+  }
+  
+  message.textContent = messageText;
+  message.style.whiteSpace = 'pre-line';
+  
+  modal.style.display = 'block';
+  
+  // Cerrar modal al hacer clic fuera de él
+  modal.onclick = function(event) {
+    if (event.target === modal) {
+      closeDownloadModal();
+    }
+  };
+}
+
+function closeDownloadModal() {
+  const modal = document.getElementById('downloadModal');
+  modal.style.display = 'none';
+  currentDownloadedFile = null;
+}
+
+function openDownloadedFile() {
+  if (!currentDownloadedFile) {
+    alert('No hay archivo para abrir.');
+    return;
+  }
+  
+  // Intentar abrir el archivo usando diferentes métodos
+  try {
+    // Método 1: Crear un enlace temporal y hacer clic
+    const link = document.createElement('a');
+    link.href = `file:///${currentDownloadedFile}`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Si no funciona, mostrar instrucciones
+    setTimeout(() => {
+      alert(`Para abrir el archivo:\n\n1. Ve a tu carpeta de Descargas\n2. Busca: ${currentDownloadedFile}\n3. Haz doble clic para abrirlo`);
+    }, 1000);
+    
+  } catch (error) {
+    console.log('Error abriendo archivo:', error);
+    alert(`Para abrir el archivo:\n\n1. Ve a tu carpeta de Descargas\n2. Busca: ${currentDownloadedFile}\n3. Haz doble clic para abrirlo`);
+  }
+  
+  closeDownloadModal();
+}
+
+// Cerrar modal con tecla Escape
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    closeDownloadModal();
+  }
+});
 
 // (Eliminadas funciones de Excel/CSV: construirWorkbookDesdeResultados, generarReporteExcel, generarCSVfallback)
