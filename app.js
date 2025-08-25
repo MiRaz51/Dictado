@@ -658,11 +658,14 @@ async function generarReportePDF() {
     const base = `Reporte_Final_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}`;
     const fileName = meta ? `${base}_${meta}.pdf` : `${base}.pdf`;
     
+    // Crear blob para poder abrir el archivo
+    const pdfBlob = pdf.output('blob');
+    
     pdf.save(fileName);
     
     // Mostrar confirmación después de la descarga
     setTimeout(() => {
-      showDownloadModal('Reporte PDF', fileName);
+      showDownloadModal('Reporte PDF', fileName, '', pdfBlob);
     }, 500);
   } catch (e) {
     console.error('Fallo al generar PDF', e);
@@ -2336,11 +2339,12 @@ function generarPracticaManual() {
       pdf.setFontSize(16);
       pdf.text('Práctica Manual de Ortografía', 20, 30);
       pdf.text('Completa primero un ejercicio para generar práctica', 20, 50);
+      const pdfBlob1 = pdf.output('blob');
       pdf.save('practica-manual-sin-datos.pdf');
       
       // Mostrar confirmación después de la descarga
       setTimeout(() => {
-        showDownloadModal('Práctica Manual', 'practica-manual-sin-datos.pdf', 'Completa primero un ejercicio para generar práctica.');
+        showDownloadModal('Práctica Manual', 'practica-manual-sin-datos.pdf', 'Completa primero un ejercicio para generar práctica.', pdfBlob1);
       }, 500);
       return;
     }
@@ -2356,11 +2360,12 @@ function generarPracticaManual() {
       pdf.setFontSize(16);
       pdf.text('Práctica Manual de Ortografía', 20, 30);
       pdf.text('¡Excelente! No hay palabras incorrectas para practicar', 20, 50);
+      const pdfBlob2 = pdf.output('blob');
       pdf.save('practica-manual-sin-errores.pdf');
       
       // Mostrar confirmación después de la descarga
       setTimeout(() => {
-        showDownloadModal('Práctica Manual', 'practica-manual-sin-errores.pdf', '¡Excelente! No hay palabras incorrectas para practicar.');
+        showDownloadModal('Práctica Manual', 'practica-manual-sin-errores.pdf', '¡Excelente! No hay palabras incorrectas para practicar.', pdfBlob2);
       }, 500);
       return;
     }
@@ -2415,14 +2420,18 @@ function generarPracticaManual() {
     }
     
     // Descargar
-    const fecha = new Date().toISOString().slice(0, 10);
-    const nombreArchivo = `practica-manual-${alumnoTexto.replace(/\s+/g, '-')}-${fecha}.pdf`;
+    const ts = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const alumnoSlug = alumnoTexto.replace(/\s+/g, '-');
+    const base = `Practica_Manual_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}`;
+    const nombreArchivo = alumnoSlug ? `${base}_${alumnoSlug}.pdf` : `${base}.pdf`;
+    const pdfBlob3 = pdf2.output('blob');
     pdf2.save(nombreArchivo);
     console.log('PDF generado exitosamente');
     
     // Mostrar confirmación después de la descarga
     setTimeout(() => {
-      showDownloadModal('Práctica Manual', nombreArchivo);
+      showDownloadModal('Práctica Manual', nombreArchivo, '', pdfBlob3);
     }, 500);
     
   } catch (error) {
@@ -2436,9 +2445,11 @@ function generarPracticaManual() {
 // ============================================================================
 
 let currentDownloadedFile = null;
+let currentDownloadedBlob = null;
 
-function showDownloadModal(fileType, fileName, extraMessage = '') {
+function showDownloadModal(fileType, fileName, extraMessage = '', pdfBlob = null) {
   currentDownloadedFile = fileName;
+  currentDownloadedBlob = pdfBlob;
   
   const modal = document.getElementById('downloadModal');
   const title = document.getElementById('modalTitle');
@@ -2468,32 +2479,41 @@ function closeDownloadModal() {
   const modal = document.getElementById('downloadModal');
   modal.style.display = 'none';
   currentDownloadedFile = null;
+  currentDownloadedBlob = null;
 }
 
 function openDownloadedFile() {
-  if (!currentDownloadedFile) {
+  if (!currentDownloadedFile || !currentDownloadedBlob) {
     alert('No hay archivo para abrir.');
     return;
   }
   
-  // Intentar abrir el archivo usando diferentes métodos
   try {
-    // Método 1: Crear un enlace temporal y hacer clic
-    const link = document.createElement('a');
-    link.href = `file:///${currentDownloadedFile}`;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    // Crear URL del blob para abrir directamente
+    const blobUrl = URL.createObjectURL(currentDownloadedBlob);
     
-    // Si no funciona, mostrar instrucciones
+    // Abrir en nueva pestaña/ventana
+    const newWindow = window.open(blobUrl, '_blank');
+    
+    if (!newWindow) {
+      // Si el popup fue bloqueado, crear enlace temporal
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.target = '_blank';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    
+    // Limpiar URL después de un tiempo para liberar memoria
     setTimeout(() => {
-      alert(`Para abrir el archivo:\n\n1. Ve a tu carpeta de Descargas\n2. Busca: ${currentDownloadedFile}\n3. Haz doble clic para abrirlo`);
-    }, 1000);
+      URL.revokeObjectURL(blobUrl);
+    }, 10000);
     
   } catch (error) {
-    console.log('Error abriendo archivo:', error);
-    alert(`Para abrir el archivo:\n\n1. Ve a tu carpeta de Descargas\n2. Busca: ${currentDownloadedFile}\n3. Haz doble clic para abrirlo`);
+    console.error('Error abriendo archivo:', error);
+    alert('Error al abrir el archivo. Búscalo en tu carpeta de Descargas.');
   }
   
   closeDownloadModal();
