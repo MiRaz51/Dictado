@@ -93,7 +93,7 @@
       <div class="row" style="margin-top:6px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <button id="btnSpeak" onclick="reproducirPalabra(true)">🔊 Reproducir palabra</button>
         <button id="btnEnableAudio" class="btn-ghost" style="display:none;" onclick="unlockTTS(); reproducirPalabra(true)">Permitir audio</button>
-        <input type="text" id="respuesta" placeholder="Escribe aquí" style="flex: 1 1 200px; min-width: 0; max-width: 100%;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none" enterkeyhint="done" data-ms-editor="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-gramm-mode="false" data-lt-installed="false" readonly>
+        <input type="password" id="respuesta" placeholder="Escribe aquí" style="flex: 1 1 200px; min-width: 0; max-width: 100%; -webkit-text-security: none;" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" enterkeyhint="done" data-ms-editor="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-gramm-mode="false" data-lt-installed="false">
         <button onclick="comprobar()">Comprobar</button>
       </div>
       <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
