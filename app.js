@@ -1717,22 +1717,16 @@ async function iniciarJuego(nivel) {
       setTimeout(() => {
         respuestaInput.focus();
         
-        // Configurar input para deshabilitar corrector y sugerencias
-        respuestaInput.setAttribute('autocomplete', 'new-password');
+        // Configurar input optimizado para escritorio
+        respuestaInput.setAttribute('autocomplete', 'off');
         respuestaInput.setAttribute('autocorrect', 'off');
         respuestaInput.setAttribute('spellcheck', 'false');
-        respuestaInput.setAttribute('inputmode', 'text');
-        respuestaInput.setAttribute('enterkeyhint', 'done');
         respuestaInput.setAttribute('data-ms-editor', 'false');
         respuestaInput.setAttribute('data-gramm', 'false');
         respuestaInput.setAttribute('data-gramm_editor', 'false');
         respuestaInput.setAttribute('data-enable-grammarly', 'false');
         respuestaInput.setAttribute('data-gramm-mode', 'false');
         respuestaInput.setAttribute('data-lt-installed', 'false');
-        
-        // Aplicar estilos para mostrar texto visible en campo password
-        respuestaInput.style.webkitTextSecurity = 'none';
-        respuestaInput.style.textSecurity = 'none';
         
         // Método adicional para iOS Safari
         if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {

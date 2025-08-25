@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Aplicación optimizada para escritorio -->
   <title>Práctica de Ortografía</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,7 +47,7 @@
       
       <!-- 3. Letras a reforzar -->
       <label for="filtroLetras"><strong>Letras a reforzar</strong> (solo una letra o combinación, ej.: rr): </label>
-      <input id="filtroLetras" type="text" placeholder="ej.: rr" style="max-width: 320px;" tabindex="2" oninput="filtrarLetrasEspanol(this)" onkeydown="handleEnterNavigation(event, 'acentosObligatorios')" autocomplete="off" autocorrect="off" spellcheck="false" inputmode="verbatim" data-gramm="false">
+      <input id="filtroLetras" type="text" placeholder="ej.: rr" style="max-width: 320px;" tabindex="2" oninput="filtrarLetrasEspanol(this)" onkeydown="handleEnterNavigation(event, 'acentosObligatorios')" autocomplete="off" autocorrect="off" spellcheck="false" data-gramm="false">
       <div class="hint" style="font-size: 12px; color: #666; margin-top: 4px;">
         <strong>Letras individuales:</strong> b, v, g, j, c, z, s, h, x, y, w<br>
         <strong>Dígrafos:</strong> ll, rr, ch, qu, gu, gü<br>
@@ -93,7 +94,7 @@
       <div class="row" style="margin-top:6px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
         <button id="btnSpeak" onclick="reproducirPalabra(true)">🔊 Reproducir palabra</button>
         <button id="btnEnableAudio" class="btn-ghost" style="display:none;" onclick="unlockTTS(); reproducirPalabra(true)">Permitir audio</button>
-        <input type="password" id="respuesta" placeholder="Escribe aquí" style="flex: 1 1 200px; min-width: 0; max-width: 100%; -webkit-text-security: none;" autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="text" enterkeyhint="done" data-ms-editor="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-gramm-mode="false" data-lt-installed="false">
+        <input type="text" id="respuesta" placeholder="Escribe aquí" style="flex: 1 1 200px; min-width: 0; max-width: 100%;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-ms-editor="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-gramm-mode="false" data-lt-installed="false">
         <button onclick="comprobar()">Comprobar</button>
       </div>
       <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
