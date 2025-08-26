@@ -33,6 +33,7 @@ body {
   color: var(--text);
   background: var(--bg);
   display: flex; align-items: flex-start; justify-content: center;
+  padding-bottom: 60px;
 }
 
 .container { width: 100%; max-width: 980px; padding: 28px 20px 56px; }
@@ -344,7 +345,3 @@ footer {
   box-shadow: 0 -2px 8px rgba(2,6,23,.04);
 }
 
-/* Agregar padding inferior al body para evitar que el contenido se oculte detrás del footer */
-body {
-  padding-bottom: 60px;
-}
