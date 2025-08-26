@@ -286,6 +286,28 @@ function probarVoz() {
   try { reproducirPalabra(true); } catch(_) {}
 }
 
+// Función de prueba para significados
+async function probarSignificados() {
+  const palabrasPrueba = ['casa', 'perro', 'árbol', 'corazón'];
+  console.log('=== PRUEBA DE SIGNIFICADOS ===');
+  
+  for (const palabra of palabrasPrueba) {
+    console.log(`\nProbando palabra: "${palabra}"`);
+    try {
+      const sig1 = await fetchSignificadoPreciso(palabra);
+      console.log(`fetchSignificadoPreciso: ${sig1 || 'null'}`);
+      
+      if (!sig1) {
+        const sig2 = await fetchDesdeWikipediaEs(palabra);
+        console.log(`fetchDesdeWikipediaEs: ${sig2 || 'null'}`);
+      }
+    } catch (e) {
+      console.log(`Error: ${e.message}`);
+    }
+  }
+  console.log('=== FIN PRUEBA ===');
+}
+
     if (!aff || !dic) {
       // Descargar desde LibreOffice/dictionaries (es_ANY)
       const urlAff = 'https://raw.githubusercontent.com/LibreOffice/dictionaries/master/es/es_ANY.aff';
@@ -483,6 +505,19 @@ async function generarReportePDF() {
   }
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF('p', 'pt', 'a4');
+  
+  // Configuración de página para pie de página
+  const pageWidth = 595;
+  const pageHeight = 842;
+  
+  // Función para agregar pie de página al reporte
+  const addReportFooter = (pageNum, totalPages) => {
+    pdf.setFontSize(10);
+    pdf.setFont(undefined, 'normal');
+    pdf.text(`Página ${pageNum} de ${totalPages}`, pageWidth - 120, pageHeight - 20);
+    pdf.text('Autor: GMR', 40, pageHeight - 20);
+  };
+  
   try {
     console.log(`[DEBUG PDF] resultsLog al iniciar PDF:`, resultsLog);
     console.log(`[DEBUG PDF] resultsLog.length:`, resultsLog?.length);
@@ -515,6 +550,9 @@ async function generarReportePDF() {
     // Usar gameState.sessionStartISO o fallback a sessionStartISO global
     const fechaInicio = gameState.sessionStartISO || sessionStartISO;
     const fechaSesion = fechaInicio ? new Date(fechaInicio).toLocaleString() : new Date().toLocaleString();
+
+    // Calcular total de páginas del reporte (siempre 2: resumen + detalle)
+    const totalReportPages = resultados.length > 0 ? 2 : 1;
 
     // Página 1: Resumen (similar a hoja "Resumen")
     pdf.setFontSize(18);
@@ -554,6 +592,9 @@ async function generarReportePDF() {
       pdf.text(`Total: ${total}  Correctas: ${correctas}  Acierto: ${porcentaje}%`, 40, 160);
     }
 
+    // Agregar pie de página a la primera página
+    addReportFooter(1, totalReportPages);
+
     // Página 2: Detalle (similar a hoja "Detalle")
     console.log(`[DEBUG PDF] Resultados para segunda página: ${resultados.length} elementos`);
     console.log(`[DEBUG PDF] pdf.autoTable disponible: ${!!pdf.autoTable}`);
@@ -574,18 +615,24 @@ async function generarReportePDF() {
           const esIncorrecta = r.correcto !== 'Sí' && r.correcto !== true;
           
           if (esIncorrecta) {
+            console.log(`[DEBUG PDF] Buscando significado para palabra correcta: "${r.palabra}"`);
             significado = getCachedMeaning(r.palabra) || '';
             if (!significado) {
               try {
-                significado = await fetchSignificadoPreciso(r.palabra) || 'Definición no disponible';
-              } catch(_) {
+                significado = await fetchSignificadoPreciso(r.palabra);
+                if (!significado) {
+                  // Fallback a Wikipedia si falla la API principal
+                  significado = await fetchDesdeWikipediaEs(r.palabra);
+                }
+                significado = significado || 'Definición no disponible';
+                console.log(`[DEBUG PDF] Significado encontrado para "${r.palabra}": ${significado ? 'SÍ' : 'NO'}`);
+              } catch(err) {
+                console.log(`[DEBUG PDF] Error buscando significado para "${r.palabra}":`, err);
                 significado = 'Definición no disponible';
               }
             }
-            // Limitar longitud del significado para evitar desbordamiento
-            if (significado.length > 150) {
-              significado = significado.substring(0, 147) + '...';
-            }
+            // El significado ya viene procesado por sanitizeMeaning() que limita a 80 caracteres
+            // No necesitamos procesamiento adicional aquí
           }
           
           return [
@@ -602,18 +649,35 @@ async function generarReportePDF() {
           startY: 70,
           head: head2,
           body: body2,
-          styles: { fontSize: 9, cellPadding: 3 },
-          headStyles: { fillColor: [15, 99, 245], halign: 'center', valign: 'middle', textColor: 255 },
+          styles: { 
+            fontSize: 9, 
+            cellPadding: 3,
+            overflow: 'linebreak',
+            valign: 'top'
+          },
+          headStyles: { 
+            fillColor: [15, 99, 245], 
+            halign: 'center', 
+            valign: 'middle', 
+            textColor: 255 
+          },
           columnStyles: {
-            0: { cellWidth: 90 },
-            1: { cellWidth: 30 },
-            2: { cellWidth: 70 },
-            3: { cellWidth: 70 },
-            4: { cellWidth: 30, halign: 'center' },
-            5: { cellWidth: 40, halign: 'right' },
-            6: { cellWidth: 160, overflow: 'linebreak', cellPadding: 2 }
+            0: { cellWidth: 80 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 60 },
+            3: { cellWidth: 60 },
+            4: { cellWidth: 25, halign: 'center' },
+            5: { cellWidth: 35, halign: 'right' },
+            6: { 
+              cellWidth: 230, 
+              overflow: 'linebreak',
+              cellPadding: 3,
+              fontSize: 8,
+              valign: 'top'
+            }
           },
           margin: { left: 40, right: 40 },
+          rowPageBreak: 'avoid',
           didParseCell: function (data) {
             // Colorear la columna "Palabra" (índice 2) según si es correcta
             if (data.column.index === 2) {
@@ -633,8 +697,17 @@ async function generarReportePDF() {
                 data.cell.styles.textColor = esCorrecta ? [0, 128, 0] : [220, 53, 69]; // Verde o rojo
               }
             }
+            // Configuración especial para la columna de significado
+            if (data.column.index === 6) {
+              data.cell.styles.overflow = 'linebreak';
+              data.cell.styles.valign = 'top';
+              data.cell.styles.fontSize = 8;
+            }
           }
         });
+        
+        // Agregar pie de página a la segunda página
+        addReportFooter(2, totalReportPages);
       } else {
         // Fallback si autoTable no está disponible
         let yPos = 80;
@@ -1284,10 +1357,24 @@ function goToPage(pageId) {
     }, 100);
   }
   
-  // Si navegamos al reporte, asegurarnos de mostrarlo
+  // Si navegamos al reporte, asegurarnos de mostrarlo y hacer scroll a los botones
   if (pageId === 'page-report') {
     const rep = document.getElementById('reporteFinal');
     if (rep) rep.style.display = 'block';
+    
+    // Hacer scroll hacia los botones de descarga después de un pequeño delay
+    setTimeout(() => {
+      const reportSection = document.getElementById('page-report');
+      if (reportSection) {
+        const buttons = reportSection.querySelector('.actions');
+        if (buttons) {
+          buttons.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }
+      }
+    }, 100);
   }
   // Al entrar a configuración, enfocar Alumno
   if (pageId === 'page-config') {
@@ -2045,22 +2132,59 @@ function comprobar() {
       rep.style.display = 'block';
 
       // Cargar significados en segundo plano
-      const promises = errores.map((e, idx) => fetchSignificado(e.palabra)
-        .then(sig => ({ idx, sig }))
-        .catch(() => ({ idx, sig: null })));
+      const promises = errores.map((e, idx) => {
+        console.log(`[DEBUG] Buscando significado para palabra correcta: "${e.palabra}"`);
+        return fetchSignificadoPreciso(e.palabra)
+          .then(sig => {
+            console.log(`[DEBUG] Significado encontrado para "${e.palabra}": ${sig ? 'SÍ' : 'NO'}`);
+            return { idx, sig, palabra: e.palabra };
+          })
+          .catch(err => {
+            console.log(`[DEBUG] Error buscando significado para "${e.palabra}":`, err);
+            return { idx, sig: null, palabra: e.palabra };
+          });
+      });
+      
       Promise.all(promises).then(resArr => {
-        resArr.forEach(({ idx, sig }) => {
+        resArr.forEach(({ idx, sig, palabra }) => {
           const el = document.getElementById(`def_${idx}`);
           if (!el) return;
           if (sig) {
             el.textContent = `Significado: ${sig}`;
+            el.style.color = '#334155';
           } else {
-            el.textContent = 'Significado no disponible.';
+            // Intentar con fuentes alternativas si falla
+            el.textContent = 'Buscando en fuentes alternativas...';
+            el.style.color = '#6b7280';
+            
+            // Fallback: buscar en Wikipedia
+            fetchDesdeWikipediaEs(palabra).then(wikisig => {
+              if (wikisig) {
+                el.textContent = `Significado: ${wikisig}`;
+                el.style.color = '#334155';
+              } else {
+                el.textContent = `Significado no disponible para "${palabra}".`;
+                el.style.color = '#9ca3af';
+              }
+            }).catch(() => {
+              el.textContent = `Significado no disponible para "${palabra}".`;
+              el.style.color = '#9ca3af';
+            });
           }
         });
         // Listo el reporte en pantalla; mostrar botón para continuar al reporte final
         const btn = document.getElementById('btnToReport');
-        if (btn) { btn.style.display = ''; btn.focus(); }
+        if (btn) { 
+          btn.style.display = ''; 
+          btn.focus(); 
+          // Hacer scroll hacia abajo para mostrar el botón "Siguiente"
+          setTimeout(() => {
+            window.scrollTo({
+              top: document.body.scrollHeight,
+              behavior: 'smooth'
+            });
+          }, 100);
+        }
       });
     }
     // No navegar automáticamente; mostrar botón "Siguiente" para ir al reporte
@@ -2158,6 +2282,35 @@ function sanitizeMeaning(val) {
     if (/^\d+$/.test(s)) return null;
     // Evitar strings muy cortos
     if (s.length < 3) return null;
+    // Filtrar textos con formato problemático de Wikcionario (espacios entre caracteres)
+    if (/^[A-Za-z]\s+[A-Za-z]\s+[A-Za-z]/.test(s)) {
+      console.log(`[DEBUG] Descartando significado con formato problemático: "${s.substring(0, 50)}..."`);
+      return null;
+    }
+    // Filtrar textos que contengan muchos símbolos extraños
+    if (/[²¹⁵ᵃ®⁰]/.test(s)) {
+      console.log(`[DEBUG] Descartando significado con símbolos extraños: "${s.substring(0, 50)}..."`);
+      return null;
+    }
+    // Filtrar textos con patrones de espaciado problemático (como "n u e s t r o  s i s t e m a")
+    if (/[a-z]\s+[a-z]\s+[a-z]\s+[a-z]\s+[a-z]/.test(s)) {
+      console.log(`[DEBUG] Descartando significado con espaciado problemático: "${s.substring(0, 50)}..."`);
+      return null;
+    }
+    // Limitar longitud y truncar en puntos naturales para PDF
+    if (s.length > 80) {
+      const naturalBreaks = ['. ', '; ', ', '];
+      let cutPoint = 80;
+      
+      for (const breakChar of naturalBreaks) {
+        const lastBreak = s.lastIndexOf(breakChar, 80);
+        if (lastBreak > 40) {
+          cutPoint = lastBreak + breakChar.length;
+          break;
+        }
+      }
+      s = s.substring(0, cutPoint).trim() + '...';
+    }
     return s;
   } catch(_) { return null; }
 }
@@ -2192,15 +2345,15 @@ async function fetchSignificado(palabra) {
       }
     }
   } catch(_) {}
-  // Intento 3: Wikcionario en español (extracto)
-  try {
-    const defW = sanitizeMeaning(await fetchDesdeWikcionario(palabra));
-    if (defW) {
-      cache[key] = { def: defW, ts: Date.now() };
-      guardarCacheSignificados(cache);
-      return defW;
-    }
-  } catch(_) {}
+  // Intento 3: Wikcionario en español (extracto) - DESHABILITADO por formato problemático
+  // try {
+  //   const defW = sanitizeMeaning(await fetchDesdeWikcionario(palabra));
+  //   if (defW) {
+  //     cache[key] = { def: defW, ts: Date.now() };
+  //     guardarCacheSignificados(cache);
+  //     return defW;
+  //   }
+  // } catch(_) {}
   // Intento 4: RAE API (más preciso para español)
   try {
     const raeResp = await fetch(`https://dle.rae.es/data/search?w=${encodeURIComponent(palabra)}`);
@@ -2375,6 +2528,22 @@ function generarPracticaManual() {
     // Crear PDF con cuadrícula
     const pdf2 = new jsPDF('portrait', 'pt', 'a4');
     
+    // Calcular total de páginas necesarias
+    let totalPages = 1;
+    if (palabrasCorrectas.length > 8) {
+      const extraWords = palabrasCorrectas.length - 8;
+      const wordsPerExtraPage = 8; // 2 filas de 4 palabras por página adicional
+      totalPages += Math.ceil(extraWords / wordsPerExtraPage);
+    }
+    
+    // Función para agregar pie de página
+    const addFooter = (pageNum) => {
+      pdf2.setFontSize(10);
+      pdf2.setFont(undefined, 'normal');
+      pdf2.text(`Página ${pageNum} de ${totalPages}`, pageWidth - 120, pageHeight - 20);
+      pdf2.text('Autor: GMR', 40, pageHeight - 20);
+    };
+    
     // Título
     pdf2.setFontSize(16);
     pdf2.text('Práctica Manual de Ortografía', 40, 40);
@@ -2386,34 +2555,138 @@ function generarPracticaManual() {
     pdf2.text(`Alumno: ${alumnoTexto}  ·  Curso/Grupo: ${cursoTexto}`, 40, 60);
     pdf2.text(`Palabras a practicar: ${palabrasCorrectas.length}`, 40, 75);
 
-    // Cuadrícula simple
-    const startY = 100;
-    const cellWidth = 110;
-    const cellHeight = 60;
-    const cols = 4;
-    const rows = 10;
+    // Configuración del layout mejorado
+    const pageWidth = 595; // Ancho de página A4 en puntos
+    const pageHeight = 842; // Alto de página A4 en puntos
+    const margin = 40;
+    const availableWidth = pageWidth - (margin * 2);
     
-    let wordIndex = 0;
+    // Primera sección: hasta 4 palabras en columnas
+    const firstSectionY = 100;
+    const colWidth = availableWidth / 4;
+    const lineSpacing = 25; // Aumentado aún más para mejor separación
+    const wordSpacing = 25;
     
-    for (let row = 0; row < rows && wordIndex < palabrasCorrectas.length; row++) {
-      for (let col = 0; col < cols && wordIndex < palabrasCorrectas.length; col++) {
-        const x = 40 + (col * cellWidth);
-        const y = startY + (row * cellHeight);
+    // Procesar primeras 4 palabras en columnas
+    const firstFourWords = palabrasCorrectas.slice(0, 4);
+    const remainingWords = palabrasCorrectas.slice(4);
+    
+    firstFourWords.forEach((palabra, colIndex) => {
+      const x = margin + (colIndex * colWidth);
+      let currentY = firstSectionY;
+      
+      // Título de la palabra
+      pdf2.setFontSize(14);
+      pdf2.setFont(undefined, 'bold');
+      pdf2.text(palabra, x + 5, currentY);
+      currentY += wordSpacing;
+      
+      // 10 líneas de práctica
+      pdf2.setFont(undefined, 'normal');
+      for (let line = 1; line <= 10; line++) {
+        pdf2.line(x + 5, currentY, x + colWidth - 10, currentY);
+        currentY += lineSpacing;
+      }
+    });
+    
+    // Agregar pie de página a la primera página
+    addFooter(1);
+    
+    // Segunda sección: palabras adicionales (palabras 5-8 en la mitad de la primera página)
+    if (remainingWords.length > 0) {
+      const secondSectionWords = remainingWords.slice(0, 4); // Máximo 4 palabras más en la primera página
+      const thirdSectionWords = remainingWords.slice(4); // Palabras 9+ van a nueva página
+      
+      // Procesar palabras 5-8 en la mitad de la primera página
+      if (secondSectionWords.length > 0) {
+        const secondSectionY = pageHeight / 2; // Mitad de la hoja
+        const rowHeight = 280; // Aumentado para acomodar mayor espaciado
         
-        // Dibujar celda
-        pdf2.rect(x, y, cellWidth, cellHeight);
+        secondSectionWords.forEach((palabra, colIndex) => {
+          const x = margin + (colIndex * colWidth);
+          let currentY = secondSectionY;
+          
+          // Título de la palabra
+          pdf2.setFontSize(14);
+          pdf2.setFont(undefined, 'bold');
+          pdf2.text(palabra, x + 5, currentY);
+          currentY += wordSpacing;
+          
+          // 10 líneas de práctica con el mismo ancho que el primer bloque
+          pdf2.setFont(undefined, 'normal');
+          for (let line = 1; line <= 10; line++) {
+            pdf2.line(x + 5, currentY, x + colWidth - 10, currentY);
+            currentY += lineSpacing;
+          }
+        });
+      }
+      
+      // Tercera sección: palabras 9+ en nueva página desde el inicio
+      if (thirdSectionWords.length > 0) {
+        let currentPageNum = 2;
+        pdf2.addPage();
         
-        // Escribir palabra
-        pdf2.setFontSize(12);
-        pdf2.text(palabrasCorrectas[wordIndex], x + 5, y + 20);
+        // Título de la nueva página
+        pdf2.setFontSize(16);
+        pdf2.setFont(undefined, 'bold');
+        pdf2.text('Práctica Manual de Ortografía (continuación)', margin, 40);
+        pdf2.setFontSize(10);
+        pdf2.setFont(undefined, 'normal');
+        pdf2.text(`Alumno: ${alumnoTexto}  ·  Curso/Grupo: ${cursoTexto}`, margin, 60);
         
-        // Líneas para práctica
-        for (let line = 1; line <= 3; line++) {
-          const lineY = y + 20 + (line * 10);
-          pdf2.line(x + 5, lineY, x + cellWidth - 5, lineY);
+        let wordIndex = 0;
+        let currentRow = 0;
+        const maxWordsPerRow = 4;
+        const rowHeight = 280; // Aumentado para acomodar mayor espaciado
+        const newPageStartY = 100; // Comenzar desde arriba en la nueva página
+        
+        while (wordIndex < thirdSectionWords.length) {
+          const wordsInThisRow = Math.min(maxWordsPerRow, thirdSectionWords.length - wordIndex);
+          
+          for (let col = 0; col < wordsInThisRow; col++) {
+            const palabra = thirdSectionWords[wordIndex];
+            const x = margin + (col * colWidth);
+            let currentY = newPageStartY + (currentRow * rowHeight);
+            
+            // Título de la palabra
+            pdf2.setFontSize(14);
+            pdf2.setFont(undefined, 'bold');
+            pdf2.text(palabra, x + 5, currentY);
+            currentY += wordSpacing;
+            
+            // 10 líneas de práctica con el mismo ancho que el primer bloque
+            pdf2.setFont(undefined, 'normal');
+            for (let line = 1; line <= 10; line++) {
+              pdf2.line(x + 5, currentY, x + colWidth - 10, currentY);
+              currentY += lineSpacing;
+            }
+            
+            wordIndex++;
+          }
+          currentRow++;
+          
+          // Si necesitamos más páginas
+          if (newPageStartY + ((currentRow + 1) * rowHeight) > pageHeight - margin) {
+            if (wordIndex < thirdSectionWords.length) {
+              // Agregar pie de página antes de crear nueva página
+              addFooter(currentPageNum);
+              
+              pdf2.addPage();
+              currentPageNum++;
+              currentRow = 0;
+              // Repetir título en nueva página
+              pdf2.setFontSize(16);
+              pdf2.setFont(undefined, 'bold');
+              pdf2.text('Práctica Manual de Ortografía (continuación)', margin, 40);
+              pdf2.setFontSize(10);
+              pdf2.setFont(undefined, 'normal');
+              pdf2.text(`Alumno: ${alumnoTexto}  ·  Curso/Grupo: ${cursoTexto}`, margin, 60);
+            }
+          }
         }
         
-        wordIndex++;
+        // Agregar pie de página a la última página
+        addFooter(currentPageNum);
       }
     }
     

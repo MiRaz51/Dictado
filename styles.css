@@ -327,3 +327,24 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
     width: 100%;
   }
 }
+
+/* Footer */
+footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--panel);
+  border-top: 1px solid rgba(2,6,23,.08);
+  text-align: center;
+  padding: 12px 20px;
+  color: var(--muted);
+  font-size: 12px;
+  z-index: 100;
+  box-shadow: 0 -2px 8px rgba(2,6,23,.04);
+}
+
+/* Agregar padding inferior al body para evitar que el contenido se oculte detrás del footer */
+body {
+  padding-bottom: 60px;
+}
