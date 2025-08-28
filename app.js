@@ -5,6 +5,7 @@
 const CONFIG = {
   // URLs y archivos
   RAE_WORD_LIST_URL: './palabras_todas_no_conjugaciones.txt',
+  RAE_WORD_LIST_JSON_URL: './palabras-rae.json',
   FALLBACK_WORD_LIST_URL: './Diccionario.Espanol.136k.palabras.txt',
   RAE_CACHE_KEY: 'rae_words_oficial_cache_v1',
   RAE_CACHE_TTL_MS: 30 * 24 * 60 * 60 * 1000, // 30 días
@@ -1054,10 +1055,33 @@ async function obtenerListaFrecuencias() {
     return cached.data;
   }
 
-  console.log(`[DEBUG CARGA] Intentando cargar desde: ${CONFIG.RAE_WORD_LIST_URL}`);
+  // Intentar cargar JSON primero (para GitHub Pages)
+  try {
+    console.log(`[DEBUG CARGA] Intentando cargar JSON desde: ${CONFIG.RAE_WORD_LIST_JSON_URL}`);
+    const jsonResp = await fetch(CONFIG.RAE_WORD_LIST_JSON_URL);
+    if (jsonResp.ok) {
+      const palabrasArray = await jsonResp.json();
+      console.log(`[DEBUG CARGA] JSON cargado exitosamente: ${palabrasArray.length} palabras`);
+      
+      // Convertir array simple a formato con frecuencia
+      const data = palabrasArray.map((palabra, index) => ({
+        palabra: palabra.toLowerCase().trim(),
+        freq: palabrasArray.length - index // Frecuencia simulada basada en orden
+      }));
+      
+      // Guardar en caché
+      CacheManager.set(CONFIG.CACHE_KEY, { ts: Date.now(), data });
+      return data;
+    }
+  } catch (jsonError) {
+    console.log(`[DEBUG CARGA] Error cargando JSON: ${jsonError.message}`);
+  }
+
+  // Fallback al archivo TXT original (para uso local)
+  console.log(`[DEBUG CARGA] Intentando cargar TXT desde: ${CONFIG.RAE_WORD_LIST_URL}`);
   const resp = await fetch(CONFIG.RAE_WORD_LIST_URL);
   if (!resp.ok) {
-    console.log(`[DEBUG CARGA] Error cargando archivo principal, código: ${resp.status}`);
+    console.log(`[DEBUG CARGA] Error cargando archivo TXT, código: ${resp.status}`);
     throw new Error("No se pudo descargar la lista de palabras");
   }
   const text = await resp.text();
