@@ -1,121 +1,74 @@
 # 📝 Práctica de Ortografía
 
-Una aplicación web interactiva para practicar ortografía en español mediante dictado de palabras con síntesis de voz.
+Aplicación web gratuita para mejorar la ortografía en español mediante dictado interactivo con síntesis de voz.
 
-## 🌟 Características
+## 🎯 ¿Qué es?
 
-- **Dictado interactivo**: Síntesis de voz para reproducir palabras
-- **Múltiples niveles de dificultad**: Fácil, Medio y Difícil
-- **Filtros personalizables**: Por letras específicas (b, v, rr, ll, etc.)
-- **Modo estricto**: Validación con diccionario Hunspell español
-- **Reportes detallados**: Generación de PDF con resultados
-- **Práctica manual**: Exportación para ejercicios en papel
-- **Interfaz responsive**: Optimizada para escritorio
-- **Caché inteligente**: Almacenamiento local para mejor rendimiento
+Herramienta educativa para practicar ortografía con dos modos:
+- **👤 Individual**: Práctica personal con configuración personalizada
+- **👥 Grupal**: Sesiones con tutor y múltiples participantes en tiempo real
 
-## 🎯 Funcionalidades Principales
+## ✨ Características Principales
 
-### Configuración de Ejercicios
-- **Participante y Curso**: Identificación del usuario
-- **Cantidad de palabras**: Configurable (por defecto 50)
-- **Filtros por letras**: Enfoque en letras específicas o combinaciones
-- **Acentos obligatorios**: Opción para mayor dificultad
-- **Modo estricto**: Validación con diccionario RAE/Hunspell
+- ✅ **Síntesis de voz** en español (TTS del navegador)
+- ✅ **4 niveles de dificultad** (Básico, Intermedio, Avanzado, Experto)
+- ✅ **Filtros personalizables** (letras específicas, dígrafos, combinaciones)
+- ✅ **Reportes PDF** con estadísticas completas
+- ✅ **Modo grupal P2P** sin servidor (hasta 10 participantes gratis)
+- ✅ **Funciona en PC, móviles y tablets** con teclado virtual
+- ✅ **Sin instalación** - Usa desde el navegador
+- ✅ **Privacidad total** - Datos solo en tu dispositivo
 
-### Niveles de Dificultad
-- **🌱 Nivel Fácil**: Palabras básicas (3-5 letras)
-- **🌿 Nivel Medio**: Palabras intermedias (4-7 letras)
-- **🌳 Nivel Difícil**: Palabras avanzadas (5-15 letras)
+## 🚀 Cómo Usar
 
-### Filtros de Letras Disponibles
-- **Letras individuales**: b, v, g, j, c, z, s, h, x, y, w
+### Acceso
+Visita: **https://miraz51.github.io/Dictado/**
+
+### Modo Individual
+1. Selecciona "Individual"
+2. Ingresa tu nombre
+3. Configura cantidad de palabras y filtros (opcional)
+4. Elige nivel de dificultad
+5. Escucha y escribe cada palabra
+6. Descarga tu reporte PDF al finalizar
+
+### Modo Grupal
+**Como Tutor:**
+1. Selecciona "Grupal" → "Tutor"
+2. Ingresa nombre y grupo
+3. Configura el ejercicio y nivel
+4. Comparte el ID de sesión con participantes
+5. Controla el ejercicio en tiempo real
+
+**Como Participante:**
+1. Selecciona "Grupal" → "Participante"
+2. Ingresa tu nombre y el ID de sesión del tutor
+3. Espera a que el tutor inicie el ejercicio
+4. Completa las palabras sincronizadas
+
+## 📊 Niveles de Dificultad
+
+- **🌱 Básico**: 3-5 letras, vocabulario común
+- **🌿 Intermedio**: 4-7 letras, uso cotidiano  
+- **🌳 Avanzado**: 6-10 letras, vocabulario complejo
+- **🔥 Experto**: 8-15 letras, vocabulario técnico
+
+### Filtros Disponibles
+- **Letras**: b, v, g, j, c, z, s, h, x, y, w
 - **Dígrafos**: ll, rr, ch, qu, gu, gü
-- **Grupos consonánticos**: br, bl, cr, cl, dr, fl, fr, gl, gr, pl, pr, tr
-- **Combinaciones ortográficas**: cc, sc, xc, mp, mb, nv, nf, nm
-
-### Reportes y Análisis
-- **Progreso en tiempo real**: Barra de avance y estadísticas
-- **Reporte PDF**: Resumen completo con detalles de cada intento
-- **Práctica manual**: Lista de palabras para ejercicios offline
-- **Significados**: Definiciones automáticas para palabras incorrectas
-
-## 🚀 Instalación y Uso
-
-### Requisitos
-- Navegador web moderno (Chrome, Firefox, Safari, Edge)
-- Conexión a internet (para cargar diccionarios y librerías)
-- **Importante**: Diseñado exclusivamente para computadoras de escritorio
-
-### Archivos del Proyecto
-```
-├── index.html              # Página principal
-├── app.js                  # Lógica de la aplicación
-├── styles.css              # Estilos y diseño
-├── palabras_todas_no_conjugaciones.txt  # Diccionario RAE
-└── README.md               # Este archivo
-```
-
-## 🎮 Cómo Usar
-
-Acceder al siguiente link https://miraz51.github.io/Dictado/
-
-### 1. Configuración Inicial
-- Ingresa el nombre del participante
-- Especifica el curso o grupo
-- Configura la cantidad de palabras (opcional)
-- Selecciona letras específicas a reforzar (opcional)
-- Activa acentos obligatorios si deseas mayor dificultad
-
-### 2. Selección de Nivel
-- Elige entre Fácil, Medio o Difícil según tu nivel
-- Cada nivel tiene palabras apropiadas para la dificultad
-
-### 3. Práctica
-- Haz clic en "🔊 Reproducir palabra" para escuchar
-- Escribe la palabra en el campo de texto
-- Presiona "Comprobar" para validar tu respuesta
-- Continúa hasta completar todas las palabras
-
-### 4. Resultados
-- Revisa tu puntuación y estadísticas
-- Descarga el reporte PDF completo
-- Genera una práctica manual para ejercicios offline
-
-## 🔧 Características Técnicas
-
-### Tecnologías Utilizadas
-- **HTML5**: Estructura semántica
-- **CSS3**: Diseño moderno y responsive
-- **JavaScript ES6+**: Lógica de aplicación
-- **Web Speech API**: Síntesis de voz
-- **Hunspell**: Validación ortográfica
-- **jsPDF**: Generación de reportes PDF
-- **LocalStorage**: Caché de datos
-
-### APIs y Librerías Externas
-- **Typo.js**: Wrapper de Hunspell para JavaScript
-- **jsPDF + AutoTable**: Generación de PDFs
-- **HTML2Canvas**: Captura de elementos HTML
-- **LibreOffice Dictionaries**: Diccionarios Hunspell español
-
-### Funciones Avanzadas
-- **Caché inteligente**: TTL de 30 días para diccionarios
-- **Validación multimodal**: RAE + Hunspell + patrones locales
-- **Búsqueda de significados**: Wikipedia + APIs de diccionarios
-- **Navegación por teclado**: Soporte completo con Enter/Tab
-- **Modo offline**: Funcionalidad básica sin conexión
-
+- **Grupos**: br, bl, cr, cl, dr, fl, fr, gl, gr, pl, pr, tr
+- **Combinaciones**: cc, sc, xc, mp, mb, nv, nf, nm
 
 ## 🐛 Solución de Problemas
 
 ### Audio no funciona
 - Haz clic en "Permitir audio" si aparece el botón
 - Verifica que el navegador tenga permisos de audio
-- Prueba en modo incógnito si hay problemas de caché
+- Prueba con otro navegador (Chrome/Edge recomendados)
 
-### Palabras no se cargan
-- Verifica la conexión a internet
-- Revisa la consola del navegador (F12) para errores
+### No se cargan las palabras
+- Verifica tu conexión a internet
+- Recarga la página (F5)
 - Limpia el caché del navegador si es necesario
 
 ### PDF no se genera
@@ -123,21 +76,45 @@ Acceder al siguiente link https://miraz51.github.io/Dictado/
 - Verifica que hay resultados de práctica disponibles
 - Revisa los permisos de descarga del navegador
 
-## 📝 Licencia
+## 📜 Licencia y Derechos
 
-Este proyecto está desarrollado por **GMR 2025** para uso educativo.
+### 🎮 Uso de la Aplicación
+- ✅ **Gratis**: Modo individual + modo grupal hasta 10 participantes por sesión
+- 💰 **Donativo**: Modo grupal con más de 10 participantes por sesión
+- 🔮 **Futuro**: Posible migración a modelo de suscripción (con aviso previo)
+- 📧 **Contacto**: hgomero@gmail.com
 
-## 🤝 Contribuciones
+**Nota:** El límite es por sesión simultánea. En un aula física, solo puede haber una sesión activa (todos escuchan el mismo audio).
 
-Para reportar problemas o sugerir mejoras:
-1. Documenta el problema detalladamente
-2. Incluye pasos para reproducir el error
-3. Especifica navegador y versión utilizada
+### 💻 Código Fuente
+- 🔒 **Código propietario y cerrado**
+- © 2025 GMR - Todos los derechos reservados
+- ❌ Prohibida cualquier modificación, redistribución o ingeniería inversa
+- ✅ Uso permitido solo mediante la aplicación web oficial
 
-## 📞 Soporte
-
-Para soporte técnico o consultas educativas, contacta al desarrollador a través de los canales oficiales del proyecto.
+**Ver [LICENSE.md](LICENSE.md) para términos completos y detallados.**
 
 ---
 
-**Nota**: Esta aplicación está optimizada para computadoras de escritorio y portátiles. No se recomienda su uso en dispositivos móviles debido a las interferencias del corrector automático.
+## 🤝 Contribuciones y Soporte
+
+Este es un proyecto de **código cerrado**. No se aceptan contribuciones de código externas.
+
+### Reportar Problemas
+Para reportar bugs o sugerir mejoras:
+1. 📧 Email: hgomero@gmail.com
+2. 📋 Asunto: "Reporte de Bug" o "Sugerencia"
+3. 📝 Incluye:
+   - Descripción detallada
+   - Pasos para reproducir
+   - Navegador y versión
+   - Capturas de pantalla (si aplica)
+
+### Soporte Técnico
+- 📧 **Email:** hgomero@gmail.com
+- ⏱️ **Respuesta estándar:** 72 horas hábiles
+- ⚡ **Respuesta prioritaria:** 24-48 horas (usuarios con donativo)
+
+---
+
+**Nota**: Esta aplicación funciona en todos los dispositivos (PC, móviles y tablets) con teclado virtual integrado para dispositivos táctiles.

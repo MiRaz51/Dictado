@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Aplicación optimizada para escritorio -->
+  <title>Práctica de Ortografía</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles.css">
+  <!-- Simple Keyboard CSS (solo se usa en móviles/tablets) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/css/index.css">
+  <script src="modules/word-filters-fixed.js" onload="console.log('✅ modules/word-filters-fixed.js cargado')" onerror="console.error('❌ Error cargando modules/word-filters-fixed.js')"></script>
+</head>
+<body>
+  <!-- Eliminado: script inline duplicado. Todas las funciones reales están en app.js -->
+  <div class="container">
+  <h2><span class="brand">Práctica</span> de Ortografía</h2>
+  <p id="metaAlumnoCurso" class="meta" style="display:none;"></p>
+
+  <!-- Página 0: Selección de Modo -->
+  <section id="page-mode-select" class="page active">
+    <div class="card" style="text-align: center;">
+      <h3 style="margin-bottom: 20px; color: var(--text);">Selecciona el modo de práctica</h3>
+      <div class="mode-grid">
+        <div id="modeIndividual" class="mode-card" role="button" tabindex="0" onclick="selectMode('individual')">
+          <div class="mode-icon">👤</div>
+          <h4>Individual</h4>
+          <p>Práctica personal independiente</p>
+        </div>
+        <div id="modeGroup" class="mode-card" role="button" tabindex="0" onclick="selectMode('group')">
+          <div class="mode-icon">👥</div>
+          <h4>Grupal</h4>
+          <p>Sesión colaborativa con tutor</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Página 0.5: Selección de Rol Grupal -->
+  <section id="page-role-select" class="page">
+    <div class="card" style="text-align: center;">
+      <h3 style="margin-bottom: 20px; color: var(--text);">Selecciona tu rol</h3>
+      <div class="mode-grid">
+        <div class="mode-card" onclick="selectRole('tutor')">
+          <div class="mode-icon">🎓</div>
+          <h4>Tutor/Administrador</h4>
+          <p>Crear y gestionar la sesión</p>
+        </div>
+        <div class="mode-card" onclick="selectRole('participant')">
+          <div class="mode-icon">📝</div>
+          <h4>Participante/Alumno</h4>
+          <p>Unirse a una sesión existente</p>
+        </div>
+      </div>
+      <div class="actions" style="margin-top: 20px;">
+        <button class="btn-ghost" onclick="goToPage('page-mode-select')">◂ Volver</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Página 1: Configuración -->
+  <section id="page-config" class="page">
+    <div class="card" style="margin: 12px 0;">
+      <div class="form-row">
+        <div class="form-field" style="grid-column: 1 / -1;">
+          <label for="alumno"><strong>Participante</strong>:</label>
+          <input id="alumno" type="text" placeholder="Nombre y apellido" tabindex="1" oninput="validateFields()" onkeydown="handleEnterNavigation(event, 'btnNext')" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <div id="alumnoError" class="help-error">Este campo es obligatorio.</div>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="btnNext" class="btn-ghost" onclick="goNextFromConfig()" disabled tabindex="6">Siguiente ▸</button>
+    </div>
+  </section>
+
+  <!-- Página 2: Ejercicio -->
+  <section id="page-game" class="page">
+    <div class="card" style="margin: 12px 0;">
+      <!-- 1. Cantidad de palabras -->
+      <label for="cantidad"><strong>Cantidad de palabras</strong>: </label>
+      <input id="cantidad" type="number" min="1" step="1" placeholder="vacío = 25" style="width: 90px;" tabindex="1" onkeydown="handleEnterNavigation(event, 'filtroLetras')">
+      <div class="hint">Al no ingresar cantidad, será 25 palabras como máximo disponible.</div>
+      <br><br>
+      
+      <!-- 3. Letras a reforzar -->
+      <label for="filtroLetras"><strong>Letras a reforzar</strong> (solo una letra o combinación, ej.: rr): </label>
+      <input id="filtroLetras" type="text" placeholder="ej.: rr" style="max-width: 320px;" tabindex="2" oninput="filtrarLetrasEspanol(this)" onkeydown="handleEnterNavigation(event, 'porcentajeRefuerzo')" autocomplete="off" autocorrect="off" spellcheck="false" data-gramm="false">
+      <div class="row" style="margin-top: 8px; align-items: center;">
+        <label for="porcentajeRefuerzo" style="min-width: 220px;"><strong>Porcentaje de refuerzo</strong> (0–100%): </label>
+        <input id="porcentajeRefuerzo" type="number" min="0" max="100" step="1" placeholder="p. ej.: 40" style="width: 120px;" tabindex="2" onkeydown="handleEnterNavigation(event, 'acentosObligatorios')">
+      </div>
+      <div class="hint" style="font-size: 12px; color: #666; margin-top: 4px;">
+        <strong>Letras individuales:</strong> b, v, g, j, c, z, s, h, x, y, w<br>
+        <strong>Dígrafos:</strong> ll, rr, ch, qu, gu, gü<br>
+        <strong>Grupos consonánticos:</strong> br, bl, cr, cl, dr, fl, fr, gl, gr, pl, pr, tr<br>
+        <strong>Combinaciones ortográficas:</strong> cc, sc, xc, mp, mb, nv, nf, nm
+      </div>
+      <br>
+      
+      <!-- 5. Modo estricto (validación local) -->
+      <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+        <label>
+          <input id="strictMode" type="checkbox" checked tabindex="5" onkeydown="handleEnterNavigation(event, 'btnNivelBasico')"> Modo estricto (validación local)
+        </label>
+      </div>
+    </div>
+    
+    <!-- 2. Acentos obligatorios -->
+    <div style="margin-top: 10px; margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+        <input id="acentosObligatorios" type="checkbox" style="margin: 0;" tabindex="3" onkeydown="handleEnterNavigation(event, 'btnNivelBasico')">
+        <span>Acentos obligatorios (más difícil)</span>
+      </label>
+      <div id="acentosHelp" style="font-size: 12px; color: #666; margin-top: 4px;">
+        Básico: desactivado · Intermedio/Avanzado: opcional · Experto: siempre activado
+      </div>
+    </div>
+    
+    <p>Selecciona un nivel de dificultad:</p>
+    
+    <div class="actions" style="margin-top: 6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <button id="btnVolverGame" class="btn-ghost" onclick="goToPage('page-config')">◂ Volver</button>
+      <button id="btnNivelBasico" onkeydown="handleArrowNavigation(event, 'btnNivelIntermedio', 'btnNivelExperto')" tabindex="7">🌱 Nivel Básico</button>
+      <button id="btnNivelIntermedio" onkeydown="handleArrowNavigation(event, 'btnNivelAvanzado', 'btnNivelBasico')" tabindex="8">🌿 Nivel Intermedio</button>
+      <button id="btnNivelAvanzado" onkeydown="handleArrowNavigation(event, 'btnNivelExperto', 'btnNivelIntermedio')" tabindex="9">🌳 Nivel Avanzado</button>
+      <button id="btnNivelExperto" onkeydown="handleArrowNavigation(event, 'btnNivelBasico', 'btnNivelAvanzado')" tabindex="10">🔥 Nivel Experto</button>
+      <button class="btn-ghost" type="button" onclick="refrescarDatosRAE()" title="Limpiar caché del JSON y recargar">↻ Refrescar datos</button>
+      <span id="nivelesDiag" class="hint" style="font-size:12px; color:#666; display:none;"></span>
+    </div>
+    <div id="juego" class="card" style="display:none; margin-top:14px;">
+      <div class="avance-row">
+        <div class="progress" aria-label="Progreso de palabras">
+          <div id="progressFill" class="progress-fill" style="width:0%"></div>
+        </div>
+        <div id="progressText" class="progress-text">0/0</div>
+      </div>
+      <div class="row layout-game-input" style="margin-top:6px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <button id="btnSpeak" onclick="reproducirPalabra(true)">🔊 Reproducir palabra</button>
+        <button id="btnEnableAudio" class="btn-ghost" style="display:none;" onclick="unlockTTS(); reproducirPalabra(true)">Permitir audio</button>
+        <input type="text" id="respuesta" placeholder="Escribe aquí" style="flex: 1 1 200px; min-width: 0; max-width: 100%;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-ms-editor="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-gramm-mode="false" data-lt-installed="false">
+        <!-- Espejo visual del input (móvil/tablet) para mostrar un caret falso en la misma posición -->
+        <div id="vkMirror" class="vk-mirror" aria-hidden="false" style="flex: 1 1 200px; min-width: 0;">
+          <span class="vk-mirror-text"></span><span class="vk-caret"></span>
+        </div>
+        <button id="btnComprobar" onclick="comprobar()">Comprobar</button>
+      </div>
+      <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd;">
+        <p id="resultado" class="status"></p>
+        <p id="marcador" class="status"></p>
+      </div>
+      <div class="actions" style="margin-top:8px;">
+        <button id="btnToReport" style="display:none;" onclick="goToReportFromGame()">Siguiente ▸</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Página 2.4: Información del Tutor (nueva) -->
+  <section id="page-tutor-info" class="page">
+    <div class="card">
+      <h3>🎓 Información del Tutor</h3>
+      
+      <div class="form-field">
+        <label for="tutorName"><strong>Tutor/Administrador:</strong></label>
+        <input id="tutorName" type="text" placeholder="Ingresa tu nombre como tutor" tabindex="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('tutorGroup').focus();}">
+      </div>
+      
+      <div class="form-field">
+        <label for="tutorGroup"><strong>Grupo/Grado:</strong></label>
+        <input id="tutorGroup" type="text" placeholder="Ej: 3° Primaria, Grupo A, etc." tabindex="2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter'){event.preventDefault();document.getElementById('btnTutorNext').focus();}">
+      </div>
+    </div>
+    
+    <div class="actions" style="margin-top: 12px;">
+      <button class="btn-ghost" onclick="goToPage('page-role-select')">◂ Volver</button>
+      <button id="btnTutorNext" onclick="goToTutorConfig()" tabindex="3">Siguiente ▸</button>
+    </div>
+  </section>
+
+  <!-- Página 2.5: Configuración del Tutor -->
+  <section id="page-tutor-config" class="page">
+    <div class="card">
+      <h3>🎓 Configuración del Ejercicio</h3>
+      
+      <div class="form-field">
+        <label for="tutorCantidad"><strong>Cantidad de palabras:</strong></label>
+        <input id="tutorCantidad" type="number" min="5" max="50" placeholder="20" tabindex="3">
+      </div>
+      
+      <!-- Letras a reforzar -->
+      <label for="tutorFiltroLetras"><strong>Letras a reforzar</strong> (solo una letra o combinación, ej.: rr): </label>
+      <input id="tutorFiltroLetras" type="text" placeholder="ej.: rr" style="max-width: 320px;" tabindex="4" oninput="filtrarLetrasEspanol(this)" autocomplete="off" autocorrect="off" spellcheck="false" data-gramm="false">
+      <div class="hint" style="font-size: 12px; color: #666; margin-top: 4px;">
+        <strong>Letras individuales:</strong> b, v, g, j, c, z, s, h, x, y, w<br>
+        <strong>Dígrafos:</strong> ll, rr, ch, qu, gu, gü<br>
+        <strong>Grupos consonánticos:</strong> br, bl, cr, cl, dr, fl, fr, gl, gr, pl, pr, tr<br>
+        <strong>Combinaciones ortográficas:</strong> cc, sc, xc, mp, mb, nv, nf, nm
+      </div>
+      <br>
+      
+      <!-- Acentos obligatorios -->
+      <div style="margin-top: 10px; margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
+          <input id="tutorAcentosObligatorios" type="checkbox" style="margin: 0;" tabindex="3">
+          <span>Acentos obligatorios (más difícil)</span>
+        </label>
+        <div style="font-size: 12px; color: #666; margin-top: 4px;">
+          Básico: desactivado · Intermedio/Avanzado: opcional · Experto: siempre activado
+        </div>
+      </div>
+      
+      <!-- Modo estricto -->
+      <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
+        <label>
+          <input id="tutorStrictMode" type="checkbox" checked tabindex="4"> Modo estricto (solo español)
+        </label>
+      </div>
+    </div>
+    
+    <p>Selecciona un nivel de dificultad:</p>
+    
+    <div class="actions" style="margin-top: 6px;">
+      <button class="btn-ghost" onclick="goToPage('page-tutor-info')">◂ Volver</button>
+      <button id="tutorNivelBasico" onclick="configurarEjercicioTutor('basico')">🌱 Nivel Básico</button>
+      <button id="tutorNivelIntermedio" onclick="configurarEjercicioTutor('intermedio')">🌿 Nivel Intermedio</button>
+      <button id="tutorNivelAvanzado" onclick="configurarEjercicioTutor('avanzado')">🌳 Nivel Avanzado</button>
+      <button id="tutorNivelExperto" onclick="configurarEjercicioTutor('experto')">🔥 Nivel Experto</button>
+      <button class="btn-ghost" type="button" onclick="refrescarDatosRAE()" title="Limpiar caché del JSON y recargar">↻ Refrescar datos</button>
+    </div>
+  </section>
+
+  <!-- Página 2.6: Panel del Tutor (después de configurar) -->
+  <section id="page-tutor" class="page">
+    <div class="card">
+      <h3>🎓 Panel del Tutor</h3>
+      
+      <!-- Resumen de configuración -->
+      <div id="tutorConfigSummary" class="config-summary">
+        <h4>⚙️ Configuración del Ejercicio</h4>
+        <div id="configDetails"></div>
+        <button class="btn-ghost" onclick="goToPage('page-tutor-config')" style="margin-top: 10px;">✏️ Modificar Configuración</button>
+      </div>
+      
+      <div id="tutorStatus" class="status-panel">
+        <p>Iniciando servidor PeerJS...</p>
+      </div>
+      
+      <div id="sessionInfo" style="display: none;">
+        <div class="session-card">
+          <h4>📡 Información de la Sesión</h4>
+          <div class="session-details">
+            <p><strong>ID de Sesión:</strong> <span id="sessionId" class="session-id">-</span></p>
+            <p><strong>Estado:</strong> <span id="serverStatus">Conectando...</span></p>
+          </div>
+        </div>
+        <div class="tutor-controls" style="margin-bottom:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:center;">
+          <button id="startExercise" onclick="startGroupExercise()" disabled>▶️ Iniciar Ejercicio</button>
+          <button id="tutorStopAll" class="btn-ghost" onclick="tutorToggleLockAll()">⛔ Bloquear pantallas</button>
+          <button id="tutorNewExercise" class="btn-ghost" onclick="tutorNewExercise()">🆕 Nuevo ejercicio</button>
+          <button id="tutorNewSession" class="btn-ghost" onclick="tutorNewSession()">🔄 Nueva Sesión</button>
+          <button id="stopSession" onclick="stopSession()" class="btn-ghost">⏹️ Terminar Sesión</button>
+        </div>
+        <!-- Controles de reproducción del tutor (arriba de participantes) -->
+        <div id="tutorPlayback" class="tutor-controls" style="margin: 8px 0 12px; display: none; gap: 6px; flex-direction: column; width:100%;">
+          <!-- Fila superior: Mostrar palabra + Palabra actual -->
+          <div class="row-top" style="display:flex; flex-direction:column; gap:8px; width:100%;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <label class="inline" style="display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" id="showCurrentWord" onchange="refreshTutorCurrentWordLabel()"> Mostrar palabra
+              </label>
+              <strong>Palabra actual:</strong> <span id="tutorCurrentWord">—</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <label class="inline" style="display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" id="participantAudio"> Reproducir audio en participantes
+              </label>
+              <span class="hint" style="font-size:12px; color:#666;">Por defecto desactivado</span>
+            </div>
+            <!-- Barra de progreso larga (misma que participantes) con contador a la derecha -->
+            <div class="progress-row" style="display:flex; align-items:center; gap:8px; width:100%;">
+              <div class="progress" style="height:8px; background:#eee; border-radius:6px; overflow:hidden; flex:1;">
+                <div id="tutorOverallProgressFill" style="height:100%; width:0%; background: linear-gradient(90deg, #4CAF50, #81C784);"></div>
+              </div>
+              <span id="tutorOverallProgressText" class="hint">0/0</span>
+            </div>
+          </div>
+          <!-- Fila inferior: Progreso/Resp a la izquierda y botones a la derecha -->
+          <div class="row-bottom" style="display:flex; align-items:center; gap:10px; width:100%;">
+            <div class="left" style="display:flex; align-items:center; gap:10px;"></div>
+            <div class="actions" style="display:flex; gap:8px; flex-wrap: wrap; margin-left:auto; align-items:center;">
+              <button id="tutorPlayWord" onclick="tutorPlayCurrentWord()">▶️ Reproducir</button>
+              <button id="tutorNextWord" onclick="nextWordInExercise()">Siguiente ▶</button>
+              <label class="inline" style="display:flex; align-items:center; gap:6px;">
+                <input type="checkbox" id="autoAdvance"> Auto
+              </label>
+              <select id="autoDelay" style="min-width: 80px;">
+                <option value="1500">1.5 s</option>
+                <option value="2000" selected>2 s</option>
+                <option value="3000">3 s</option>
+                <option value="4000">4 s</option>
+                <option value="5000">5 s</option>
+              </select>
+              <span class="hint" id="tutorResponses" style="margin-left:8px;">Resp: 0/0</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="participants-panel">
+          <h4>👥 Participantes Conectados (<span id="participantCount">0</span>)</h4>
+          <div id="participantsList" class="participants-list">
+            <p class="no-participants">No hay participantes conectados</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="actions">
+      <button class="btn-ghost" onclick="goToPage('page-tutor-config')">◂ Configuración</button>
+    </div>
+  </section>
+
+  <!-- Página 2.6: Interfaz del Participante -->
+  <section id="page-participant" class="page">
+    <div class="card">
+      <h3>📝 Panel del Participante</h3>
+      
+      <div id="participantConnection" class="connection-panel">
+        <div class="form-field">
+          <label for="participantName"><strong>Tu Nombre:</strong></label>
+          <input id="participantName" type="text" placeholder="Ingresa tu nombre y apellido" tabindex="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        </div>
+        <div class="form-field">
+          <label for="sessionIdInput" style="display:block; margin-bottom: 6px;"><strong>ID de Sesión del Tutor (MAYÚSCULAS):</strong></label>
+          <input id="sessionIdInput" type="text" placeholder="Ingresa el ID de sesión" style="text-align: center; font-family: monospace; text-transform: uppercase; margin-top: 6px; margin-bottom: 12px;" tabindex="2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <div class="hint" style="font-size: 12px; color: #b91c1c; margin-top: 12px; text-align:center; font-weight: 600;">
+            ⚠️ Importante: el ID <strong>distingue mayúsculas</strong>. Escríbelo en <strong>MAYÚSCULAS</strong> (ej.: <code>TUTOR_AB12CD</code>).
+          </div>
+        </div>
+        <button id="connectToSession" onclick="connectToSession()" tabindex="3">🔗 Conectar a Sesión</button>
+      </div>
+      
+      <div id="participantStatus" class="status-panel" style="display: none;">
+        <p id="connectionStatus">Conectando...</p>
+      </div>
+      
+      <div id="participantExercise" class="exercise-panel" style="display: none;">
+        <div class="participant-info">
+          <p><strong>Alumno:</strong> <span id="participantDisplayName">-</span></p>
+          <p><strong>Conectado a:</strong> <span id="connectedSession">-</span></p>
+          <p><strong>Estado:</strong> <span id="exerciseStatus">Esperando...</span></p>
+        </div>
+        
+        <div id="participantGame" style="display: none;">
+          <!-- Progreso del participante (arriba del cuadro de texto) -->
+          <div class="participant-progress" style="margin-top: 16px;">
+            <div class="progress" aria-label="Progreso de palabras">
+              <div id="participantProgressFill" class="progress-fill" style="width:0%"></div>
+            </div>
+            <div id="participantProgressText" class="progress-text">0/0</div>
+          </div>
+
+          <div class="participant-input">
+            <input type="text" id="participantAnswer" placeholder="Escribe la palabra aquí" 
+                   autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" 
+                   data-gramm="false" onkeydown="handleParticipantEnter(event)">
+            <button onclick="submitParticipantAnswer()">✓ Confirmar</button>
+          </div>
+          
+          <div id="participantFeedback" class="participant-feedback"></div>
+        </div>
+        
+        <!-- Reporte del participante (después del ejercicio) -->
+        <div id="participantReport" style="display: none;">
+          <h4>📊 Tu Reporte</h4>
+          <div class="actions" style="margin: 12px 0;">
+            <button onclick="generarReportePDF()">⬇️ Descargar PDF</button>
+            <button onclick="generarPracticaManual()">📝 Práctica Manual</button>
+          </div>
+          <div id="participantReportContent"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Página 3: Reporte final -->
+  <section id="page-report" class="page">
+    <div class="actions" style="margin-top: 6px;">
+      <button class="btn-ghost" onclick="goToPage('page-config')">◂ Nueva Sesión</button>
+      <button class="btn-ghost" onclick="irAlEjercicio()">Nuevo ejercicio</button>
+      <button onclick="generarReportePDF()">⬇️ Reporte PDF</button>
+      <button onclick="generarPracticaManual()">📝 Práctica Manual</button>
+    </div>
+    <div class="card" style="margin-top: 14px;">
+      <div id="reporteFinal" class="status"></div>
+    </div>
+  </section>
+
+  <!-- Librerías para generar PDF en el navegador -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.0/dist/jspdf.plugin.autotable.min.js"></script>
+  <!-- PeerJS para comunicación P2P -->
+  <script src="https://unpkg.com/peerjs@1.5.0/dist/peerjs.min.js"></script>
+  <!-- Simple Keyboard (solo se inicializa en móviles/tablets) -->
+  <script src="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.js"></script>
+  <!-- Módulos del sistema: (se cargan más abajo con onload/onerror y logs) -->
+  
+  <!-- Modal personalizado para confirmación de descarga -->
+  <div id="downloadModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">✅ Descarga Completada</h3>
+        <span class="modal-close" onclick="closeDownloadModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p id="modalMessage">Archivo descargado exitosamente</p>
+        <div class="modal-actions">
+          <button id="openFileBtn" class="btn-primary" onclick="openDownloadedFile()">📂 Abrir Archivo</button>
+          <button class="btn-ghost" onclick="closeDownloadModal()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Contenedor inline para Teclado Virtual (solo móviles/tablets) -->
+  <div id="vk-inline" class="vk-inline-container" style="display:none;" aria-hidden="true">
+    <div class="simple-keyboard"></div>
+  </div>
+
+  </div>
+  
+  <!-- Pie de página -->
+  <footer>
+    <div style="width: 100%; max-width: 980px; margin: 0 auto; text-align: center; padding: 8px 0 4px;">
+      <p style="margin: 0; font-size: 12px; color: #334155; line-height: 1.4;">
+        <strong>© 2025 GMR - Todos los derechos reservados</strong> · 
+        <span style="font-size: 11px; color: #64748b;">Código propietario. Prohibida su modificación o redistribución.</span>
+      </p>
+      <p style="margin: 2px 0 0; font-size: 11px; line-height: 1.3;">
+        <a href="assets/politicas-privacidad.html" style="color: #0ea5e9; text-decoration: none; margin: 0 4px;">Políticas de Privacidad</a> |
+        <a href="LICENSE.md" style="color: #0ea5e9; text-decoration: none; margin: 0 4px;">Licencia</a> |
+        <a href="mailto:hgomero@gmail.com" style="color: #0ea5e9; text-decoration: none; margin: 0 4px;">Contacto</a>
+      </p>
+    </div>
+  </footer>
+  
+  
+  
+  <!-- Scripts principales -->
+  <!-- Device Detector debe cargarse primero -->
+  <script src="modules/device-detector.js" onload="console.log('✅ modules/device-detector.js cargado')" onerror="console.error('❌ Error cargando modules/device-detector.js')"></script>
+  <script src="modules/virtual-keyboard.js" onload="console.log('✅ modules/virtual-keyboard.js cargado')" onerror="console.error('❌ Error cargando modules/virtual-keyboard.js')"></script>
+  <script src="modules/cache.js" onload="console.log('✅ modules/cache.js cargado')" onerror="console.error('❌ Error cargando modules/cache.js')"></script>
+  <script src="modules/navigation.js" onload="console.log('✅ modules/navigation.js cargado')" onerror="console.error('❌ Error cargando modules/navigation.js')"></script>
+  <script src="modules/voice-strategy.js" onload="console.log('✅ modules/voice-strategy.js cargado')" onerror="console.error('❌ Error cargando modules/voice-strategy.js')"></script>
+  <script src="modules/tts.js" onload="console.log('✅ modules/tts.js cargado')" onerror="console.error('❌ Error cargando modules/tts.js')"></script>
+  <!-- Definir ruta del JSON antes del cargador de datos -->
+  <script>
+    window.CONFIG = window.CONFIG || {};
+    window.CONFIG.RAE_WORD_LIST_URL = './assets/palabras-con-frecuencia.json';
+    // Definir claves de caché antes de cargar DataLoader (evita clave 'undefined')
+    window.CONFIG.RAE_CACHE_KEY = 'rae_words_oficial_cache_v1';
+    window.CONFIG.RAE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
+    // Activar modo DEBUG para mostrar diagnósticos (e.g., conteo por niveles)
+    window.DEBUG = true;
+    // Producción: permitir múltiples sesiones simultáneas con IDs únicos
+    // Si necesitas modo desarrollo con ID fijo, cambia a true temporalmente
+    window.CONFIG.DEV_DISABLE_SESSION_ID = false;
+    window.CONFIG.DEV_FIXED_TUTOR_ID = 'TUTOR_DEV';
+  </script>
+  <!-- Eliminado: diccionario externo; validación se hace localmente -->
+  <script src="modules/data-loader.js?v=dbg1" onload="console.log('✅ modules/data-loader.js cargado')" onerror="console.error('❌ Error cargando modules/data-loader.js')"></script>
+  <script src="modules/dev-utils.js" onload="console.log('✅ modules/dev-utils.js cargado')" onerror="console.error('❌ Error cargando modules/dev-utils.js')"></script>
+  <script src="modules/group-state.js" onload="console.log('✅ modules/group-state.js cargado')" onerror="console.error('❌ Error cargando modules/group-state.js')"></script>
+  <script src="modules/peer-manager.js" onload="console.log('✅ modules/peer-manager.js cargado')" onerror="console.error('❌ Error cargando modules/peer-manager.js')"></script>
+  <script src="modules/game-state.js" onload="console.log('✅ modules/game-state.js cargado')" onerror="console.error('❌ Error cargando modules/game-state.js')"></script>
+  <script src="modules/reportes.js" onload="console.log('✅ modules/reportes.js cargado')" onerror="console.error('❌ Error cargando modules/reportes.js')"></script>
+  <script src="modules/ui.js" onload="console.log('✅ modules/ui.js cargado')" onerror="console.error('❌ Error cargando modules/ui.js')"></script>
+  <script src="modules/params.js" onload="console.log('✅ modules/params.js cargado')" onerror="console.error('❌ Error cargando modules/params.js')"></script>
+  <script src="modules/error-bank.js" onload="console.log('✅ modules/error-bank.js cargado')" onerror="console.error('❌ Error cargando modules/error-bank.js')"></script>
+  <script src="modules/validation.js" onload="console.log('✅ modules/validation.js cargado')" onerror="console.error('❌ Error cargando modules/validation.js')"></script>
+  <script src="modules/router.js" onload="console.log('✅ modules/router.js cargado')" onerror="console.error('❌ Error cargando modules/router.js')"></script>
+  <script src="modules/game-flow.js" onload="console.log('✅ modules/game-flow.js cargado')" onerror="console.error('❌ Error cargando modules/game-flow.js')"></script>
+  <!-- Debe cargarse antes de app.js para que los wrappers deleguen correctamente -->
+  <script src="modules/individual-mode.js?v=dbg1" onload="console.log('✅ modules/individual-mode.js cargado')" onerror="console.error('❌ Error cargando modules/individual-mode.js')"></script>
+  <!-- Módulos del modo grupal -->
+  <script src="modules/participant-helpers.js" onload="console.log('✅ modules/participant-helpers.js cargado')" onerror="console.error('❌ Error cargando modules/participant-helpers.js')"></script>
+  <script src="modules/group-mode-tutor.js" onload="console.log('✅ modules/group-mode-tutor.js cargado')" onerror="console.error('❌ Error cargando modules/group-mode-tutor.js')"></script>
+  <script src="assets/app.js?v=refactor1" onload="console.log('✅ app.js cargado (refactor1)')" onerror="console.error('❌ Error cargando app.js')"></script>
+  
+  <!-- Eliminado: script de diagnóstico duplicado -->
+  
+  <!-- Inicializador del teclado virtual (solo móviles/tablets) -->
+  <script>
+    (function(){
+      function initVK(){
+        try {
+          if (window.initVirtualKeyboardIfNeeded) {
+            window.initVirtualKeyboardIfNeeded();
+          }
+        } catch (e) {
+          console.warn('[VK] No se pudo inicializar el teclado virtual:', e);
+        }
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initVK);
+      } else {
+        initVK();
+      }
+    })();
+  </script>
+</body>
+</html>
