@@ -514,12 +514,61 @@
   
   <!-- Deshabilitar menú contextual y herramientas de desarrollador -->
   <script>
+    // Bloquear menú contextual
     document.addEventListener('contextmenu', event => event.preventDefault());
-    document.onkeydown = e => {
-      if (e.key === "F12" || (e.ctrlKey && e.shiftKey && e.key === "I")) {
+    
+    // Bloquear teclas de desarrollador (múltiples eventos para mayor cobertura)
+    const blockDevTools = (e) => {
+      // F12
+      if (e.key === "F12" || e.keyCode === 123) {
         e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+      // Ctrl+Shift+I (Inspector)
+      if (e.ctrlKey && e.shiftKey && (e.key === "I" || e.keyCode === 73)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+      // Ctrl+Shift+J (Console)
+      if (e.ctrlKey && e.shiftKey && (e.key === "J" || e.keyCode === 74)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+      // Ctrl+Shift+C (Selector)
+      if (e.ctrlKey && e.shiftKey && (e.key === "C" || e.keyCode === 67)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }
+      // Ctrl+U (Ver código fuente)
+      if (e.ctrlKey && (e.key === "U" || e.keyCode === 85)) {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
       }
     };
+    
+    // Aplicar en múltiples eventos
+    document.addEventListener('keydown', blockDevTools, true);
+    document.addEventListener('keypress', blockDevTools, true);
+    document.addEventListener('keyup', blockDevTools, true);
+    
+    // Detectar si DevTools está abierto (truco basado en timing)
+    const devToolsCheck = () => {
+      const threshold = 160;
+      const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+      const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+      
+      if (widthThreshold || heightThreshold) {
+        document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Arial;"><h2>⚠️ Por favor, cierra las herramientas de desarrollador para continuar.</h2></div>';
+      }
+    };
+    
+    // Verificar periódicamente
+    setInterval(devToolsCheck, 1000);
   </script>
 </body>
 </html>
