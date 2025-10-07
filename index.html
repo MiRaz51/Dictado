@@ -511,5 +511,15 @@
       }
     })();
   </script>
+  
+  <!-- Deshabilitar menú contextual y herramientas de desarrollador -->
+  <script>
+    document.addEventListener('contextmenu', event => event.preventDefault());
+    document.onkeydown = e => {
+      if (e.key === "F12" || (e.ctrlKey && e.shiftKey && e.key === "I")) {
+        e.preventDefault();
+      }
+    };
+  </script>
 </body>
 </html>
