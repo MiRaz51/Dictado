@@ -13,47 +13,15 @@
 // Uso permitido solo mediante la aplicación web oficial
 // Contacto: hgomero@gmail.com
 // ============================================================================
+// Usar la configuración global centralizada (modules/config.js)
+const CONFIG = (typeof window !== 'undefined' && window.CONFIG) ? window.CONFIG : {};
 
-const CONFIG = {
-  // URLs y archivos
-  RAE_WORD_LIST_URL: './palabras-con-frecuencia.json',
-  RAE_CACHE_KEY: 'rae_words_oficial_cache_v1',
-  RAE_CACHE_TTL_MS: 30 * 24 * 60 * 60 * 1000, // 30 días
-  
-  // Parámetros
-  PARAMS_KEY: 'dictado_params_v1',
-  ERROR_BANK_KEY: 'dictado_error_bank_v1',
-  MEANING_CACHE_KEY: 'dictado_meaning_cache_v1',
-  
-  // Límites y configuración
-  MAX_WORD_LENGTH: 15,
-  MIN_WORD_LENGTH: 2,
-  DEFAULT_WORD_COUNT: 25,
-  MAX_CONSIDERED_WORDS: 20000,
-  
-  // TTS
-  TTS_RATE: 0.75,
-  TTS_MOBILE_RATE: 0.8,
-  TTS_VOLUME: 1.0,
-  TTS_PITCH: 1.0,
-  
-  // Tiempos
-  VOICE_WAIT_MS: 200,
-  MAX_VOICE_ATTEMPTS: 8
-};
+// CacheManager está en modules/cache.js (window.CacheManager)
 
-// CacheManager fue extraído a modules/cache.js
-// Se expone globalmente como window.CacheManager
-// Nota: reglas de exclusión y validación de idioma viven en WordFilters
-
-// Datos RAE cargados desde JSON con frecuencias (referencia al global de DataLoader)
-let raeWordsData = (typeof window !== 'undefined' && window.raeWordsData) ? window.raeWordsData : {
-  words: [], // Array de objetos {palabra, freq, dificultad, nivel}
-  
-  wordsSet: new Set(),
-  wordsByLevel: { 1: [], 2: [], 3: [], 4: [] },
-  loaded: false
-};
+// Datos RAE vía fachada DataAPI (mantiene compatibilidad con window.raeWordsData)
+const raeWordsData = (typeof window !== 'undefined' && window.DataAPI)
+  ? window.DataAPI.getRaeData()
+  : ((typeof window !== 'undefined' && window.raeWordsData) ? window.raeWordsData : { words: [], wordsSet: new Set(), wordsByLevel: {1:[],2:[],3:[],4:[]}, loaded:false });
 
 // Estado dinámico provisto por DataLoader (global)
 // window.palabrasPorNivelDinamico y window.cargandoDiccionario
@@ -129,30 +97,9 @@ if (typeof window !== 'undefined') {
   })();
 }
 
-// (El flujo de validación es local con WordFilters; no se usa Hunspell)
+// Selección/filtrado: modules/filters.js · Validación: modules/validation.js · Reportes: modules/reportes.js
 
-// Función mejorada para seleccionar palabras por nivel con algoritmo estratificado
-function seleccionarPalabrasPorNivel(nivel, cantidad, filtros = {}) {
-  return WordFilters.seleccionarPalabrasPorNivel(raeWordsData.wordsByLevel, nivel, cantidad, filtros);
-}
-
-// Función de compatibilidad (mantener para código existente)
-function filtrarPalabrasRAE(words, nivel) {
-  // Esta función ahora es un wrapper para mantener compatibilidad
-  if (Array.isArray(words) && words.length > 0 && typeof words[0] === 'string') {
-    // Formato antiguo - usar filtro centralizado por longitud
-    return WordFilters.filtrarPorLongitudCompat(words, nivel);
-  }
-  
-  // Nuevo formato - usar selección estratificada
-  return seleccionarPalabrasPorNivel(nivel, words.length || 50);
-}
-
-// Validación de palabras delegada a modules/validation.js
-// Búsqueda de significados y formateos delegados a modules/reportes.js
-
-// --- PDF ---
-// Delegar al generador centralizado definido en reportes.js usando alias estable
+// PDF: delega al generador centralizado (reportes.js)
 const generarReportePDF_fromReportes = (typeof window !== 'undefined')
   ? (window.__reportes_generarReportePDF || window.generarReportePDF || null)
   : null;
@@ -166,98 +113,13 @@ async function generarReportePDF() {
   try { alert('No se pudo cargar el generador de PDF.'); } catch(_) {}
 }
 
-// ============================================================================
-// NAVEGACIÓN OPTIMIZADA CON ENTER
-// ============================================================================
-
-function configurarEnterSiguiente() {
-  const fieldOrder = ['alumno', 'curso', 'filtroLetras', 'cantidad', 'btnNext'];
-  
-  const focusElement = (elementId) => {
-    const element = document.getElementById(elementId);
-    if (!element) return false;
-    
-    element.focus();
-    if (element.select && elementId !== 'btnNext') {
-      try { element.select(); } catch(_) {}
-    }
-    return true;
-  };
-  
-  fieldOrder.forEach((id, index) => {
-    const element = document.getElementById(id);
-    if (!element) return;
-    
-    element.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
-      e.preventDefault();
-      
-      if (id === 'btnNext') {
-        goNextFromConfig();
-        return;
-      }
-      
-      // Buscar siguiente elemento válido
-      for (let i = index + 1; i < fieldOrder.length; i++) {
-        if (focusElement(fieldOrder[i])) break;
-      }
-    });
-  });
-}
+// Navegación con Enter: modules/ui-forms.js (configurarEnterSiguiente)
 
 let sessionStartISO = null;
 
-// ============================================================================
-// UTILIDADES OPTIMIZADAS
-// ============================================================================
+// Utilidades UI: modules/ui-core.js (smoothScrollIntoView, clearInputs, validateRequiredFields)
 
-
-// Desplazamiento suave para asegurar que el usuario vea el panel/resultado
-function smoothScrollIntoView(target, opts = { block: 'center', behavior: 'smooth' }) {
-  try {
-    const el = (typeof target === 'string') ? document.getElementById(target) : target;
-    if (!el) return;
-    if (typeof el.scrollIntoView === 'function') {
-      el.scrollIntoView(opts);
-    } else {
-      // Fallback básico
-      const y = el.getBoundingClientRect().top + window.scrollY - 80;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-  } catch(_) {}
-}
-
-
-// Funciones de UI delegadas a modules/ui.js
-// Usar directamente: UI.clearGameUI() y UI.showNextButton()
-
-// Función optimizada para limpiar campos de entrada
-function clearInputs(...ids) {
-  ids.forEach(id => {
-    const element = document.getElementById(id);
-    if (element) {
-      if (element.type === 'checkbox') {
-        element.checked = false;
-      } else {
-        element.value = '';
-      }
-    }
-  });
-}
-
-// Función optimizada para validar campos requeridos
-function validateRequiredFields(fields) {
-  const errors = [];
-  
-  fields.forEach(({ id, name }) => {
-    const element = document.getElementById(id);
-    if (!element || !element.value.trim()) {
-      errors.push(name);
-    }
-  });
-  
-  return errors;
-}
+// UI: modules/ui.js (UI.clearGameUI, UI.showNextButton)
 
 // Control del estado habilitado del botón "Siguiente" en la página de configuración
 function updateNextEnabled() { try { return Params.updateNextEnabled(); } catch(_) { return false; } }
@@ -356,6 +218,7 @@ function probarSistemaNiveles() {
 // Lanzar preparación en segundo plano al cargar la página
 (function init() {
   try { DataLoader.prepararNivelesDinamicos(); } catch(_) {}
+  try { if (typeof DataAPI !== 'undefined') DataAPI.ensurePrepared(); } catch(_) {}
   cargarParametros();
   // Limpiar posibles valores inválidos en caché de significados (p.ej., '1')
   try {
@@ -585,7 +448,10 @@ window.refrescarDatosRAE = function refrescarDatosRAE() {
     } else {
       localStorage.removeItem(CONFIG.RAE_CACHE_KEY);
     }
-    if (window.raeWordsData) {
+    if (typeof DataAPI !== 'undefined' && DataAPI.setRaeData) {
+      DataAPI.setRaeData({ words: [], wordsSet: new Set(), wordsByLevel: {1:[],2:[],3:[],4:[]}, loaded: false });
+    } else if (window.raeWordsData) {
+      // Fallback por compatibilidad
       raeWordsData.loaded = false;
       raeWordsData.words = [];
       raeWordsData.wordsSet = new Set();

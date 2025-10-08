@@ -1,0 +1,31 @@
+/* Forms: inputs, selects, validation */
+input[type="text"], input[type="number"], select {
+  background: #fff;
+  color: var(--text);
+  border: 1px solid rgba(2,6,23,.12);
+  border-radius: 12px;
+  padding: 12px 14px;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(2,6,23,.04);
+  transition: border-color .2s, box-shadow .2s, background .2s;
+}
+input::placeholder { color: #64748b; }
+input[type="text"]:focus, input[type="number"]:focus, select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+/* Validation */
+.input-error { border-color: var(--danger) !important; box-shadow: 0 0 0 4px rgba(220,38,38,.15) !important; }
+.help-error { color: var(--danger); font-size: 12px; margin: 4px 0 0 0; display: none; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  input[type="text"], input[type="number"], select, .row input[type="text"], .row button {
+    width: 100% !important;
+    flex: none !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
+}

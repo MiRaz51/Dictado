@@ -8,14 +8,35 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/styles/variables.css">
+  <link rel="stylesheet" href="assets/styles/base.css">
+  <link rel="stylesheet" href="assets/styles/utilities.css">
+  <link rel="stylesheet" href="assets/styles/forms.css">
   <link rel="stylesheet" href="assets/styles.css">
+  <!-- CSS modularizado: componentes -->
+  <link rel="stylesheet" href="assets/styles/components/help-button.css">
+  <link rel="stylesheet" href="assets/styles/components/tutorial.css">
+  <link rel="stylesheet" href="assets/styles/components/config-card.css">
+  <link rel="stylesheet" href="assets/styles/components/progress.css">
+  <link rel="stylesheet" href="assets/styles/components/participant.css">
+  <link rel="stylesheet" href="assets/styles/components/tutor.css">
+  <link rel="stylesheet" href="assets/styles/components/virtual-keyboard.css">
+  <link rel="stylesheet" href="assets/styles/components/reportes.css">
+  <link rel="stylesheet" href="assets/styles/components/badges.css">
+  <link rel="stylesheet" href="assets/styles/components/feedback.css">
   <!-- Simple Keyboard CSS (solo se usa en móviles/tablets) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/css/index.css">
   <script src="modules/word-filters-fixed.js" onload="console.log('✅ modules/word-filters-fixed.js cargado')" onerror="console.error('❌ Error cargando modules/word-filters-fixed.js')"></script>
+  <script src="modules/filters.js" onload="console.log('✅ modules/filters.js cargado')" onerror="console.error('❌ Error cargando modules/filters.js')"></script>
 </head>
 <body>
+  <!-- Botón de ayuda/tutorial (flotante, fuera del contenedor principal) -->
+  <button id="help-btn" class="help-button" onclick="window.Tutorial && window.Tutorial.restart()" title="Ver tutorial de nuevo">
+    <span>?</span>
+  </button>
   <!-- Eliminado: script inline duplicado. Todas las funciones reales están en app.js -->
   <div class="container">
+  
   <h2><span class="brand">Práctica</span> de Ortografía</h2>
   <p id="metaAlumnoCurso" class="meta" style="display:none;"></p>
 
@@ -79,44 +100,7 @@
   <!-- Página 2: Ejercicio -->
   <section id="page-game" class="page">
     <div class="card" style="margin: 12px 0;">
-      <!-- 1. Cantidad de palabras -->
-      <label for="cantidad"><strong>Cantidad de palabras</strong>: </label>
-      <input id="cantidad" type="number" min="1" step="1" placeholder="vacío = 25" style="width: 90px;" tabindex="1" onkeydown="handleEnterNavigation(event, 'filtroLetras')">
-      <div class="hint">Al no ingresar cantidad, será 25 palabras como máximo disponible.</div>
-      <br><br>
-      
-      <!-- 3. Letras a reforzar -->
-      <label for="filtroLetras"><strong>Letras a reforzar</strong> (solo una letra o combinación, ej.: rr): </label>
-      <input id="filtroLetras" type="text" placeholder="ej.: rr" style="max-width: 320px;" tabindex="2" oninput="filtrarLetrasEspanol(this)" onkeydown="handleEnterNavigation(event, 'porcentajeRefuerzo')" autocomplete="off" autocorrect="off" spellcheck="false" data-gramm="false">
-      <div class="row" style="margin-top: 8px; align-items: center;">
-        <label for="porcentajeRefuerzo" style="min-width: 220px;"><strong>Porcentaje de refuerzo</strong> (0–100%): </label>
-        <input id="porcentajeRefuerzo" type="number" min="0" max="100" step="1" placeholder="p. ej.: 40" style="width: 120px;" tabindex="2" onkeydown="handleEnterNavigation(event, 'acentosObligatorios')">
-      </div>
-      <div class="hint" style="font-size: 12px; color: #666; margin-top: 4px;">
-        <strong>Letras individuales:</strong> b, v, g, j, c, z, s, h, x, y, w<br>
-        <strong>Dígrafos:</strong> ll, rr, ch, qu, gu, gü<br>
-        <strong>Grupos consonánticos:</strong> br, bl, cr, cl, dr, fl, fr, gl, gr, pl, pr, tr<br>
-        <strong>Combinaciones ortográficas:</strong> cc, sc, xc, mp, mb, nv, nf, nm
-      </div>
-      <br>
-      
-      <!-- 5. Modo estricto (validación local) -->
-      <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
-        <label>
-          <input id="strictMode" type="checkbox" checked tabindex="5" onkeydown="handleEnterNavigation(event, 'btnNivelBasico')"> Modo estricto (validación local)
-        </label>
-      </div>
-    </div>
-    
-    <!-- 2. Acentos obligatorios -->
-    <div style="margin-top: 10px; margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
-      <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-        <input id="acentosObligatorios" type="checkbox" style="margin: 0;" tabindex="3" onkeydown="handleEnterNavigation(event, 'btnNivelBasico')">
-        <span>Acentos obligatorios (más difícil)</span>
-      </label>
-      <div id="acentosHelp" style="font-size: 12px; color: #666; margin-top: 4px;">
-        Básico: desactivado · Intermedio/Avanzado: opcional · Experto: siempre activado
-      </div>
+      <div id="config-individual-block"></div>
     </div>
     
     <p>Selecciona un nivel de dificultad:</p>
@@ -183,40 +167,7 @@
   <section id="page-tutor-config" class="page">
     <div class="card">
       <h3>🎓 Configuración del Ejercicio</h3>
-      
-      <div class="form-field">
-        <label for="tutorCantidad"><strong>Cantidad de palabras:</strong></label>
-        <input id="tutorCantidad" type="number" min="5" max="50" placeholder="20" tabindex="3">
-      </div>
-      
-      <!-- Letras a reforzar -->
-      <label for="tutorFiltroLetras"><strong>Letras a reforzar</strong> (solo una letra o combinación, ej.: rr): </label>
-      <input id="tutorFiltroLetras" type="text" placeholder="ej.: rr" style="max-width: 320px;" tabindex="4" oninput="filtrarLetrasEspanol(this)" autocomplete="off" autocorrect="off" spellcheck="false" data-gramm="false">
-      <div class="hint" style="font-size: 12px; color: #666; margin-top: 4px;">
-        <strong>Letras individuales:</strong> b, v, g, j, c, z, s, h, x, y, w<br>
-        <strong>Dígrafos:</strong> ll, rr, ch, qu, gu, gü<br>
-        <strong>Grupos consonánticos:</strong> br, bl, cr, cl, dr, fl, fr, gl, gr, pl, pr, tr<br>
-        <strong>Combinaciones ortográficas:</strong> cc, sc, xc, mp, mb, nv, nf, nm
-      </div>
-      <br>
-      
-      <!-- Acentos obligatorios -->
-      <div style="margin-top: 10px; margin-bottom: 10px; padding: 10px; background: #f5f5f5; border-radius: 6px;">
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-          <input id="tutorAcentosObligatorios" type="checkbox" style="margin: 0;" tabindex="3">
-          <span>Acentos obligatorios (más difícil)</span>
-        </label>
-        <div style="font-size: 12px; color: #666; margin-top: 4px;">
-          Básico: desactivado · Intermedio/Avanzado: opcional · Experto: siempre activado
-        </div>
-      </div>
-      
-      <!-- Modo estricto -->
-      <div style="margin-top:10px; display:flex; align-items:center; gap:10px;">
-        <label>
-          <input id="tutorStrictMode" type="checkbox" checked tabindex="4"> Modo estricto (solo español)
-        </label>
-      </div>
+      <div id="config-tutor-block"></div>
     </div>
     
     <p>Selecciona un nivel de dificultad:</p>
@@ -405,6 +356,8 @@
   <script src="https://unpkg.com/peerjs@1.5.0/dist/peerjs.min.js"></script>
   <!-- Simple Keyboard (solo se inicializa en móviles/tablets) -->
   <script src="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.js"></script>
+  <!-- Confetti para animaciones de éxito -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <!-- Módulos del sistema: (se cargan más abajo con onload/onerror y logs) -->
   
   <!-- Modal personalizado para confirmación de descarga -->
@@ -456,39 +409,63 @@
   <script src="modules/navigation.js" onload="console.log('✅ modules/navigation.js cargado')" onerror="console.error('❌ Error cargando modules/navigation.js')"></script>
   <script src="modules/voice-strategy.js" onload="console.log('✅ modules/voice-strategy.js cargado')" onerror="console.error('❌ Error cargando modules/voice-strategy.js')"></script>
   <script src="modules/tts.js" onload="console.log('✅ modules/tts.js cargado')" onerror="console.error('❌ Error cargando modules/tts.js')"></script>
+  <!-- Config debe cargarse antes de data-loader y resto de módulos -->
+  <script src="modules/config.js" onload="console.log('✅ modules/config.js cargado')" onerror="console.error('❌ Error cargando modules/config.js')"></script>
   <!-- Definir ruta del JSON antes del cargador de datos -->
   <script>
-    window.CONFIG = window.CONFIG || {};
-    window.CONFIG.RAE_WORD_LIST_URL = './assets/palabras-con-frecuencia.json';
-    // Definir claves de caché antes de cargar DataLoader (evita clave 'undefined')
-    window.CONFIG.RAE_CACHE_KEY = 'rae_words_oficial_cache_v1';
-    window.CONFIG.RAE_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
-    // Activar modo DEBUG para mostrar diagnósticos (e.g., conteo por niveles)
-    window.DEBUG = true;
-    // Producción: permitir múltiples sesiones simultáneas con IDs únicos
-    // Si necesitas modo desarrollo con ID fijo, cambia a true temporalmente
-    window.CONFIG.DEV_DISABLE_SESSION_ID = false;
-    window.CONFIG.DEV_FIXED_TUTOR_ID = 'TUTOR_DEV';
+    // Overrides opcionales de CONFIG (si quieres cambiar por entorno)
+    window.CONFIG = Object.assign(window.CONFIG || {}, {
+      RAE_WORD_LIST_URL: './assets/palabras-con-frecuencia.json'
+    });
+    // Activar diagnósticos si se requiere
+    window.DEBUG = window.DEBUG ?? true;
   </script>
   <!-- Eliminado: diccionario externo; validación se hace localmente -->
   <script src="modules/data-loader.js?v=dbg1" onload="console.log('✅ modules/data-loader.js cargado')" onerror="console.error('❌ Error cargando modules/data-loader.js')"></script>
+  <script src="modules/data.js" onload="console.log('✅ modules/data.js cargado')" onerror="console.error('❌ Error cargando modules/data.js')"></script>
+  <script src="modules/rae-proxy.js" onload="console.log('✅ modules/rae-proxy.js cargado')" onerror="console.error('❌ Error cargando modules/rae-proxy.js')"></script>
   <script src="modules/dev-utils.js" onload="console.log('✅ modules/dev-utils.js cargado')" onerror="console.error('❌ Error cargando modules/dev-utils.js')"></script>
   <script src="modules/group-state.js" onload="console.log('✅ modules/group-state.js cargado')" onerror="console.error('❌ Error cargando modules/group-state.js')"></script>
   <script src="modules/peer-manager.js" onload="console.log('✅ modules/peer-manager.js cargado')" onerror="console.error('❌ Error cargando modules/peer-manager.js')"></script>
   <script src="modules/game-state.js" onload="console.log('✅ modules/game-state.js cargado')" onerror="console.error('❌ Error cargando modules/game-state.js')"></script>
   <script src="modules/reportes.js" onload="console.log('✅ modules/reportes.js cargado')" onerror="console.error('❌ Error cargando modules/reportes.js')"></script>
   <script src="modules/ui.js" onload="console.log('✅ modules/ui.js cargado')" onerror="console.error('❌ Error cargando modules/ui.js')"></script>
+  <script src="modules/ui-core.js" onload="console.log('✅ modules/ui-core.js cargado')" onerror="console.error('❌ Error cargando modules/ui-core.js')"></script>
+  <script src="modules/ui-forms.js" onload="console.log('✅ modules/ui-forms.js cargado')" onerror="console.error('❌ Error cargando modules/ui-forms.js')"></script>
+  <script src="modules/progress.js" onload="console.log('✅ modules/progress.js cargado')" onerror="console.error('❌ Error cargando modules/progress.js')"></script>
+  <script src="modules/vk-helpers.js" onload="console.log('✅ modules/vk-helpers.js cargado')" onerror="console.error('❌ Error cargando modules/vk-helpers.js')"></script>
   <script src="modules/params.js" onload="console.log('✅ modules/params.js cargado')" onerror="console.error('❌ Error cargando modules/params.js')"></script>
   <script src="modules/error-bank.js" onload="console.log('✅ modules/error-bank.js cargado')" onerror="console.error('❌ Error cargando modules/error-bank.js')"></script>
   <script src="modules/validation.js" onload="console.log('✅ modules/validation.js cargado')" onerror="console.error('❌ Error cargando modules/validation.js')"></script>
   <script src="modules/router.js" onload="console.log('✅ modules/router.js cargado')" onerror="console.error('❌ Error cargando modules/router.js')"></script>
   <script src="modules/game-flow.js" onload="console.log('✅ modules/game-flow.js cargado')" onerror="console.error('❌ Error cargando modules/game-flow.js')"></script>
+  <!-- Tutorial interactivo -->
+  <script src="modules/tutorial.js" onload="console.log('✅ modules/tutorial.js cargado')" onerror="console.error('❌ Error cargando modules/tutorial.js')"></script>
+  <script src="modules/feedback.js" onload="console.log('✅ modules/feedback.js cargado')" onerror="console.error('❌ Error cargando modules/feedback.js')"></script>
   <!-- Debe cargarse antes de app.js para que los wrappers deleguen correctamente -->
   <script src="modules/individual-mode.js?v=dbg1" onload="console.log('✅ modules/individual-mode.js cargado')" onerror="console.error('❌ Error cargando modules/individual-mode.js')"></script>
   <!-- Módulos del modo grupal -->
   <script src="modules/participant-helpers.js" onload="console.log('✅ modules/participant-helpers.js cargado')" onerror="console.error('❌ Error cargando modules/participant-helpers.js')"></script>
   <script src="modules/group-mode-tutor.js" onload="console.log('✅ modules/group-mode-tutor.js cargado')" onerror="console.error('❌ Error cargando modules/group-mode-tutor.js')"></script>
+  <script src="modules/config-block.js" onload="console.log('✅ modules/config-block.js cargado')" onerror="console.error('❌ Error cargando modules/config-block.js')"></script>
   <script src="assets/app.js?v=refactor1" onload="console.log('✅ app.js cargado (refactor1)')" onerror="console.error('❌ Error cargando app.js')"></script>
+  <script>
+    // Renderizar los bloques reutilizables cuando el DOM esté listo
+    (function(){
+      const init = function(){
+        try {
+          if (window.renderConfigBlock) {
+            const ci = document.getElementById('config-individual-block');
+            if (ci) window.renderConfigBlock(ci, { mode: 'individual' });
+            const ct = document.getElementById('config-tutor-block');
+            if (ct) window.renderConfigBlock(ct, { mode: 'tutor' });
+          }
+        } catch(e) { console.error('Error renderizando config-block:', e); }
+      };
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
+  </script>
   
   <!-- Eliminado: script de diagnóstico duplicado -->
   

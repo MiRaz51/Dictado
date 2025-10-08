@@ -909,6 +909,110 @@
     }
   }
 
+  // ===== Utilidades compartidas para render HTML de reportes (para ambos modos) =====
+  function normalizeLevelName(v){
+    try {
+      const map = { basico:'Básico', básico:'Básico', intermedio:'Intermedio', avanzado:'Avanzado', experto:'Experto', facil:'Básico', medio:'Intermedio', dificil:'Avanzado', '1':'Básico','2':'Intermedio','3':'Avanzado','4':'Experto' };
+      const key = String(v||'').toLowerCase().trim();
+      return map[key] || (v || '-');
+    } catch(_) { return v || '-'; }
+  }
+
+  function isCorrectFlag(val){
+    if (val === true) return true;
+    try {
+      const s = String(val ?? '').trim();
+      const norm = (typeof WordFilters !== 'undefined' && WordFilters.normalizarBasico) ? WordFilters.normalizarBasico(s) : s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+      return norm === 'si' || norm === 'true' || norm === '1';
+    } catch(_) { return false; }
+  }
+
+  function formatDuration(startISO, endISO){
+    try {
+      const startDate = new Date(startISO);
+      const endDate = new Date(endISO);
+      const ms = Math.max(0, endDate - startDate);
+      const sec = Math.floor(ms/1000);
+      const mm = Math.floor(sec/60); const ss = sec % 60;
+      return `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+    } catch(_) { return ''; }
+  }
+
+  function renderReportSummaryAndList(targetElOrId, ctx){
+    const el = (typeof targetElOrId === 'string') ? document.getElementById(targetElOrId) : targetElOrId;
+    if (!el) return;
+    const resultados = Array.isArray(ctx?.results) ? ctx.results : [];
+    const total = resultados.length;
+    const correctas = resultados.filter(r => isCorrectFlag(r.correcto)).length;
+    const incorrectas = Math.max(0, total - correctas);
+    const porcentaje = total ? Math.round((correctas / total) * 100) : 0;
+    const nivelTxt = normalizeLevelName(ctx?.level || '-');
+    const inicioTxt = ctx?.startISO ? new Date(ctx.startISO).toLocaleString() : new Date().toLocaleString();
+    const finTxt = ctx?.endISO ? new Date(ctx.endISO).toLocaleString() : '';
+    const durTxt = (ctx?.startISO && ctx?.endISO) ? formatDuration(ctx.startISO, ctx.endISO) : '';
+
+    let html = '';
+    html += '<div class="report-summary" style="font-size:14px; margin-bottom:10px;">';
+    const nivelBadgeClass = (function(){ const n = String(nivelTxt||'').toLowerCase(); if (n.includes('básico')||n.includes('basico')||n==='1') return 'badge-level-basico'; if (n.includes('intermedio')||n==='2') return 'badge-level-intermedio'; if (n.includes('avanzado')||n==='3') return 'badge-level-avanzado'; if (n.includes('experto')||n==='4') return 'badge-level-experto'; return 'badge-off';})();
+    const nivelBadge = nivelTxt && nivelTxt !== '-' ? `<span class="badge ${nivelBadgeClass}">${nivelTxt}</span>` : `<span class="badge badge-off">-</span>`;
+    html += `<div><strong>Nivel:</strong> ${nivelBadge}</div>`;
+    html += `<div><strong>Inicio de ejercicio:</strong> <span class="badge badge-off">${inicioTxt}</span></div>`;
+    if (finTxt) html += `<div><strong>Fin de ejercicio:</strong> <span class="badge badge-off">${finTxt}</span></div>`;
+    if (durTxt) html += `<div><strong>Duración total:</strong> <span class="badge badge-info">${durTxt}</span></div>`;
+    html += `<div><strong>Total palabras:</strong> ${total}</div>`;
+    html += `<div><strong>Correctas:</strong> ${correctas}</div>`;
+    html += `<div><strong>Incorrectas:</strong> ${incorrectas}</div>`;
+    html += `<div><strong>Porcentaje de acierto:</strong> ${porcentaje}%</div>`;
+    if (ctx?.filterTxt != null) {
+      const ftxt = (String(ctx.filterTxt).trim() || '-');
+      const filtroBadge = ftxt !== '-' ? `<span class="badge badge-info">${ftxt}</span>` : `<span class="badge badge-off">-</span>`;
+      html += `<div><strong>Letras a reforzar:</strong> ${filtroBadge}</div>`;
+    }
+    if (ctx?.refuerzoTxt != null) html += `<div><strong>Porcentaje de refuerzo:</strong> ${ctx.refuerzoTxt}${ctx.refuerzoTxt !== '-' ? '%' : ''}</div>`;
+    if (ctx?.acentosObligatorios != null) {
+      const badge = ctx.acentosObligatorios ? `<span class="badge badge-ok">Sí</span>` : `<span class="badge badge-off">No</span>`;
+      html += `<div><strong>Acentos obligatorios:</strong> ${badge}</div>`;
+    }
+    if (ctx?.strictTxt != null) {
+      const badge = ctx.strictTxt === 'Sí' ? `<span class="badge badge-ok">Sí</span>` : `<span class="badge badge-off">No</span>`;
+      html += `<div><strong>Modo estricto:</strong> ${badge}</div>`;
+    }
+    html += '</div>';
+
+    // Lista de palabras con significado
+    html += '<h3 style="margin:10px 0 6px;">Palabras a reforzar</h3>';
+    html += '<div style="font-size:14px;"><ul style="margin:6px 0 0 18px;">';
+    resultados.forEach((r, idx) => {
+      const ok = isCorrectFlag(r.correcto);
+      const status = ok ? '<span class="badge badge-ok" style="margin-left:8px;">Correcta</span>' : '<span class="badge" style="margin-left:8px; background: var(--danger); color: #fff;">Incorrecta</span>';
+      const colorWord = ok ? 'var(--success)' : 'var(--danger)';
+      const defId = `def_${idx}`;
+      const defBlock = `<div id="${defId}" style="font-size:12px; color: var(--muted); margin-top:4px;">Buscando significado...</div>`;
+      html += `<li style="margin-bottom:8px;"><strong style="color:${colorWord};">${r.palabra || ''}</strong> ${status} — escrito: "<em>${r.respuesta || ''}</em>" ${defBlock}</li>`;
+    });
+    html += '</ul></div>';
+
+    el.innerHTML = html;
+    // Asíncronamente poblar significados si hay fetch disponible
+    setTimeout(async () => {
+      for (let i = 0; i < resultados.length; i++) {
+        const r = resultados[i];
+        const defEl = document.getElementById(`def_${i}`);
+        if (!defEl) continue;
+        try {
+          let significado = getCachedMeaning(r.palabra) || '';
+          if (!significado && typeof window.fetchSignificado === 'function') {
+            significado = await window.fetchSignificado(r.palabra);
+          }
+          if (significado) { defEl.textContent = significado; defEl.style.color = 'var(--text)'; }
+          else { defEl.textContent = 'Significado no encontrado'; defEl.style.color = 'var(--muted)'; }
+        } catch(_) {
+          defEl.textContent = 'Error al buscar significado'; defEl.style.color = 'var(--muted)';
+        }
+      }
+    }, 50);
+  }
+
   // Exponer globales
   window.cargarCacheSignificados = cargarCacheSignificados;
   window.guardarCacheSignificados = guardarCacheSignificados;
@@ -920,6 +1024,7 @@
   window.markReportReady = markReportReady;
   window.closeDownloadModal = closeDownloadModal;
   window.openDownloadedFile = openDownloadedFile;
+  try { window.ReportUtils = window.ReportUtils || { normalizeLevelName, isCorrectFlag, formatDuration, renderReportSummaryAndList }; } catch(_) {}
   // Alias estable del generador real para que otros scripts (app.js) lo invoquen sin riesgo de recursión
   // Nota: mantenemos también window.generarReportePDF por compatibilidad con el HTML
   window.__reportes_generarReportePDF = generarReportePDF;

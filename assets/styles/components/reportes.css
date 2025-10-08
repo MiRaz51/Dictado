@@ -1,0 +1,4 @@
+/* Reportes: resumen con columnas */
+.report-summary { column-count: 2; column-gap: 16px; }
+.report-summary > div { break-inside: avoid; -webkit-column-break-inside: avoid; margin: 4px 0; display:block; }
+@media (max-width: 640px) { .report-summary { column-count: 1; } }

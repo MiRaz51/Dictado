@@ -1,0 +1,18 @@
+/* Tutor UI */
+.status-panel { background:#f8fafc; border:1px solid rgba(2,6,23,.08); border-radius:8px; padding:16px; margin:16px 0; }
+.session-card { background:#e0f2fe; border:1px solid #0ea5e9; border-radius:8px; padding:16px; margin:16px 0; }
+.session-details p { margin:4px 0; }
+.session-id { font-family: monospace; background:#fff; padding:4px 8px; border-radius:4px; border:1px solid #ddd; font-weight:bold; color: var(--primary); }
+.participants-panel { margin:20px 0; }
+.participants-list { background:#f8fafc; border:1px solid rgba(2,6,23,.08); border-radius:8px; padding:12px; min-height:80px; max-height:200px; overflow-y:auto; }
+.participant-item { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#fff; border:1px solid rgba(2,6,23,.06); border-radius:6px; margin:4px 0; }
+.participant-name { font-weight:500; color: var(--text); }
+
+.tutor-controls { display:flex; gap:12px; margin:20px 0; flex-wrap:wrap; }
+#tutorPlayback .actions { display:flex; flex-wrap:wrap; gap:8px; }
+#tutorPlayback .actions button { width:auto !important; flex:0 0 auto; min-width:150px; }
+
+@media (max-width: 768px) {
+  .tutor-controls { flex-direction:column; }
+  #tutorPlayback .actions button { min-width: calc(50% - 8px); flex:1 1 auto; }
+}

@@ -158,14 +158,17 @@
           global.window._exerciseConfigParticipant = global.window._exerciseConfigParticipant || {};
           if (data && data.nivel) global.window._exerciseConfigParticipant.nivel = data.nivel;
         } catch(_) {}
-        // Inicializar progreso local (fallback)
+        // Inicializar progreso local (unificado)
         try {
           global.window._participantProgressCurrent = 0;
           global.window._participantProgressTotal = Number(data.totalWords || 0);
-          const pf0 = document.getElementById('participantProgressFill');
-          const pt0 = document.getElementById('participantProgressText');
-          if (pf0) pf0.style.width = '0%';
-          if (pt0) pt0.textContent = `0/${global.window._participantProgressTotal}`;
+          if (window.Progress && Progress.set) Progress.set('participantProgressFill','participantProgressText',0, global.window._participantProgressTotal);
+          else {
+            const pf0 = document.getElementById('participantProgressFill');
+            const pt0 = document.getElementById('participantProgressText');
+            if (pf0) pf0.style.width = '0%';
+            if (pt0) pt0.textContent = `0/${global.window._participantProgressTotal}`;
+          }
         } catch(_) {}
         // Preparar estructuras para el reporte
         try {
@@ -232,10 +235,25 @@
         const feedback = document.getElementById('participantFeedback');
         if (data.isCorrect) {
           feedback.innerHTML = '<p style="color: var(--success);">✅ ¡Correcto!</p>';
+          
+          // 🎉 NUEVO: Animaciones de éxito para participante
+          try { (global.Feedback && Feedback.celebrarAcierto) ? Feedback.celebrarAcierto() : (typeof global.celebrarAcierto === 'function' && global.celebrarAcierto()); } catch(_) {}
+          
+          // Incrementar racha del participante
+          global.window.rachaActualParticipant = (global.window.rachaActualParticipant || 0) + 1;
+          if (global.window.rachaActualParticipant >= 5 && typeof global.mostrarRacha === 'function') {
+            global.mostrarRacha(global.window.rachaActualParticipant);
+          }
         } else {
           feedback.innerHTML = `<p style=\"color: var(--danger);\">❌ Incorrecto. La palabra era: <strong>${data.correctWord}</strong></p>`;
+          
+          // 🔴 NUEVO: Animación de error para participante
+          try { (global.Feedback && Feedback.animarError) ? Feedback.animarError() : (typeof global.animarError === 'function' && global.animarError()); } catch(_) {}
+          
+          // Resetear racha
+          global.window.rachaActualParticipant = 0;
         }
-        // Fallback de progreso local: contar una respuesta por palabra
+        // Fallback de progreso local: contar una respuesta por palabra (unificado)
         try {
           if (!global.window._participantAnsweredCurrentWord) {
             global.window._participantAnsweredCurrentWord = true;
@@ -243,11 +261,14 @@
             let cur = Number(global.window._participantProgressCurrent || 0) + 1;
             if (cur > total) cur = total;
             global.window._participantProgressCurrent = cur;
-            const pf1 = document.getElementById('participantProgressFill');
-            const pt1 = document.getElementById('participantProgressText');
-            const pct = total > 0 ? Math.min(100, Math.max(0, Math.round((cur / total) * 100))) : 0;
-            if (pf1) { try { pf1.style.background = 'linear-gradient(90deg, #4CAF50, #81C784)'; } catch(_) {} pf1.style.width = `${pct}%`; }
-            if (pt1) pt1.textContent = `${cur}/${total}`;
+            if (window.Progress && Progress.set) Progress.set('participantProgressFill','participantProgressText', cur, total);
+            else {
+              const pf1 = document.getElementById('participantProgressFill');
+              const pt1 = document.getElementById('participantProgressText');
+              const pct = total > 0 ? Math.min(100, Math.max(0, Math.round((cur / total) * 100))) : 0;
+              if (pf1) { try { pf1.style.background = 'linear-gradient(90deg, #4CAF50, #81C784)'; } catch(_) {} pf1.style.width = `${pct}%`; }
+              if (pt1) pt1.textContent = `${cur}/${total}`;
+            }
           }
         } catch(_) {}
         // Registrar intento para el PDF
@@ -264,17 +285,18 @@
         
       case 'progress_update':
         try { console.log('[Participante] progress_update recibido:', data); } catch(_) {}
-        pf = document.getElementById('participantProgressFill');
-        pt = document.getElementById('participantProgressText');
-        const safeTotal = Number(data.total || 0);
-        const safeCurrent = Math.max(0, Math.min(Number(data.current || 0), safeTotal));
-        const percentage = safeTotal > 0 ? Math.min(100, Math.max(0, (safeCurrent / safeTotal) * 100)) : 0;
-        if (pf) {
-          // Asegurar un estilo visible del fill
-          try { pf.style.background = 'linear-gradient(90deg, #4CAF50, #81C784)'; } catch(_) {}
-          pf.style.width = `${percentage}%`;
-        }
-        if (pt) pt.textContent = `${safeCurrent}/${safeTotal}`;
+        (function(){
+          const safeTotal = Number(data.total || 0);
+          const safeCurrent = Math.max(0, Math.min(Number(data.current || 0), safeTotal));
+          if (window.Progress && Progress.set) Progress.set('participantProgressFill','participantProgressText', safeCurrent, safeTotal);
+          else {
+            const pf = document.getElementById('participantProgressFill');
+            const pt = document.getElementById('participantProgressText');
+            const percentage = safeTotal > 0 ? Math.min(100, Math.max(0, (safeCurrent / safeTotal) * 100)) : 0;
+            if (pf) { try { pf.style.background = 'linear-gradient(90deg, #4CAF50, #81C784)'; } catch(_) {} pf.style.width = `${percentage}%`; }
+            if (pt) pt.textContent = `${safeCurrent}/${safeTotal}`;
+          }
+        })();
         break;
         
       case 'stop_audio':
@@ -342,7 +364,7 @@
           const game = document.getElementById('participantGame');
           const confirmBtn = game ? game.querySelector('.participant-input button') : null;
           if (confirmBtn) confirmBtn.disabled = true;
-          try { if (window.virtualKeyboardManager) window.virtualKeyboardManager.hideKeyboard?.(); } catch(_) {}
+          try { if (window.VK && VK.hide) VK.hide(); else if (window.virtualKeyboardManager) window.virtualKeyboardManager.hideKeyboard?.(); } catch(_) {}
           const vkInline = document.getElementById('vk-inline');
           if (vkInline) { vkInline.style.display = 'none'; vkInline.setAttribute('aria-hidden','true'); }
         } catch(_) {}
@@ -355,186 +377,37 @@
   function showParticipantReport(results) {
     const reportDiv = document.getElementById('participantReport');
     const contentDiv = document.getElementById('participantReportContent');
-    
     if (!contentDiv) return;
-    
-    // Usar window.resultsLog que ya fue poblado en exercise_end
-    const resultados = Array.isArray(global.window.resultsLog) ? global.window.resultsLog : [];
-    const total = resultados.length;
-    const correctas = resultados.filter(r => r.correcto === 'Sí' || r.correcto === true).length;
-    const incorrectas = Math.max(0, total - correctas);
-    const porcentaje = total ? Math.round((correctas / total) * 100) : 0;
-    
-    // Construir reporte detallado similar al modo individual
-    let html = '';
-    html += '<div class="report-summary" style="font-size:14px; margin-bottom:10px;">';
-    
-    // Nivel (mejor esfuerzo: config -> resultados -> fallback)
-    let nivelTxt = (global.window._exerciseConfigParticipant && global.window._exerciseConfigParticipant.nivel)
-      ? global.window._exerciseConfigParticipant.nivel
-      : (global.window.currentNivel || '');
-    if (!nivelTxt) {
-      try {
-        const fromResults = (resultados.find(r => r && r.nivel && String(r.nivel).trim()) || {}).nivel;
-        if (fromResults) nivelTxt = String(fromResults);
-      } catch(_) {}
-    }
-    // Normalizar presentación (capitalizar)
-    try {
-      const map = { basico: 'Básico', básico:'Básico', intermedio:'Intermedio', avanzado:'Avanzado', experto:'Experto', facil:'Básico', medio:'Intermedio', dificil:'Avanzado' };
-      const key = String(nivelTxt||'').toLowerCase().trim();
-      nivelTxt = map[key] || nivelTxt || '-';
-    } catch(_) { nivelTxt = nivelTxt || '-'; }
-    const nivelBadgeClass = (function(){
-      const n = String(nivelTxt || '').toLowerCase();
-      if (n.includes('básico') || n.includes('basico') || n === '1') return 'badge-level-basico';
-      if (n.includes('intermedio') || n === '2') return 'badge-level-intermedio';
-      if (n.includes('avanzado') || n === '3') return 'badge-level-avanzado';
-      if (n.includes('experto') || n === '4') return 'badge-level-experto';
-      return 'badge-off';
-    })();
-    const nivelBadge = nivelTxt && nivelTxt !== '-' ? `<span class="badge ${nivelBadgeClass}">${nivelTxt}</span>` : `<span class="badge badge-off">-</span>`;
-    html += `<div><strong>Nivel:</strong> ${nivelBadge}</div>`;
-    
-    // Fechas
-    const fechaInicioISO = global.window.sessionStartISO || null;
-    const fechaSesionTxt = fechaInicioISO ? new Date(fechaInicioISO).toLocaleString() : new Date().toLocaleString();
-    const fechaBadge = `<span class="badge badge-off">${fechaSesionTxt}</span>`;
-    html += `<div><strong>Inicio de ejercicio:</strong> ${fechaBadge}</div>`;
-    
-    const fechaFinISO = global.window.sessionEndISO || null;
-    if (fechaFinISO) {
-      const finTxt = new Date(fechaFinISO).toLocaleString();
-      const finBadge = `<span class="badge badge-off">${finTxt}</span>`;
-      html += `<div><strong>Fin de ejercicio:</strong> ${finBadge}</div>`;
-      
-      // Duración
-      try {
-        const startDate = new Date(fechaInicioISO);
-        const endDate = new Date(fechaFinISO);
-        const ms = Math.max(0, endDate - startDate);
-        const sec = Math.floor(ms / 1000);
-        const mm = Math.floor(sec / 60);
-        const ss = sec % 60;
-        const durTxt = `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-        const durBadge = `<span class="badge badge-info">${durTxt}</span>`;
-        html += `<div><strong>Duración total:</strong> ${durBadge}</div>`;
-      } catch(_) {}
-    }
-    
-    // Estadísticas
-    html += `<div><strong>Total palabras:</strong> ${total}</div>`;
-    html += `<div><strong>Correctas:</strong> ${correctas}</div>`;
-    html += `<div><strong>Incorrectas:</strong> ${incorrectas}</div>`;
-    
-    const config = global.window._exerciseConfigParticipant || {};
-    
-    html += `<div><strong>Porcentaje de acierto:</strong> ${porcentaje}%</div>`;
-    
-    // Letras a reforzar (siempre mostrar)
-    const filtroLetras = config.filtroLetras || '';
-    const filtroTxt = filtroLetras.trim() || '-';
-    const filtroBadge = filtroTxt !== '-' 
-      ? `<span class="badge badge-info">${filtroTxt}</span>` 
-      : `<span class="badge badge-off">-</span>`;
-    html += `<div><strong>Letras a reforzar:</strong> ${filtroBadge}</div>`;
-    
-    // Porcentaje de refuerzo (en modo grupal generalmente no aplica, mostrar 0% o -)
-    const porcentajeRefuerzo = config.porcentajeRefuerzo;
-    let prTxt = '0';
-    if (porcentajeRefuerzo !== undefined && porcentajeRefuerzo !== null && porcentajeRefuerzo !== '') {
-      const prN = parseInt(porcentajeRefuerzo, 10);
-      prTxt = Number.isFinite(prN) ? Math.max(0, Math.min(100, prN)).toString() : '0';
-    }
-    html += `<div><strong>Porcentaje de refuerzo:</strong> ${prTxt}%</div>`;
-    
-    // Acentos obligatorios
-    if (config.acentosObligatorios !== undefined) {
-      const acentosTxt = config.acentosObligatorios ? 'Sí' : 'No';
-      const badge = acentosTxt === 'Sí' ? `<span class="badge badge-ok">${acentosTxt}</span>` : `<span class="badge badge-off">${acentosTxt}</span>`;
-      html += `<div><strong>Acentos obligatorios:</strong> ${badge}</div>`;
-    }
-    
-    // Modo estricto
-    if (config.strictMode !== undefined) {
-      const strictTxt = config.strictMode ? 'Sí' : 'No';
-      const badge = strictTxt === 'Sí' ? `<span class="badge badge-ok">${strictTxt}</span>` : `<span class="badge badge-off">${strictTxt}</span>`;
-      html += `<div><strong>Modo estricto:</strong> ${badge}</div>`;
-    }
-    
-    html += '</div>';
-    
-    // Lista completa con estado Correcta/Incorrecta (estilo individual)
-    const normalize = (s) => {
-      try {
-        return (global.WordFilters && WordFilters.normalizarBasico)
-          ? WordFilters.normalizarBasico(String(s ?? '').trim())
-          : String(s ?? '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      } catch(_) { return String(s ?? '').trim().toLowerCase(); }
-    };
-    const esCorrecta = (val) => {
-      if (val === true) return true;
-      try {
-        const norm = normalize(val);
-        return norm === 'si' || norm === 'true' || norm === '1';
-      } catch(_) { return false; }
-    };
-
-    html += '<h3 style="margin:10px 0 6px;">Palabras a reforzar</h3>';
-    html += '<div style="font-size:14px;">';
-    html += '<ul style="margin:6px 0 0 18px;">';
-    const all = resultados;
-    all.forEach((r, idx) => {
-      // Recalcular correcto si falta o es dudoso
-      try {
-        const raw = String(r.correcto ?? '').trim();
-        const known = (raw === true) || ['si','true','1'].includes(normalize(raw));
-        if (!known) {
-          const acentosObl = !!(global.window._exerciseConfigParticipant && global.window._exerciseConfigParticipant.acentosObligatorios);
-          if (acentosObl) r.correcto = (String(r.respuesta||'').toLowerCase().trim() === String(r.palabra||'').toLowerCase().trim()) ? 'Sí' : 'No';
-          else r.correcto = (normalize(r.respuesta) === normalize(r.palabra)) ? 'Sí' : 'No';
-        }
-      } catch(_) {}
-
-      const ok = esCorrecta(r.correcto);
-      const status = ok
-        ? '<span class="badge badge-ok" style="margin-left:8px;">Correcta</span>'
-        : '<span class="badge" style="margin-left:8px; background: var(--danger); color: #fff;">Incorrecta</span>';
-      const colorWord = ok ? 'var(--success)' : 'var(--danger)';
-      const defId = `def_${idx}`;
-      const defBlock = `<div id="${defId}" style="font-size:12px; color: var(--muted); margin-top:4px;">Buscando significado...</div>`;
-      html += `<li style="margin-bottom:8px;">
-        <strong style="color:${colorWord};">${r.palabra}</strong> ${status} — escrito: "<em>${r.respuesta || ''}</em>"
-        ${defBlock}
-      </li>`;
-    });
-    html += '</ul></div>';
-
-    // Buscar significados para todas las palabras (correctas e incorrectas)
-    setTimeout(async () => {
-      for (let i = 0; i < all.length; i++) {
-        const r = all[i];
-        const defElement = document.getElementById(`def_${i}`);
-        if (defElement && typeof global.window.fetchSignificado === 'function') {
-          try {
-            const significado = await global.window.fetchSignificado(r.palabra);
-            if (significado) {
-              defElement.textContent = significado;
-              defElement.style.color = 'var(--text)';
-            } else {
-              defElement.textContent = 'Significado no encontrado';
-              defElement.style.color = 'var(--muted)';
-            }
-          } catch (e) {
-            defElement.textContent = 'Error al buscar significado';
-            defElement.style.color = 'var(--muted)';
-          }
-        }
+  
+    const resultados = Array.isArray(window.resultsLog) ? window.resultsLog : [];
+    if (window.ReportUtils && typeof window.ReportUtils.renderReportSummaryAndList === 'function') {
+      let level = (window._exerciseConfigParticipant && window._exerciseConfigParticipant.nivel)
+        ? window._exerciseConfigParticipant.nivel
+        : (window.currentNivel || '');
+      if (!level) {
+        try {
+          const fromResults = (resultados.find(r => r && r.nivel && String(r.nivel).trim()) || {}).nivel;
+          if (fromResults) level = String(fromResults);
+        } catch(_) {}
       }
-    }, 100);
-    
-    contentDiv.innerHTML = html;
-    reportDiv.style.display = 'block';
+      const ctx = {
+        results: resultados,
+        level,
+        startISO: window.sessionStartISO || null,
+        endISO: window.sessionEndISO || null,
+        filterTxt: (window._exerciseConfigParticipant && window._exerciseConfigParticipant.filtroLetras) ? String(window._exerciseConfigParticipant.filtroLetras).trim() : '-',
+        refuerzoTxt: (function(){ const v = window._exerciseConfigParticipant?.porcentajeRefuerzo; if (v === undefined || v === null || v === '') return '0'; const n = parseInt(v,10); return Number.isFinite(n) ? Math.max(0, Math.min(100, n)).toString() : '0'; })(),
+        acentosObligatorios: !!(window._exerciseConfigParticipant && window._exerciseConfigParticipant.acentosObligatorios),
+        strictTxt: (window._exerciseConfigParticipant && window._exerciseConfigParticipant.strictMode) ? 'Sí' : 'No'
+      };
+      window.ReportUtils.renderReportSummaryAndList(contentDiv, ctx);
+      if (reportDiv) reportDiv.style.display = 'block';
+      return;
+    }
+  
+    // Fallback mínimo
+    contentDiv.innerHTML = '<div class="report-summary">Reporte no disponible</div>';
+    if (reportDiv) reportDiv.style.display = 'block';
   }
 
   // ===== Funciones de UI del Participante =====

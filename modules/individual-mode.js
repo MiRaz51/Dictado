@@ -115,7 +115,7 @@
         await (global.DataLoader && global.DataLoader.cargarPalabrasRAE ? global.DataLoader.cargarPalabrasRAE() : Promise.reject(new Error('DataLoader no disponible')));
       }
       const tieneCantidadTemp = Number.isInteger(cantidadInput) && cantidadInput > 0;
-      const cantidadFinalTemp = tieneCantidadTemp ? cantidadInput : (global.CONFIG.DEFAULT_WORD_COUNT || 50);
+      const cantidadFinalTemp = tieneCantidadTemp ? cantidadInput : (global.CONFIG.DEFAULT_WORD_COUNT || 25);
       const filtrosRAE = { ...filtrosAvanzados };
       if (filtros.length === 0 || porcentajeRefuerzo === 0) delete filtrosRAE.letrasEspecificas;
       let seleccionDesdeJSON = global.WordFilters.seleccionarPalabrasPorNivel(global.raeWordsData.wordsByLevel, nivelNumerico, cantidadFinalTemp, filtrosRAE);
@@ -339,11 +339,28 @@
       resultado.innerHTML = '✅ ¡Correcto!';
       resultado.className = 'correcto';
       try { global.gameState.correctAnswers++; } catch(_) {}
+      
+      // 🎉 NUEVO: Animaciones y feedback de éxito
+      celebrarAcierto();
+      
+      // Incrementar racha
+      global.window.rachaActual = (global.window.rachaActual || 0) + 1;
+      if (global.window.rachaActual >= 5) {
+        mostrarRacha(global.window.rachaActual);
+      }
+      
       // Marcar como resuelta en el banco de errores
       try { if (global.ErrorBank && typeof global.ErrorBank.resolver === 'function') global.ErrorBank.resolver(palabraCorrecta); } catch(_) {}
     } else {
       resultado.innerHTML = `<span style="color: #6c757d;">❌ Incorrecto. Escribiste:</span> <strong style="color: #dc3545;">"${entrada}"</strong> <span style="color: #6c757d;">| Era:</span> <strong style="color: #28a745;">"${palabraCorrecta}"</strong>`;
       resultado.className = 'incorrecto';
+      
+      // 🔴 NUEVO: Animación de error
+      animarError();
+      
+      // Resetear racha
+      global.window.rachaActual = 0;
+      
       try { global.registrarError && global.registrarError(palabraCorrecta); } catch(_) {}
     }
     try { resultado.classList.remove('result-flash'); void resultado.offsetWidth; resultado.classList.add('result-flash'); } catch(_) {}
@@ -365,11 +382,14 @@
     try {
       const total = global.gameState.words.length;
       const curr = Math.min(global.gameState.currentIndex, total);
-      const pct = total ? Math.round((curr / total) * 100) : 0;
-      const fill = document.getElementById('progressFill');
-      const txt = document.getElementById('progressText');
-      if (txt) txt.textContent = `${curr}/${total}`;
-      if (fill) fill.style.width = `${pct}%`;
+      if (global.Progress && typeof global.Progress.set === 'function') {
+        global.Progress.set('progressFill', 'progressText', curr, total);
+      } else {
+        const fill = document.getElementById('progressFill');
+        const txt = document.getElementById('progressText');
+        if (txt) txt.textContent = `${curr}/${total}`;
+        if (fill) fill.style.width = `${total ? Math.round((curr / total) * 100) : 0}%`;
+      }
     } catch(_) {}
     // Limpiar campo de entrada y teclado virtual
     document.getElementById('respuesta').value = '';
@@ -482,175 +502,40 @@
       const acentosCheckbox = document.getElementById('acentosObligatorios');
       if (acentosCheckbox) acentosCheckbox.disabled = false;
 
-      const errores = resultadosOrdenados.filter(r => !esCorrecta(r.correcto));
       const rep = document.getElementById('reporteFinal');
-      if (rep) {
-        let html = '';
-        html += '<div class="report-summary" style="font-size:14px; margin-bottom:10px;">';
-        // Obtener nivel legible: usar gameState.currentLevel y, si falta, mapear desde global.currentNivel
-        const nivelTxt = (function(){
-          let v = (typeof global.gameState !== 'undefined' && global.gameState.currentLevel) ? global.gameState.currentLevel : '';
-          if (!v || v === '-') {
-            try {
-              const map = { basico:'Básico', intermedio:'Intermedio', avanzado:'Avanzado', experto:'Experto', facil:'Fácil', medio:'Medio', dificil:'Difícil' };
-              const code = global.currentNivel || '';
-              v = map[code] || code || '-';
-            } catch(_) { v = '-'; }
-          }
-          return v;
-        })();
+      if (rep && window.ReportUtils && typeof window.ReportUtils.renderReportSummaryAndList === 'function') {
+        const nivelCode = (global.gameState?.currentLevel || global.currentNivel || '-');
         const filtroTxt = (document.getElementById('filtroLetras')?.value || '').trim() || '-';
-        const cantValRaw = (document.getElementById('cantidad')?.value || '').trim();
-        const cantTxt = cantValRaw ? cantValRaw : 'todas';
         const prRaw = document.getElementById('porcentajeRefuerzo')?.value;
         let prTxt = '';
-        if (prRaw === '' || prRaw == null) {
-          prTxt = (filtroTxt !== '-' ? '-' : '0');
-        } else {
-          const prN = parseInt(prRaw, 10);
-          prTxt = Number.isFinite(prN) ? Math.max(0, Math.min(100, prN)).toString() : '-';
-        }
+        if (prRaw === '' || prRaw == null) { prTxt = (filtroTxt !== '-' ? '-' : '0'); }
+        else { const prN = parseInt(prRaw, 10); prTxt = Number.isFinite(prN) ? Math.max(0, Math.min(100, prN)).toString() : '-'; }
         const strictTxt = (document.getElementById('strictMode')?.checked ? 'Sí' : 'No');
-        const nivelBadgeClass = (function(){
-          const n = String(nivelTxt || '').toLowerCase();
-          if (n.includes('básico') || n.includes('basico') || n === '1') return 'badge-level-basico';
-          if (n.includes('intermedio') || n === '2') return 'badge-level-intermedio';
-          if (n.includes('avanzado') || n === '3') return 'badge-level-avanzado';
-          if (n.includes('experto') || n === '4') return 'badge-level-experto';
-          return 'badge-off';
-        })();
-        const nivelBadge = nivelTxt && nivelTxt !== '-' ? `<span class="badge ${nivelBadgeClass}">${nivelTxt}</span>` : `<span class="badge badge-off">-</span>`;
-        html += `<div><strong>Nivel:</strong> ${nivelBadge}</div>`;
-        const fechaInicioISO = (typeof global.gameState !== 'undefined' ? global.gameState.sessionStartISO : null) || global.window.sessionStartISO || null;
-        const fechaSesionTxt = fechaInicioISO ? new Date(fechaInicioISO).toLocaleString() : new Date().toLocaleString();
-        const fechaBadge = `<span class="badge badge-off">${fechaSesionTxt}</span>`;
-        html += `<div><strong>Inicio de ejercicio:</strong> ${fechaBadge}</div>`;
-        let fechaFinISO = (typeof global.gameState !== 'undefined' ? global.gameState.sessionEndISO : null) || global.window.sessionEndISO || null;
-        if (!fechaFinISO) { try { fechaFinISO = new Date().toISOString(); } catch(_) {} }
-        if (fechaFinISO) {
-          const finTxt = new Date(fechaFinISO).toLocaleString();
-          const finBadge = `<span class=\"badge badge-off\">${finTxt}</span>`;
-          html += `<div><strong>Fin de ejercicio:</strong> ${finBadge}</div>`;
-          try {
-            const startDate = new Date(fechaInicioISO);
-            const endDate = new Date(fechaFinISO);
-            const ms = Math.max(0, endDate - startDate);
-            const sec = Math.floor(ms / 1000);
-            const mm = Math.floor(sec / 60);
-            const ss = sec % 60;
-            const durTxt = `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
-            const durBadge = `<span class=\"badge badge-info\">${durTxt}</span>`;
-            html += `<div><strong>Duración total:</strong> ${durBadge}</div>`;
-          } catch(_) {}
-        }
-        html += `<div><strong>Total palabras:</strong> ${total}</div>`;
-        html += `<div><strong>Correctas:</strong> ${correctas}</div>`;
-        html += `<div><strong>Incorrectas:</strong> ${incorrectas}</div>`;
-        html += `<div><strong>Porcentaje de acierto:</strong> ${porcentaje}%</div>`;
-        // Mostrar 'Sí' si es nivel Experto y 'No' si es nivel Básico, ignorando el checkbox
         const acentosActiva = (function(){
           try {
             const n = String(global.gameState?.currentLevel || global.currentNivel || '').toLowerCase();
             const expert = n.includes('experto') || n === '4' || (global.currentNivel === 'experto');
             const basic = n.includes('básico') || n.includes('basico') || n === '1' || (global.currentNivel === 'basico');
-            if (expert) return true;
-            if (basic) return false;
-            return !!(document.getElementById('acentosObligatorios')?.checked);
+            if (expert) return true; if (basic) return false; return !!(document.getElementById('acentosObligatorios')?.checked);
           } catch(_) { return !!(document.getElementById('acentosObligatorios')?.checked); }
         })();
-        const acentosTxt = acentosActiva ? 'Sí' : 'No';
-        const badge = (val) => val === 'Sí' ? `<span class="badge badge-ok">${val}</span>` : `<span class="badge badge-off">${val}</span>`;
-        const filtroBadge = filtroTxt !== '-' ? `<span class="badge badge-info">${filtroTxt}</span>` : `<span class="badge badge-off">-</span>`;
-        html += `<div><strong>Letras a reforzar:</strong> ${filtroBadge}</div>`;
-        html += `<div><strong>Porcentaje de refuerzo:</strong> ${prTxt}${prTxt !== '-' ? '%' : ''}</div>`;
-        html += `<div><strong>Acentos obligatorios:</strong> ${badge(acentosTxt)}</div>`;
-        html += `<div><strong>Modo estricto:</strong> ${badge(strictTxt)}</div>`;
-        html += '</div>';
-
-        {
-          html += '<h3 style="margin:10px 0 6px;">Palabras a reforzar</h3>';
-          html += '<div style="font-size:14px;">';
-          html += '<ul style="margin:6px 0 0 18px;">';
-          const all = Array.isArray(resultadosOrdenados) ? resultadosOrdenados : [];
-          const items = all.map((r, idx) => {
-            try {
-              const esOk = (r.correcto === true) || (function(){
-                try {
-                  const raw = String(r.correcto ?? '').trim();
-                  const norm = (typeof global.WordFilters !== 'undefined' && global.WordFilters.normalizarBasico)
-                    ? global.WordFilters.normalizarBasico(raw)
-                    : raw.toLowerCase().normalize('NFD').replace(/\[\u0300-\u036f]/g,'');
-                  return norm === 'si' || norm === 'true' || norm === '1';
-                } catch(_) { return false; }
-              })();
-              const status = esOk
-                ? '<span class="badge badge-ok" style="margin-left:8px;">Correcta</span>'
-                : '<span class="badge" style="margin-left:8px; background: var(--danger); color: #fff;">Incorrecta</span>';
-              const key = (typeof WordFilters !== 'undefined' && WordFilters.normalizarBasico) ? WordFilters.normalizarBasico(r.palabra||'') : String(r.palabra||'').toLowerCase().trim();
-              const resp = (r && typeof r.respuesta === 'string' && r.respuesta.trim() !== '') ? r.respuesta.trim() : (lastNonEmptyByWord.get(key) || '');
-              const colorWord = esOk ? 'var(--success)' : 'var(--danger)';
-              const defId = `def_${idx}`;
-              // Siempre mostrar significado (también para correctas)
-              const defBlock = `<div id="${defId}" style="font-size:12px; color: var(--muted); margin-top:4px;">Buscando significado...</div>`;
-              return `<li style="margin-bottom:8px;">
-                <strong style="color:${colorWord};">${r.palabra}</strong> ${status} — escrito: "<em>${resp}</em>"
-                ${defBlock}
-              </li>`;
-            } catch(_) {
-              const esOk = (r.correcto === true) || (function(){
-                try {
-                  const raw = String(r.correcto ?? '').trim();
-                  const norm = (typeof global.WordFilters !== 'undefined' && global.WordFilters.normalizarBasico)
-                    ? global.WordFilters.normalizarBasico(raw)
-                    : raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-                  return norm === 'si' || norm === 'true' || norm === '1';
-                } catch(_) { return false; }
-              })();
-              const status = esOk
-                ? '<span class="badge badge-ok" style="margin-left:8px;">Correcta</span>'
-                : '<span class="badge" style="margin-left:8px; background: var(--danger); color: #fff;">Incorrecta</span>';
-              const colorWord = esOk ? 'var(--success)' : 'var(--danger)';
-              return `<li style="margin-bottom:8px;"><strong style="color:${colorWord};">${r.palabra}</strong> ${status} — escrito: "<em>${r.respuesta||''}</em>"</li>`;
-            }
-          });
-          html += items.join('');
-          html += '</ul></div>';
-          // Buscar significados para todas las palabras (correctas e incorrectas)
-          setTimeout(async () => {
-            for (let i = 0; i < all.length; i++) {
-              const r = all[i];
-              const defElement = document.getElementById(`def_${i}`);
-              if (defElement && typeof global.fetchSignificado === 'function') {
-                try {
-                  const significado = await global.fetchSignificado(r.palabra);
-                  if (significado) { defElement.textContent = significado; defElement.style.color = 'var(--text)'; }
-                  else { defElement.textContent = 'Significado no encontrado'; defElement.style.color = 'var(--muted)'; }
-                } catch (e) {
-                  defElement.textContent = 'Error al buscar significado';
-                  defElement.style.color = 'var(--muted)';
-                }
-              }
-            }
-          }, 100);
-        }
-        rep.innerHTML = html;
+        const ctx = {
+          results: Array.isArray(resultadosOrdenados) ? resultadosOrdenados : [],
+          level: nivelCode,
+          startISO: (global.gameState?.sessionStartISO || global.window.sessionStartISO || null),
+          endISO: (global.gameState?.sessionEndISO || global.window.sessionEndISO || null),
+          filterTxt: filtroTxt,
+          refuerzoTxt: prTxt,
+          acentosObligatorios: !!acentosActiva,
+          strictTxt
+        };
+        window.ReportUtils.renderReportSummaryAndList(rep, ctx);
         rep.style.display = 'block';
         try { global.smoothScrollIntoView && global.smoothScrollIntoView(rep, { block: 'start', behavior: 'smooth' }); } catch(_) {}
-        try {
-          const fetchFn = (typeof global.window !== 'undefined') ? global.window.fetchSignificadoPreciso : undefined;
-          if (Array.isArray(errores) && errores.length > 0 && typeof fetchFn === 'function') {
-            const promises = errores.map((e, idx) => {
-              return fetchFn(e.palabra)
-                .then(sig => { const el = document.getElementById(`def_${idx}`); if (el) { el.textContent = sig || 'Significado no disponible'; el.style.color = '#374151'; } })
-                .catch(() => { const el = document.getElementById(`def_${idx}`); if (el) { el.textContent = 'Significado no disponible'; el.style.color = '#9ca3af'; } });
-            });
-            Promise.all(promises).finally(() => { UI.showNextButton(); });
-          } else {
-            UI.showNextButton();
-          }
-        } catch(_) { UI.showNextButton(); }
+        try { UI.showNextButton(); } catch(_) {}
+      } else {
+        try { UI.showNextButton(); } catch(_) {}
       }
-      UI.showNextButton();
 
       // Deshabilitar entrada y ocultar teclado al finalizar
       try {
@@ -761,21 +646,49 @@
     try { global.refreshMetaAlumnoCurso && global.refreshMetaAlumnoCurso(true); } catch(_) {}
   }
 
+  // ========================================================================
+  // FUNCIONES DE ANIMACIÓN Y FEEDBACK
+  // ========================================================================
+  
+  /**
+   * celebra un acierto con confetti y animaciones
+   */
+  function celebrarAcierto() {
+    // Delegar al módulo centralizado de feedback
+    try { (window.Feedback && Feedback.celebrarAcierto) ? Feedback.celebrarAcierto() : (window.celebrarAcierto && window.celebrarAcierto !== celebrarAcierto && window.celebrarAcierto()); } catch(_) {}
+  }
+  
+  /**
+   * Anima un error con shake
+   */
+  function animarError() {
+    // Delegar al módulo centralizado de feedback
+    try { (window.Feedback && Feedback.animarError) ? Feedback.animarError() : (window.animarError && window.animarError !== animarError && window.animarError()); } catch(_) {}
+  }
+  
+  /**
+   * Muestra notificación de racha
+   */
+  function mostrarRacha(racha) {
+    // Delegar al módulo centralizado de feedback
+    try { (window.Feedback && Feedback.mostrarRacha) ? Feedback.mostrarRacha(racha) : (window.mostrarRacha && window.mostrarRacha !== mostrarRacha && window.mostrarRacha(racha)); } catch(_) {}
+  }
+
   // Expose globals
   global.iniciarJuego = iniciarJuego;
   global.reproducirPalabra = reproducirPalabra;
   global.comprobar = comprobar;
   global.goToReportFromGame = goToReportFromGame;
   global.irAlEjercicio = irAlEjercicio;
+  global.celebrarAcierto = celebrarAcierto;
+  global.animarError = animarError;
+  global.mostrarRacha = mostrarRacha;
 
-  // Also expose stable alias names so app.js wrappers can delegate
-  // even if this script loads after them (race-safe delegation)
-  try {
-    global.__indiv_iniciarJuego = iniciarJuego;
-    global.__indiv_reproducirPalabra = reproducirPalabra;
-    global.__indiv_comprobar = comprobar;
-    global.__indiv_goToReportFromGame = goToReportFromGame;
-    global.__indiv_irAlEjercicio = irAlEjercicio;
-  } catch(_) {}
+  // Aliases estables para delegación
+  global.__indiv_iniciarJuego = iniciarJuego;
+  global.__indiv_reproducirPalabra = reproducirPalabra;
+  global.__indiv_comprobar = comprobar;
+  global.__indiv_goToReportFromGame = goToReportFromGame;
+  global.__indiv_irAlEjercicio = irAlEjercicio;
 
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,0 +1,59 @@
+/* Botón de ayuda flotante */
+.help-button {
+  position: fixed !important;
+  top: 20px;
+  right: 20px !important;
+  left: auto !important;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-600));
+  color: white;
+  border: none;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+  z-index: 10001; /* por encima de overlays del tutorial */
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.help-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5);
+}
+
+.help-button:active {
+  transform: scale(0.95);
+}
+
+.help-button span {
+  line-height: 1;
+  margin-top: -2px;
+}
+
+/* Hard-pin the help button to top-right regardless of other page rules */
+#help-btn.help-button {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  left: auto !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  transform: none !important;
+  z-index: 10001 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .help-button {
+    top: 10px;
+    right: 10px;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+}

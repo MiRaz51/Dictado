@@ -1,0 +1,13 @@
+/* Utilities */
+.hidden { display: none !important; }
+.center { text-align: center; }
+.inline { display: inline-flex; align-items: center; gap: 6px; }
+.spacer { height: 12px; }
+
+/* Actions */
+.actions { margin: 16px 0 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.actions:first-child { margin-top: 0; }
+
+/* Minimal grid */
+.grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+@media (min-width: 780px) { .grid { grid-template-columns: 1fr 1fr; } }

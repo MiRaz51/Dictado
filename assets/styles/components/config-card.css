@@ -1,0 +1,28 @@
+/* Config card */
+.config-card { background: linear-gradient(to bottom,#fff 0%,#fafbfc 100%); border:1px solid rgba(2,6,23,.08); border-radius: var(--card-radius); box-shadow: 0 4px 16px rgba(2,6,23,.08), 0 1px 3px rgba(2,6,23,.06); padding:24px; margin:16px 0; }
+
+/* Fields */
+.config-field { margin-bottom: 20px; }
+.config-field label { display:block; margin-bottom:8px; font-weight:600; color: var(--text); font-size:14px; }
+.config-field input[type="number"], .config-field input[type="text"] { width:100%; max-width:400px; }
+
+/* Rows */
+.config-row { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+.config-row .config-label { min-width:240px; font-weight:600; color: var(--text); }
+.config-row .config-input { width:220px; max-width:100%; }
+
+/* Hints */
+.config-hint { font-size:12px; color:#64748b; margin-top:6px; line-height:1.5; max-width:720px; }
+
+/* Checkbox box */
+.config-box { margin-bottom:16px; padding:12px; background:#f8fafc; border-radius:8px; border:1px solid rgba(2,6,23,.06); }
+.config-box .inline { display:flex; align-items:center; gap:10px; font-size:14px; font-weight:500; }
+.config-box .inline input[type="checkbox"] { margin:0; width:18px; height:18px; cursor:pointer; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .config-card { padding:20px; }
+  .config-row { flex-direction:column; align-items:stretch; gap:8px; }
+  .config-row .config-label { min-width:0; }
+  .config-row .config-input, .config-field input { width:100%; max-width:100%; }
+}

@@ -1,0 +1,38 @@
+/* Virtual Keyboard container */
+#virtual-keyboard-container { position: fixed; left:0; right:0; bottom:0; z-index:999; background:#f3f4f6; border-top:1px solid rgba(0,0,0,.08); box-shadow:0 -6px 20px rgba(0,0,0,.08); padding:8px env(safe-area-inset-right) calc(8px + env(safe-area-inset-bottom)) env(safe-area-inset-left); }
+
+/* Inline keyboard within the page */
+.vk-inline-container { background:transparent; border:none; border-radius:0; box-shadow:none; padding:0; margin:6px 0 0; }
+.vk-inline-container.hidden { display:none !important; height:0 !important; margin:0 !important; padding:0 !important; }
+
+/* Theme adjustments */
+.virtual-keyboard-theme.hg-theme-default { background:transparent; box-shadow:none; }
+.virtual-keyboard-theme .hg-button { border-radius:10px; background:#ffffff; border:none; font-size:18px; line-height:1.2; padding:12px 10px; }
+.virtual-keyboard-theme .hg-button:hover { filter: brightness(1.02); }
+.hg-button-space { min-width:30vw; }
+.hg-button-bksp { min-width:64px; }
+
+/* Responsive */
+@media (max-width:768px) {
+  #virtual-keyboard-container { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  .virtual-keyboard-theme .hg-button { font-size:20px; padding:14px 12px; }
+}
+@media (min-width:769px) and (max-width:1023px) {
+  .virtual-keyboard-theme .hg-button { font-size:19px; padding:12px 12px; }
+}
+
+/* Hide real inputs on mobile/tablet when using mirror */
+@media (min-width: 1024px) { #vkMirror, #vkMirrorParticipant { display:none !important; } }
+@media (max-width: 1023px) {
+  #page-game #respuesta { display:none !important; }
+  #page-game #vkMirror { display:block !important; }
+  #page-participant #participantAnswer { display:none !important; }
+  #page-participant #vkMirrorParticipant { display:block !important; }
+  .vk-inline-container { margin-left:-16px; margin-right:-16px; }
+}
+
+/* vk-mode force */
+body.vk-mode #page-game #respuesta,
+body.vk-mode #page-participant #participantAnswer { display:none !important; }
+body.vk-mode #page-game #vkMirror,
+body.vk-mode #page-participant #vkMirrorParticipant { display:block !important; }

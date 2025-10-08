@@ -443,11 +443,18 @@
     // Reflejar en UI
     try { if (acentosChkEl) acentosChkEl.checked = acentosFlag; } catch(_) {}
 
+    // Leer porcentaje de refuerzo (0-100)
+    let prRaw = (document.getElementById('tutorPorcentajeRefuerzo')?.value || '').toString().trim();
+    let porcentajeRefuerzo = parseInt(prRaw, 10);
+    if (!Number.isInteger(porcentajeRefuerzo)) porcentajeRefuerzo = 0;
+    porcentajeRefuerzo = Math.max(0, Math.min(100, porcentajeRefuerzo));
+
     global.tutorConfig = {
       tutorName: tutorName,
       tutorGroup: tutorGroup,
       cantidad: parseInt(document.getElementById('tutorCantidad').value) || 20,
       filtroLetras: document.getElementById('tutorFiltroLetras').value.trim(),
+      porcentajeRefuerzo: porcentajeRefuerzo,
       acentosObligatorios: acentosFlag,
       strictMode: document.getElementById('tutorStrictMode').checked,
       nivel: nivel
@@ -462,6 +469,7 @@
       <p><strong>Nivel:</strong> ${nivel}</p>
       <p><strong>Cantidad:</strong> ${global.tutorConfig.cantidad} palabras</p>
       <p><strong>Letras a reforzar:</strong> ${letrasReforzar}</p>
+      <p><strong>Porcentaje de refuerzo:</strong> ${global.tutorConfig.porcentajeRefuerzo || 0}%</p>
       <p><strong>Acentos obligatorios:</strong> ${global.tutorConfig.acentosObligatorios ? 'Sí' : 'No'}</p>
       <p><strong>Modo estricto:</strong> ${global.tutorConfig.strictMode ? 'Sí' : 'No'}</p>
     `;
@@ -478,6 +486,7 @@
         <p><strong>Nivel:</strong> ${nivel}</p>
         <p><strong>Cantidad solicitada:</strong> ${global.tutorConfig.cantidad} &nbsp; <span class="hint">(generadas: ${realCount})</span></p>
         <p><strong>Letras a reforzar:</strong> ${letrasReforzarFinal}</p>
+        <p><strong>Porcentaje de refuerzo:</strong> ${global.tutorConfig.porcentajeRefuerzo || 0}%</p>
         <p><strong>Acentos obligatorios:</strong> ${global.tutorConfig.acentosObligatorios ? 'Sí' : 'No'}</p>
         <p><strong>Modo estricto:</strong> ${global.tutorConfig.strictMode ? 'Sí' : 'No'}</p>
       `;

@@ -92,16 +92,17 @@ body {
   color: var(--text);
   background: var(--bg);
   display: flex;
-  flex-direction: column; /* asegurar layout en columna: contenido arriba, footer abajo */
-  align-items: center;     /* centrar horizontalmente el contenido principal */
+  flex-direction: column;
+  align-items: center;
   justify-content: flex-start;
-  padding-bottom: 0; /* sin espacio extra bajo el footer por defecto */
+  padding-bottom: 0;
+  position: relative;
 }
 
 /* Aumentar padding inferior solo cuando el teclado flotante esté visible */
 body.has-vk-floating { padding-bottom: 180px; }
 
-.container { width: 100%; max-width: 980px; padding: 32px 24px 24px; margin: 0 auto; align-self: center; flex: 1 0 auto; }
+.container { width: 100%; max-width: 980px; padding: 32px 24px 24px; margin: 0 auto; align-self: center; flex: 1 0 auto; position: relative; }
 
 
 .topbar {
@@ -139,6 +140,8 @@ p  { color: var(--muted); margin: 0 0 12px; line-height: 1.6; }
 .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
 label { color: #1f2937; font-size: 14px; }
 .hint { font-size: 12px; color: #6b7280; margin-top: 6px; }
+
+/* config-card moved to assets/styles/components/config-card.css */
 
 /* Indicador de carga (spinner) ligero para mensajes en acciones */
 .spinner {
@@ -207,22 +210,7 @@ label { color: #1f2937; font-size: 14px; }
   border-color: #fed7aa;/* orange-200 */
 }
 
-/* Layout del bloque de resumen del reporte (2 columnas responsive) */
-.report-summary {
-  column-count: 2;
-  column-gap: 16px;
-}
-.report-summary > div {
-  break-inside: avoid;
-  -webkit-column-break-inside: avoid;
-  margin: 4px 0;
-  display: block;
-}
-@media (max-width: 640px) {
-  .report-summary {
-    column-count: 1;
-  }
-}
+/* report-summary moved to assets/styles/components/reportes.css */
 
 input[type="text"], input[type="number"], select {
   background: #fff;
@@ -885,18 +873,17 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
   padding: 16px;
   margin: 12px 0;
 }
-
 .participant-stats p {
   margin: 6px 0;
 }
 
-  /* Modo y roles: ajustar SOLO en móviles */
-  @media (max-width: 768px) {
-    .mode-grid { grid-template-columns: 1fr; gap: 16px; }
-    .mode-card { padding: 20px 16px; }
-    .mode-icon { font-size: 40px; }
-    .tutor-controls { flex-direction: column; }
-    .tutor-controls button { width: 100%; }
+/* Modo y roles: ajustar SOLO en móviles */
+@media (max-width: 768px) {
+  .mode-grid { grid-template-columns: 1fr; gap: 16px; }
+  .mode-card { padding: 20px 16px; }
+  .mode-icon { font-size: 40px; }
+  .tutor-controls { flex-direction: column; }
+  .tutor-controls button { width: 100%; }
   .participant-input {
     flex-direction: column;
     align-items: stretch;
@@ -910,16 +897,15 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
   .config-summary {
     padding: 12px;
   }
-
 }
 
 /* Footer */
 footer {
-  position: static; /* permitir que el footer fluya al final del contenido */
+  position: static;
   width: 100%;
   background: #ffffff;
   border-top: 1px solid #e0e0e0;
-  padding: 12px 20px 12px 20px; /* sin extra inferior */
+  padding: 12px 20px 12px 20px;
   color: #666;
   font-size: 11px;
   box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
@@ -927,7 +913,7 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: auto; /* empuja el footer al fondo sin dejar espacio debajo */
+  margin-top: auto;
 }
 
 /* --- Reusable warning banner --- */
@@ -1226,3 +1212,4 @@ body.vk-mode #page-participant #vkMirrorParticipant {
 #page-tutor-config > *:not(.page) {
   margin-bottom: 16px;
 }
+/* tutorial responsive moved to components/tutorial.css */
