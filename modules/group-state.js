@@ -282,7 +282,11 @@ class GroupStateManager {
 
     if (!participantsList) return;
 
-    const participants = this.getAllParticipants();
+    // Ordenar alfabéticamente por nombre (sensible a español, case-insensitive)
+    const participants = this.getAllParticipants().sort((a, b) => {
+      try { return String(a.name||'').localeCompare(String(b.name||''), 'es', { sensitivity: 'base' }); }
+      catch(_) { return String(a.name||'').toLowerCase() < String(b.name||'').toLowerCase() ? -1 : 1; }
+    });
     // Habilitar botones de reporte solo cuando el ejercicio ha terminado (no activo y con palabras cargadas)
     const canReport = (!this.exerciseActive && (this.exerciseWords.length > 0));
     
@@ -298,45 +302,84 @@ class GroupStateManager {
       participantsList.innerHTML = '<p class="no-participants">No hay participantes conectados</p>';
       if (startExerciseBtn) startExerciseBtn.disabled = true;
     } else {
-      const participantsHTML = participants.map(p => {
-        console.log('[GroupState] Renderizando participante:', p.name);
-        const totalWords = this.exerciseWords.length || 0;
-        const corr = Number(p.correctCount || 0);
-        // Incorrectas reales (no incluye pendientes):
-        const inc  = Number(p.incorrectCount || 0);
-        // Progreso basado en respuestas únicas registradas
-        const answeredUnique = Array.isArray(p.answers) ? p.answers.length : 0;
-        const prog = totalWords > 0 ? Math.round((answeredUnique / totalWords) * 100) : 0;
-        return `
-          <div class="participant-item" style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 8px; border-bottom: 1px solid #eee;">
-            <div class="participant-name" style="flex:1; min-width:140px; font-weight:500;">${p.name}</div>
-            <div class="participant-stats" style="display:flex; align-items:center; gap:12px; flex: 0 0 auto;">
-              <span class="participant-status" style="margin-right:8px; padding:4px 8px; border-radius:999px; background:#e8f5e9; color:#2e7d32; font-size:12px;">Conectado</span>
-              <div title="Correctas" style="min-width:70px; text-align:center; background:#e8f7ee; color:#1b7f4a; border-radius:6px; padding:4px 8px; font-weight:600;">✓ ${corr}</div>
-              <div title="Incorrectas" style="min-width:90px; text-align:center; background:#fdecea; color:#b23c17; border-radius:6px; padding:4px 8px; font-weight:600;">✗ ${inc}</div>
-              <div class="participant-progress" title="Progreso" style="width:140px;">
-                <div class="progress" style="height:8px; background:#eee; border-radius:6px; overflow:hidden;">
-                  <div style="height:100%; width:${prog}%; background: linear-gradient(90deg, #4CAF50, #81C784);"></div>
+      // Render con template para evitar HTML inline en JS
+      const tpl = document.getElementById('tplParticipantItem');
+      const frag = document.createDocumentFragment();
+      participants.forEach(p => {
+        try {
+          const totalWords = this.exerciseWords.length || 0;
+          const corr = Number(p.correctCount || 0);
+          const inc  = Number(p.incorrectCount || 0);
+          const answeredUnique = Array.isArray(p.answers) ? p.answers.length : 0;
+          const prog = totalWords > 0 ? Math.round((answeredUnique / totalWords) * 100) : 0;
+
+          let node;
+          if (tpl && tpl.content) {
+            node = tpl.content.firstElementChild.cloneNode(true);
+          } else {
+            // Fallback mínimo si el template no existe
+            node = document.createElement('div');
+            node.className = 'participant-item pi-item';
+            node.innerHTML = `<div class="participant-name pi-name"></div>
+              <div class="participant-stats pi-stats">
+                <span class="participant-status pi-badge">Conectado</span>
+                <div class="pi-corr" title="Correctas">✓ <span class="v-corr">0</span></div>
+                <div class="pi-inc" title="Incorrectas">✗ <span class="v-inc">0</span></div>
+                <div class="participant-progress pi-prog" title="Progreso %"><span class="v-prog">0</span>%</div>
+                <div class="participant-actions pi-actions">
+                  <button class="btn-ghost btn-pdf">📄 PDF</button>
+                  <button class="btn-ghost btn-practica">📝 Práctica</button>
                 </div>
-                <div style="font-size:11px; color:#666; text-align:right; margin-top:2px;">${prog}%</div>
-              </div>
-              <div class="participant-actions" style="display:flex; gap:6px; margin-left:8px;">
-                <button class="btn-ghost" style="padding:4px 8px;" onclick="tutorGenerateParticipantPDF('${p.id}')" ${canReport ? '' : 'disabled title="Disponible al finalizar"'}>📄 PDF</button>
-                <button class="btn-ghost" style="padding:4px 8px;" onclick="tutorManualPractice('${p.id}')" ${canReport ? '' : 'disabled title="Disponible al finalizar"'}>📝 Práctica</button>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-      
-      participantsList.innerHTML = participantsHTML;
-      // Mantener botón de inicio deshabilitado durante el ejercicio o si ya se inició en esta sesión
-      if (startExerciseBtn) {
-        if (this.exerciseActive || this.exerciseStarted) {
-          startExerciseBtn.disabled = true;
+              </div>`;
+          }
+
+          node.querySelector('.pi-name').textContent = p.name;
+          const vc = node.querySelector('.v-corr'); if (vc) vc.textContent = corr;
+          const vi = node.querySelector('.v-inc');  if (vi) vi.textContent = inc;
+          const vp = node.querySelector('.v-prog'); if (vp) vp.textContent = prog;
+          const progBox = node.querySelector('.pi-prog'); if (progBox) progBox.title = `Progreso ${prog}%`;
+
+          // Bind botones
+          const btnPdf = node.querySelector('.btn-pdf');
+          if (btnPdf) {
+            btnPdf.onclick = () => tutorGenerateParticipantPDF(p.id);
+            if (!canReport) { btnPdf.disabled = true; btnPdf.title = 'Disponible al finalizar'; }
+          }
+          const btnPr = node.querySelector('.btn-practica');
+          if (btnPr) {
+            btnPr.onclick = () => tutorManualPractice(p.id);
+            if (!canReport) { btnPr.disabled = true; btnPr.title = 'Disponible al finalizar'; }
+          }
+
+          frag.appendChild(node);
+        } catch(e) { console.warn('Render participante falló:', e); }
+      });
+
+      participantsList.innerHTML = '';
+      participantsList.appendChild(frag);
+      // Ajuste de altura del contenedor: que crezca con el contenido hasta 10 items;
+      // si hay más de 10, activar scroll con altura calculada para 10 items.
+      try {
+        const count = participants.length;
+        const items = participantsList.querySelectorAll('.participant-item');
+        const firstItem = items && items[0];
+        let itemH = 68; // fallback razonable
+        try { if (firstItem) itemH = Math.max(48, Math.ceil(firstItem.getBoundingClientRect().height)); } catch(_) {}
+        const visibleCount = Math.min(10, Math.max(1, count));
+        const padding = 12; // margen interno del contenedor
+        if (count > 10) {
+          participantsList.style.overflowY = 'auto';
+          participantsList.style.maxHeight = `${(itemH * 10) + padding}px`;
         } else {
-          startExerciseBtn.disabled = (this.getParticipantCount() === 0);
+          // Crecer con contenido: sin límite y sin scroll
+          participantsList.style.overflowY = 'visible';
+          participantsList.style.maxHeight = 'none';
         }
+      } catch(_) {}
+      // Regla: el botón 'Iniciar Ejercicio' debe estar activo cuando haya al menos 1 participante y no haya ejercicio activo
+      if (startExerciseBtn) {
+        const hasParticipants = this.getParticipantCount() > 0;
+        startExerciseBtn.disabled = (this.exerciseActive || !hasParticipants);
       }
     }
 

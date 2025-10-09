@@ -125,6 +125,23 @@
       // Asegurar bindings y mostrar ayuda en primera visita
       try { if (typeof global.attachEnterNavigationParticipantConnect === 'function') global.attachEnterNavigationParticipantConnect(); } catch(_) {}
       try { if (window.PageHints && typeof window.PageHints.showFirstTime === 'function') window.PageHints.showFirstTime('page-participant'); } catch(_) {}
+      // Enfocar el campo de nombre de participante de forma robusta
+      try {
+        const tryFocusName = () => {
+          try {
+            const name = document.getElementById('participantName');
+            if (name && getComputedStyle(name).display !== 'none' && name.offsetParent !== null) {
+              name.focus();
+              try { name.select(); } catch(_) {}
+              return true;
+            }
+          } catch(_) {}
+          return false;
+        };
+        // Intentos espaciados para cubrir render asíncrono
+        if (!tryFocusName()) setTimeout(tryFocusName, 120);
+        setTimeout(tryFocusName, 300);
+      } catch(_) {}
     }
   }
 

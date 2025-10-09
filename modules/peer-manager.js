@@ -342,48 +342,30 @@ class PeerManager {
   // Mostrar advertencia suave (no intrusiva) durante fase de despliegue
   showSoftLimitWarning(participantCount) {
     try {
+      const tpl = document.getElementById('tplSoftLimitBanner');
       let banner = document.getElementById('softLimitBanner');
-      
-      if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'softLimitBanner';
-        banner.className = 'card';
-        banner.style.cssText = 'background: #dbeafe; border-left: 4px solid #3b82f6; margin: 16px 0; padding: 16px; animation: fadeInOverlay 0.3s ease-out;';
-        
+      if (!banner && tpl && tpl.content) {
+        banner = tpl.content.firstElementChild.cloneNode(true);
         const tutorPage = document.getElementById('page-tutor');
         const configSummary = document.getElementById('tutorConfigSummary');
         if (tutorPage && configSummary) {
           configSummary.parentNode.insertBefore(banner, configSummary.nextSibling);
         }
       }
-      
-      banner.innerHTML = `
-        <div style="display: flex; align-items: start; gap: 12px;">
-          <div style="font-size: 24px;">ℹ️</div>
-          <div style="flex: 1;">
-            <h4 style="margin: 0 0 8px; color: #1e40af;">Información sobre Límite de Participantes</h4>
-            <p style="margin: 0 0 8px; color: #1e3a8a; font-size: 14px;">
-              Tienes <strong>${participantCount} participantes</strong> conectados. El límite gratuito establecido es de <strong>10 participantes por sesión</strong>.
-            </p>
-            <p style="margin: 0 0 12px; color: #1e3a8a; font-size: 13px;">
-              Durante este período inicial, puedes continuar usando con más participantes. 
-              Si planeas usar regularmente con grupos grandes, te invitamos a contactar para una licencia institucional.
-            </p>
-            <p style="margin: 0; font-size: 13px;">
-              <a href="mailto:hgomero@gmail.com?subject=Consulta%20Licencia%20Institucional&body=Hola,%0A%0AEstoy%20usando%20la%20aplicación%20con%20${participantCount}%20participantes%20y%20me%20gustaría%20información%20sobre%20licencias%20institucionales.%0A%0ANombre/Institución:%20%0AFrecuencia%20de%20uso:%20%0A%0AGracias." 
-                 style="color: #2563eb; font-weight: 600; text-decoration: none;">
-                📧 Más información
-              </a>
-              <button onclick="document.getElementById('softLimitBanner').style.display='none'" 
-                      style="margin-left: 16px; padding: 4px 12px; background: transparent; border: 1px solid #3b82f6; color: #2563eb; border-radius: 6px; cursor: pointer; font-size: 12px;">
-                Entendido
-              </button>
-            </p>
-          </div>
-        </div>
-      `;
-      
-      banner.style.display = 'block';
+
+      if (banner) {
+        const countEl = banner.querySelector('.peer-count');
+        if (countEl) countEl.textContent = String(participantCount);
+        const link = banner.querySelector('.peer-link');
+        if (link) {
+          link.href = `mailto:hgomero@gmail.com?subject=Consulta%20Licencia%20Institucional&body=Hola,%0A%0AEstoy%20usando%20la%20aplicación%20con%20${participantCount}%20participantes%20y%20me%20gustaría%20información%20sobre%20licencias%20institucionales.%0A%0ANombre/Institución:%20%0AFrecuencia%20de%20uso:%20%0A%0AGracias.`;
+        }
+        const closeBtn = banner.querySelector('.peer-close');
+        if (closeBtn) {
+          closeBtn.onclick = () => { banner.style.display = 'none'; };
+        }
+        banner.style.display = 'block';
+      }
       
     } catch(e) {
       console.error('[PeerManager] Error mostrando banner suave:', e);
@@ -393,43 +375,26 @@ class PeerManager {
   // Mostrar advertencia de límite de participantes (bloqueante - futuro)
   showParticipantLimitWarning() {
     try {
-      // Buscar o crear el banner de advertencia
+      const tpl = document.getElementById('tplHardLimitBanner');
       let banner = document.getElementById('groupLimitBanner');
-      
-      if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'groupLimitBanner';
-        banner.className = 'card';
-        banner.style.cssText = 'background: #fef3c7; border-left: 4px solid #f59e0b; margin: 16px 0; animation: fadeInOverlay 0.3s ease-out;';
-        
-        // Insertar después del resumen de configuración
+      if (!banner && tpl && tpl.content) {
+        banner = tpl.content.firstElementChild.cloneNode(true);
         const tutorPage = document.getElementById('page-tutor');
         const configSummary = document.getElementById('tutorConfigSummary');
         if (tutorPage && configSummary) {
           configSummary.parentNode.insertBefore(banner, configSummary.nextSibling);
         }
       }
-      
-      banner.innerHTML = `
-        <h4 style="margin: 0 0 12px; color: #92400e;">⚠️ Límite de Participantes Alcanzado</h4>
-        <p style="margin: 0 0 8px; color: #78350f;">
-          Has alcanzado el límite de <strong>${this.MAX_FREE_PARTICIPANTS} participantes gratuitos</strong>.
-        </p>
-        <p style="margin: 0 0 12px; color: #78350f;">
-          Para usar el modo grupal con más participantes, contacta:
-        </p>
-        <p style="margin: 0;">
-          <a href="mailto:hgomero@gmail.com?subject=Solicitud%20Licencia%20-%20Grupo%20Grande&body=Hola,%0A%0ASolicito%20información%20para%20usar%20el%20modo%20grupal%20con%20más%20de%20${this.MAX_FREE_PARTICIPANTS}%20participantes.%0A%0ANombre/Institución:%20%0ANúmero%20de%20participantes:%20%0AFrecuencia%20de%20uso:%20%0A%0AGracias." 
-             style="color: #0ea5e9; font-weight: 600; text-decoration: none;">
-            📧 hgomero@gmail.com
-          </a>
-        </p>
-        <p style="margin: 8px 0 0; font-size: 12px; color: #92400e;">
-          <em>Respuesta en 24-48 horas. Donativos desde $X/mes según necesidades.</em>
-        </p>
-      `;
-      
-      banner.style.display = 'block';
+
+      if (banner) {
+        const limitEl = banner.querySelector('.peer-limit');
+        if (limitEl) limitEl.textContent = `${this.MAX_FREE_PARTICIPANTS} participantes gratuitos`;
+        const link = banner.querySelector('.peer-link');
+        if (link) {
+          link.href = `mailto:hgomero@gmail.com?subject=Solicitud%20Licencia%20-%20Grupo%20Grande&body=Hola,%0A%0ASolicito%20información%20para%20usar%20el%20modo%20grupal%20con%20más%20de%20${this.MAX_FREE_PARTICIPANTS}%20participantes.%0A%0ANombre/Institución:%20%0ANúmero%20de%20participantes:%20%0AFrecuencia%20de%20uso:%20%0A%0AGracias.`;
+        }
+        banner.style.display = 'block';
+      }
       
       // Auto-ocultar después de 30 segundos
       setTimeout(() => {

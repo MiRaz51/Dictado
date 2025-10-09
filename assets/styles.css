@@ -28,6 +28,38 @@
     width: 100%;
   }
 
+/* ===== Compactación específica: Lista de participantes (Tutor) ===== */
+#page-tutor #participantsList {
+  padding: 6px !important;
+  min-height: 0 !important;
+  max-height: none !important; /* JS controla cuando >10 */
+  overflow-y: visible !important;
+}
+
+#page-tutor #participantsList .participant-item {
+  padding: 4px 6px !important;
+  margin: 2px 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(2,6,23,.06) !important;
+  border-radius: 0 !important;
+  gap: 8px !important;
+}
+
+#page-tutor #participantsList .participant-stats {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 2px 4px !important;
+  margin: 0 !important;
+  gap: 8px !important;
+}
+
+#page-tutor #participantsList .participant-status { font-size: 11px !important; padding: 2px 6px !important; }
+#page-tutor #participantsList .participant-progress { width: 120px !important; }
+#page-tutor #participantsList .participant-progress .progress { height: 6px !important; }
+#page-tutor #participantsList .participant-actions button { padding: 3px 6px !important; font-size: 12px !important; }
+
   /* Compactar botones para asegurar cabida en una fila */
   .layout-game-input button {
     padding: 10px 12px;     /* más compacto */

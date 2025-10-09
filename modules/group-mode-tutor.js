@@ -616,6 +616,7 @@
     const stopBtn = document.getElementById('stopSession');
     const newExBtn = document.getElementById('tutorNewExercise');
     const newSessBtn = document.getElementById('tutorNewSession');
+    const qrBtn = document.getElementById('btnShowQR');
     
     if (global.groupState.exerciseActive) {
       startBtn.textContent = '⏸️ Ejercicio en Curso';
@@ -624,6 +625,7 @@
       if (stopBtn) stopBtn.disabled = false;
       if (newExBtn) newExBtn.disabled = true;
       if (newSessBtn) newSessBtn.disabled = true;
+      if (qrBtn) qrBtn.disabled = true; // Desactivar QR durante el ejercicio
     } else {
       startBtn.textContent = '▶️ Iniciar Ejercicio';
       if (global.groupState.exerciseStarted) {
@@ -635,6 +637,7 @@
       if (stopBtn) stopBtn.disabled = true;
       if (newExBtn) newExBtn.disabled = !(global.groupState.exerciseStarted && !global.groupState.exerciseActive);
       if (newSessBtn) newSessBtn.disabled = !(global.groupState.exerciseStarted && !global.groupState.exerciseActive);
+      if (qrBtn) qrBtn.disabled = false; // Rehabilitar QR cuando no hay ejercicio
     }
   }
 

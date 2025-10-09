@@ -53,13 +53,13 @@
       target: '#sessionInfo',
       position: 'bottom',
       title: 'Panel del Tutor',
-      content: 'Comparte el <strong>ID de sesión</strong> con los participantes. Controla la reproducción y el avance desde aquí.'
+      content: 'Comparte el <strong>ID de sesión</strong> con los participantes o usa <strong>"Mostrar QR"</strong> para que lo escaneen y se les <strong>precargue el ID</strong>. Controla la reproducción y el avance desde aquí.'
     },
     'page-participant': {
       target: '#participantConnection',
       position: 'bottom',
       title: 'Conectar a una sesión',
-      content: 'Escribe tu <strong>nombre</strong> y el <strong>ID de sesión</strong> que te dio el tutor y presiona "Conectar".',
+      content: 'Escribe tu <strong>nombre</strong> y el <strong>ID de sesión</strong> que te dio el tutor y presiona "Conectar". También puedes <strong>escanear un QR</strong> del tutor para que el <strong>ID se precargue automáticamente</strong> (solo escribe tu nombre).',
       shouldShow: function(){
         try {
           const conn = document.getElementById('participantConnection');
@@ -315,6 +315,55 @@
     close(){
       if (this.tooltip){ this.tooltip.remove(); this.tooltip = null; }
       if (this.overlay){ this.overlay.remove(); this.overlay = null; }
+      // Enfocar el campo de texto adecuado tras cerrar la ayuda
+      try {
+        const active = document.querySelector('.page.active');
+        const pageId = active?.id || '';
+        const tryFocus = (sel, selectText = true) => {
+          try {
+            const el = sel && document.querySelector(sel);
+            if (el && typeof el.focus === 'function' && (el.offsetParent !== null || getComputedStyle(el).display !== 'none')) {
+              el.focus();
+              if (selectText && typeof el.select === 'function' && !el.readOnly && !el.disabled) {
+                try { el.select(); } catch(_) {}
+              }
+              return true;
+            }
+          } catch(_) {}
+          return false;
+        };
+
+        switch (pageId) {
+          case 'page-config':
+            if (tryFocus('#alumno')) break;
+            break;
+          case 'page-game':
+            if (tryFocus('#respuesta')) break;
+            break;
+          case 'page-tutor-info':
+            if (tryFocus('#tutorName')) break;
+            break;
+          case 'page-tutor-config':
+            // Intentar primer control conocido; si no, primer input visible
+            if (tryFocus('#tutorCantidad')) break;
+            try {
+              const firstInput = active?.querySelector('input[type="text"], input:not([type]), select, textarea');
+              if (firstInput) { firstInput.focus(); try { firstInput.select?.(); } catch(_) {} }
+            } catch(_) {}
+            break;
+          case 'page-participant':
+            // Priorizar nombre del participante
+            if (tryFocus('#participantName')) break;
+            // Si no existe, probar con el ID (si no está readonly)
+            try {
+              const idInp = document.getElementById('sessionIdInput');
+              if (idInp && !idInp.readOnly) { idInp.focus(); try { idInp.select?.(); } catch(_) {} }
+            } catch(_) {}
+            break;
+          default:
+            break;
+        }
+      } catch(_) {}
     }
   }
 

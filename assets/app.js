@@ -61,6 +61,22 @@ function buildDeepLinkForSession(sessionId){
   } catch(_) { return window.location.href; }
 }
 
+// Helper global único para escapar HTML (reutilizable en toda la app)
+try {
+  if (typeof window !== 'undefined' && typeof window.escapeHtml !== 'function') {
+    window.escapeHtml = function(str){
+      try {
+        return String(str || '')
+          .replace(/&/g,'&amp;')
+          .replace(/</g,'&lt;')
+          .replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;')
+          .replace(/'/g,'&#39;');
+      } catch(_) { return String(str || ''); }
+    };
+  }
+} catch(_) {}
+
 function showSessionQR(){
   try {
     const sessionId = (document.getElementById('sessionId')?.textContent || '').trim();
@@ -77,7 +93,8 @@ function showSessionQR(){
       box.textContent = url; // Fallback textual si la librería no cargó
     }
     if (sidLabel) sidLabel.textContent = sessionId.toUpperCase();
-    modal.style.display = 'block';
+    // Usar flex para centrar según CSS del overlay
+    modal.style.display = 'flex';
   } catch(e) { console.error('QR error:', e); }
 }
 
@@ -87,25 +104,6 @@ try {
   if (typeof window !== 'undefined') {
     window.showSessionQR = showSessionQR;
     window.closeQRModal = closeQRModal;
-    // Fallback: enlazar el botón por id si existe
-    const bindQR = () => {
-      try {
-        const btn = document.getElementById('btnShowQR');
-        if (btn && !btn.__qrBound) {
-          btn.addEventListener('click', function(ev){
-            try { console.log('[QR] Botón clicado'); } catch(_) {}
-            ev.preventDefault(); ev.stopPropagation();
-            showSessionQR();
-          }, { capture: true });
-          btn.__qrBound = true;
-        }
-      } catch(_) {}
-    };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', bindQR);
-    } else {
-      bindQR();
-    }
   }
 } catch(_) {}
 

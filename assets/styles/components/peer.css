@@ -1,0 +1,11 @@
+/* Peer banners (soft/hard limit) */
+.peer-banner { display:flex; gap:12px; align-items:flex-start; padding:12px; margin:16px 0; box-sizing:border-box; }
+.peer-banner--soft { background:#dbeafe; border-left:4px solid #3b82f6; }
+.peer-banner--hard { background:#fef3c7; border-left:4px solid #f59e0b; }
+.peer-banner__icon { font-size:24px; }
+.peer-banner__title { margin:0 0 8px; }
+.peer-banner__text { margin:0 0 8px; font-size:14px; }
+.peer-banner__actions { margin:0; display:flex; align-items:center; gap:12px; }
+.peer-link { color:#2563eb; font-weight:600; text-decoration:none; }
+.peer-banner__foot { margin:8px 0 0; font-size:12px; color:#92400e; }
+.peer-close { padding:4px 12px; border:1px solid #3b82f6; color:#2563eb; border-radius:6px; cursor:pointer; background:transparent; }

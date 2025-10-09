@@ -4,15 +4,108 @@
 .session-details p { margin:4px 0; }
 .session-id { font-family: monospace; background:#fff; padding:4px 8px; border-radius:4px; border:1px solid #ddd; font-weight:bold; color: var(--primary); }
 .participants-panel { margin:20px 0; }
-.participants-list { background:#f8fafc; border:1px solid rgba(2,6,23,.08); border-radius:8px; padding:12px; min-height:80px; max-height:200px; overflow-y:auto; }
-.participant-item { display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:#fff; border:1px solid rgba(2,6,23,.06); border-radius:6px; margin:4px 0; }
+.participants-list { background:#f8fafc; border:1px solid rgba(2,6,23,.08); border-radius:8px; padding:6px; min-height:60px; /* quitar límite fijo de alto, lo controla JS */ max-height:none; overflow-y:visible; }
+/* Fila compacta de participante: menos padding y sin tarjeta extra */
+.participants-list .participant-item { display:flex; align-items:center; justify-content:space-between; }
 .participant-name { font-weight:500; color: var(--text); }
+
+/* ====== Compact participant row (no inline needed) ====== */
+#page-tutor #participantsList .pi-item {
+  gap: 12px;
+  padding: 6px 10px;
+  margin: 4px 0;
+  border-bottom: 1px solid rgba(2,6,23,.10);
+  line-height: 1.25;
+  height: 40px;
+  min-height: 40px;
+  width: 100%;
+  box-sizing: border-box;
+}
+#page-tutor #participantsList .pi-name { flex:1; min-width:140px; font-weight:600; font-size:14px; }
+#page-tutor #participantsList .pi-stats { 
+  display:flex; align-items:center; gap:12px; 
+  /* Resetear estilos heredados de .participant-stats global */
+  background: transparent !important; 
+  border: 0 !important; 
+  padding: 0 !important; 
+  margin: 0 !important; 
+  border-radius: 0 !important;
+}
+#page-tutor #participantsList .pi-badge { padding:5px 10px; border-radius:999px; background:#e8f5e9; color:#2e7d32; font-size:13px; line-height:1; }
+#page-tutor #participantsList .pi-corr { min-width:76px; text-align:center; background:#e8f7ee; color:#1b7f4a; border-radius:8px; padding:5px 10px; font-weight:700; font-size:13px; line-height:1; }
+#page-tutor #participantsList .pi-inc { min-width:96px; text-align:center; background:#fdecea; color:#b23c17; border-radius:8px; padding:5px 10px; font-weight:700; font-size:13px; line-height:1; }
+#page-tutor #participantsList .pi-prog { width:60px; text-align:center; font-size:13px; color:#374151; font-weight:700; line-height:1; }
+#page-tutor #participantsList .pi-actions { display:flex; gap:10px; }
+#page-tutor #participantsList .pi-actions .btn-ghost { padding:5px 10px; font-size:13px; line-height:1; height:26px; }
 
 .tutor-controls { display:flex; gap:12px; margin:20px 0; flex-wrap:wrap; }
 #tutorPlayback .actions { display:flex; flex-wrap:wrap; gap:8px; }
 #tutorPlayback .actions button { width:auto !important; flex:0 0 auto; min-width:150px; }
 
+/* ====== Mover estilos inline del Panel del Tutor a CSS ====== */
+#page-tutor .session-header-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap: wrap; }
+
+#tutorPlayback { margin: 8px 0 12px; display: none; gap: 6px; flex-direction: column; width:100%; }
+#tutorPlayback .row-top { display:flex; flex-direction:column; gap:8px; width:100%; }
+#tutorPlayback .row-top .inline { display:flex; align-items:center; gap:6px; }
+#tutorPlayback .progress-row { display:flex; align-items:center; gap:8px; width:100%; }
+#tutorPlayback .progress { height:8px; background:#eee; border-radius:6px; overflow:hidden; flex:1; }
+#tutorPlayback .row-bottom { display:flex; align-items:center; gap:10px; width:100%; }
+#tutorPlayback .row-bottom .actions { display:flex; gap:8px; flex-wrap: wrap; margin-left:auto; align-items:center; }
+
+/* Select de autoDelay (movido desde HTML) */
+#autoDelay { min-width: 80px; }
+
+/* Zona izquierda de la fila inferior (antes inline) */
+#tutorPlayback .row-bottom .left { display:flex; align-items:center; gap:10px; }
+
+/* Indicador de respuestas (margen a la izquierda) */
+#tutorResponses { margin-left: 8px; }
+
 @media (max-width: 768px) {
   .tutor-controls { flex-direction:column; }
   #tutorPlayback .actions button { min-width: calc(50% - 8px); flex:1 1 auto; }
+}
+
+/* Copy session ID button: increase size */
+#btnCopySessionId {
+  font-size: 18px; /* larger icon */
+  padding: 6px 8px;
+  line-height: 1;
+  height: 30px;
+  min-width: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Mobile: stack session header so QR button doesn't overflow */
+@media (max-width: 520px) {
+  #page-tutor .session-header-row { flex-direction: column; align-items: stretch; gap: 8px; }
+  #page-tutor .session-header-row > p { margin: 0; }
+  #btnShowQR { width: 100%; }
+}
+
+/* Extra spacing under the QR modal close button */
+#qrModal .modal-actions { margin-bottom: 12px; }
+#qrModal .modal-actions .btn-primary { margin-bottom: 8px; }
+#qrModal .modal-content { padding-bottom: 18px; }
+
+/* Center QR modal on screen via overlay container */
+#qrModal {
+  position: fixed !important;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 9999;
+  box-sizing: border-box;
+}
+#qrModal .modal-content {
+  position: relative;
+  transform: none;
+  max-width: 92vw;
+  width: auto;
+  margin: 0 auto;
 }

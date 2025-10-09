@@ -1,12 +1,46 @@
+/* Feedback del participante */
+.fb-correct { color: var(--success); }
+.fb-incorrect { color:#6b7280; }
+.fb-incorrect .fb-typed { color:#dc3545; }
+.fb-incorrect .fb-correct-word { color:#16a34a; }
+
+/* Overlay de bloqueo del participante */
+.participant-lock-overlay {
+  position:fixed; top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.65); backdrop-filter:blur(3px);
+  z-index:9999; display:flex; align-items:center; justify-content:center;
+  pointer-events:all; animation: fadeInOverlay 0.3s ease-out;
+}
+.plo-card { background:#fff; padding:24px 28px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.2); text-align:center; max-width:400px; }
+.plo-emoji { font-size:48px; margin-bottom:16px; }
+.plo-title { font-size:20px; font-weight:700; color:#dc2626; margin-bottom:12px; }
+.plo-text { font-size:16px; color:#666; line-height:1.5; }
 /* Participant UI */
-.participant-input { display:flex; gap:12px; align-items:stretch; margin:20px 0; }
 .participant-input input { flex:1; min-width:0; }
 .participant-input button { flex-shrink:0; min-width:120px; }
 
 .participant-feedback { margin:16px 0; padding:12px 16px; border-radius:10px; font-weight:500; background:#f8fafc; border:1px solid rgba(2,6,23,.08); }
 .participant-progress { margin:20px 0; }
-.participant-info { background:#f8fafc; border:1px solid rgba(2,6,23,.06); border-radius:10px; padding:16px; margin:16px 0; }
+.participant-card { background:#fff; border:1px solid rgba(2,6,23,.08); border-radius:12px; padding:24px; box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
 .participant-info p { margin:8px 0; line-height:1.5; }
+
+/* Campo de ID de sesión (estilos movidos desde HTML) */
+#sessionIdInput {
+  text-align: center;
+  font-family: monospace;
+  text-transform: uppercase;
+  margin-top: 6px;
+  margin-bottom: 12px;
+}
+
+/* Acciones del reporte del participante */
+#participantReport .actions { margin: 12px 0; }
+
+/* Label del ID de sesión */
+#page-participant label[for="sessionIdInput"] { display:block; margin-bottom:6px; }
+
+/* Caja de advertencia debajo del ID (migrada desde inline) */
+.session-id-hint { font-size:12px; color:#b91c1c; margin-top:12px; text-align:center; font-weight:600; }
 
 /* Streak notification (centrada arriba, por debajo del botón de ayuda) */
 .racha-notification {

@@ -246,7 +246,17 @@
       case 'answer_feedback':
         const feedback = document.getElementById('participantFeedback');
         if (data.isCorrect) {
-          feedback.innerHTML = '<p style="color: var(--success);">✅ ¡Correcto!</p>';
+          // Usar template correcto
+          try {
+            const tpl = document.getElementById('tplFbCorrect');
+            if (tpl && tpl.content && feedback) {
+              feedback.innerHTML = '';
+              feedback.appendChild(tpl.content.firstElementChild.cloneNode(true));
+            } else if (feedback) {
+              feedback.textContent = '✅ ¡Correcto!';
+              feedback.className = 'participant-feedback fb-correct';
+            }
+          } catch(_) {}
           
           // 🎉 NUEVO: Animaciones de éxito para participante
           try { (global.Feedback && Feedback.celebrarAcierto) ? Feedback.celebrarAcierto() : (typeof global.celebrarAcierto === 'function' && global.celebrarAcierto()); } catch(_) {}
@@ -257,9 +267,24 @@
             global.mostrarRacha(global.window.rachaActualParticipant);
           }
         } else {
+          // Usar template incorrecto con relleno seguro
           const typed = _escapeHtml(global.window._lastSubmittedAnswer || '');
           const correct = _escapeHtml(typeof data.correctWord === 'string' ? data.correctWord : '');
-          feedback.innerHTML = `<p style="color:#6b7280;">❌ Incorrecto. Escribiste: <strong style="color:#dc3545;">"${typed}"</strong> <span style="color:#6b7280;">| Era:</span> <strong style="color:#16a34a;">"${correct}"</strong></p>`;
+          try {
+            const tpl = document.getElementById('tplFbIncorrect');
+            if (tpl && tpl.content && feedback) {
+              const node = tpl.content.firstElementChild.cloneNode(true);
+              const tEl = node.querySelector('.fb-typed');
+              const cEl = node.querySelector('.fb-correct-word');
+              if (tEl) tEl.textContent = `"${typed}"`;
+              if (cEl) cEl.textContent = `"${correct}"`;
+              feedback.innerHTML = '';
+              feedback.appendChild(node);
+            } else if (feedback) {
+              feedback.className = 'participant-feedback fb-incorrect';
+              feedback.textContent = `❌ Incorrecto. Escribiste: "${typed}" | Era: "${correct}"`;
+            }
+          } catch(_) {}
           
           // 🔴 NUEVO: Animación de error para participante
           try { (global.Feedback && Feedback.animarError) ? Feedback.animarError() : (typeof global.animarError === 'function' && global.animarError()); } catch(_) {}
@@ -546,16 +571,15 @@
       let ov = document.getElementById('participantLockOverlay');
       if (locked) {
         if (!ov) {
-          ov = document.createElement('div');
-          ov.id = 'participantLockOverlay';
-          ov.style.cssText = 'position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(3px); z-index:9999; display:flex; align-items:center; justify-content:center; pointer-events:all; animation: fadeInOverlay 0.3s ease-out;';
-          ov.innerHTML = `
-            <div style="background:#fff; padding:24px 28px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.2); text-align:center; max-width:400px;">
-              <div style="font-size:48px; margin-bottom:16px;">⛔</div>
-              <div style="font-size:20px; font-weight:700; color:#dc2626; margin-bottom:12px;">Pantalla Bloqueada</div>
-              <div style="font-size:16px; color:#666; line-height:1.5;">Espera indicaciones del tutor para continuar</div>
-            </div>
-          `;
+          const tpl = document.getElementById('tplParticipantLockOverlay');
+          if (tpl && tpl.content) {
+            ov = tpl.content.firstElementChild.cloneNode(true);
+          } else {
+            ov = document.createElement('div');
+            ov.id = 'participantLockOverlay';
+            ov.className = 'participant-lock-overlay';
+            ov.innerHTML = '<div class="plo-card"><div class="plo-emoji">⛔</div><div class="plo-title">Pantalla Bloqueada</div><div class="plo-text">Espera indicaciones del tutor para continuar</div></div>';
+          }
           document.body.appendChild(ov);
         } else {
           ov.style.display = 'flex';
