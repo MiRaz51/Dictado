@@ -52,10 +52,112 @@ function syncGameState(direction = 'from') {
   }
 }
 
-// Hunspell fue extraído a modules/dictionary.js
+// === QR de sesión y enlace profundo (deep link) ===
+function buildDeepLinkForSession(sessionId){
+  try {
+    const loc = window.location;
+    const base = loc.origin + loc.pathname.replace(/[#?].*$/, '');
+    return `${base}?session=${encodeURIComponent(sessionId)}#page-participant`;
+  } catch(_) { return window.location.href; }
+}
 
-// ============================================================================
-// GESTIÓN DE ESTADO DEL JUEGO
+function showSessionQR(){
+  try {
+    const sessionId = (document.getElementById('sessionId')?.textContent || '').trim();
+    if (!sessionId || sessionId === '-') { alert('La sesión aún no está lista.'); return; }
+    const modal = document.getElementById('qrModal');
+    const box = document.getElementById('qrCodeContainer');
+    const sidLabel = document.getElementById('qrSessionId');
+    if (!modal || !box) return;
+    box.innerHTML = '';
+    const url = buildDeepLinkForSession(sessionId);
+    if (typeof QRCode === 'function') {
+      new QRCode(box, { text: url, width: 256, height: 256, correctLevel: QRCode.CorrectLevel.M });
+    } else {
+      box.textContent = url; // Fallback textual si la librería no cargó
+    }
+    if (sidLabel) sidLabel.textContent = sessionId.toUpperCase();
+    modal.style.display = 'block';
+  } catch(e) { console.error('QR error:', e); }
+}
+
+function closeQRModal(){ try { const m = document.getElementById('qrModal'); if (m) m.style.display = 'none'; } catch(_) {} }
+// Exponer globalmente para onclick del HTML
+try {
+  if (typeof window !== 'undefined') {
+    window.showSessionQR = showSessionQR;
+    window.closeQRModal = closeQRModal;
+    // Fallback: enlazar el botón por id si existe
+    const bindQR = () => {
+      try {
+        const btn = document.getElementById('btnShowQR');
+        if (btn && !btn.__qrBound) {
+          btn.addEventListener('click', function(ev){
+            try { console.log('[QR] Botón clicado'); } catch(_) {}
+            ev.preventDefault(); ev.stopPropagation();
+            showSessionQR();
+          }, { capture: true });
+          btn.__qrBound = true;
+        }
+      } catch(_) {}
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bindQR);
+    } else {
+      bindQR();
+    }
+  }
+} catch(_) {}
+
+// Manejar apertura con ?session=ID para precargar y mostrar participante (robusto)
+(function handleSessionDeepLink(){
+  const run = () => {
+    try {
+      const usp = new URLSearchParams(window.location.search);
+      const sid = usp.get('session') || usp.get('sid') || usp.get('s');
+      if (!sid) return;
+      // Guardar global para diagnósticos
+      try { window.__DEEP_LINK_SID = sid; } catch(_) {}
+      // Navegar a modo grupal/participante y abrir página específica
+      try { selectMode('group'); } catch(_) {}
+      try { selectRole('participant'); } catch(_) {}
+      try { if (typeof goToPage === 'function') goToPage('page-participant'); } catch(_) {}
+      // Ajustar hash para consistencia si falta
+      try { if (!location.hash || location.hash !== '#page-participant') location.hash = '#page-participant'; } catch(_) {}
+      // Prefijar el ID, BLOQUEAR edición del ID y enfocar nombre cuando el DOM del participante esté presente
+      setTimeout(() => {
+        try {
+          const input = document.getElementById('sessionIdInput');
+          if (input) {
+            input.value = String(sid).toUpperCase();
+            // Bloquear edición del ID para evitar cambios accidentales
+            input.readOnly = true;
+            input.setAttribute('aria-readonly', 'true');
+            input.title = 'ID de sesión establecido por QR';
+          }
+          const name = document.getElementById('participantName');
+          if (name) name.focus();
+          // Autoconectar opcional: ?auto=1&name=TuNombre
+          const auto = usp.get('auto');
+          const pname = usp.get('name') || usp.get('n');
+          if (auto === '1' && pname) {
+            try { if (name) name.value = pname; } catch(_) {}
+            const btn = document.getElementById('connectToSession');
+            if (btn && typeof window.connectToSession === 'function') {
+              window.connectToSession();
+            }
+          }
+        } catch(_) {}
+      }, 300);
+    } catch(_) {}
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run, { once: true });
+  } else {
+    // Ejecutar tras un micro delay para asegurar módulos cargados
+    setTimeout(run, 50);
+  }
+})();
 // ============================================================================
 
 // GameState se mueve a modules/game-state.js

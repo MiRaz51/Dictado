@@ -420,7 +420,7 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 /* Modal personalizado */
 .modal {
   position: fixed;
-  z-index: 1000;
+  z-index: 10010; /* por encima de cualquier overlay */
   left: 0;
   top: 0;
   width: 100%;

@@ -122,7 +122,9 @@
       }, 50);
     }
     if (pageId === 'page-participant') {
-      // Código para página de participante si es necesario
+      // Asegurar bindings y mostrar ayuda en primera visita
+      try { if (typeof global.attachEnterNavigationParticipantConnect === 'function') global.attachEnterNavigationParticipantConnect(); } catch(_) {}
+      try { if (window.PageHints && typeof window.PageHints.showFirstTime === 'function') window.PageHints.showFirstTime('page-participant'); } catch(_) {}
     }
   }
 

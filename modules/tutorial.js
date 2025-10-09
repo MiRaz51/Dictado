@@ -314,9 +314,14 @@
     window.addEventListener('load', () => {
       // Esperar a que la página esté lista
       setTimeout(() => {
-        if (!tutorial.completed) {
-          tutorial.start();
-        }
+        try {
+          const allowAuto = !!(window.CONFIG && window.CONFIG.AUTO_TUTORIAL_ON_FIRST_RUN);
+          if (allowAuto && !tutorial.completed) {
+            tutorial.start();
+          } else {
+            console.log('[Tutorial] Auto-start deshabilitado por configuración');
+          }
+        } catch(_) {}
       }, 1000);
     });
   }

@@ -31,7 +31,7 @@
 </head>
 <body>
   <!-- Botón de ayuda/tutorial (flotante, fuera del contenedor principal) -->
-  <button id="help-btn" class="help-button" onclick="window.Tutorial && window.Tutorial.restart()" title="Ver tutorial de nuevo">
+  <button id="help-btn" class="help-button" onclick="window.PageHints && window.PageHints.showCurrent && window.PageHints.showCurrent();" title="Ver ayuda de esta página">
     <span>?</span>
   </button>
   <!-- Eliminado: script inline duplicado. Todas las funciones reales están en app.js -->
@@ -50,6 +50,7 @@
           <h4>Individual</h4>
           <p>Práctica personal independiente</p>
         </div>
+
         <div id="modeGroup" class="mode-card" role="button" tabindex="0" onclick="selectMode('group')">
           <div class="mode-icon">👥</div>
           <h4>Grupal</h4>
@@ -202,8 +203,11 @@
         <div class="session-card">
           <h4>📡 Información de la Sesión</h4>
           <div class="session-details">
-            <p><strong>ID de Sesión:</strong> <span id="sessionId" class="session-id">-</span></p>
-            <p><strong>Estado:</strong> <span id="serverStatus">Conectando...</span></p>
+            <div class="session-header-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+              <p style="margin:0;"><strong>ID de Sesión:</strong> <span id="sessionId" class="session-id">-</span></p>
+              <button id="btnShowQR" onclick="showSessionQR()" title="Mostrar código QR de la sesión">📱 Mostrar QR</button>
+            </div>
+            <p style="margin-top:8px;"><strong>Estado:</strong> <span id="serverStatus">Conectando...</span></p>
           </div>
         </div>
         <div class="tutor-controls" style="margin-bottom:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:center;">
@@ -358,6 +362,8 @@
   <script src="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.js"></script>
   <!-- Confetti para animaciones de éxito -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- QRCode generator -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <!-- Módulos del sistema: (se cargan más abajo con onload/onerror y logs) -->
   
   <!-- Modal personalizado para confirmación de descarga -->
@@ -399,6 +405,26 @@
     </div>
   </footer>
   
+  <!-- Modal para QR de sesión (fuera de secciones .page) -->
+  <div id="qrModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:420px;">
+      <div class="modal-header">
+        <h3>Conéctate por QR</h3>
+        <span class="modal-close" onclick="closeQRModal()">&times;</span>
+      </div>
+      <div class="modal-body" style="display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px;">
+        <div id="qrCodeContainer" style="width:256px; height:256px;"></div>
+        <div id="qrSessionIdRow" class="hint" style="font-size:13px; color:#334155; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px;">
+          ID de Sesión: <code id="qrSessionId" style="font-weight:700; color:#0ea5e9;">-</code>
+        </div>
+        <div class="hint" style="font-size:12px; color:#64748b;">Escanea con el dispositivo del participante. Precargará el ID de sesión automáticamente.</div>
+      </div>
+      <div class="modal-actions" style="justify-content:center;">
+        <button class="btn-primary" onclick="closeQRModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+  
   
   
   <!-- Scripts principales -->
@@ -439,8 +465,8 @@
   <script src="modules/validation.js" onload="console.log('✅ modules/validation.js cargado')" onerror="console.error('❌ Error cargando modules/validation.js')"></script>
   <script src="modules/router.js" onload="console.log('✅ modules/router.js cargado')" onerror="console.error('❌ Error cargando modules/router.js')"></script>
   <script src="modules/game-flow.js" onload="console.log('✅ modules/game-flow.js cargado')" onerror="console.error('❌ Error cargando modules/game-flow.js')"></script>
-  <!-- Tutorial interactivo -->
-  <script src="modules/tutorial.js" onload="console.log('✅ modules/tutorial.js cargado')" onerror="console.error('❌ Error cargando modules/tutorial.js')"></script>
+  <!-- Ayudas por página -->
+  <script src="modules/page-hints.js" onload="console.log('✅ modules/page-hints.js cargado')" onerror="console.error('❌ Error cargando modules/page-hints.js')"></script>
   <script src="modules/feedback.js" onload="console.log('✅ modules/feedback.js cargado')" onerror="console.error('❌ Error cargando modules/feedback.js')"></script>
   <!-- Debe cargarse antes de app.js para que los wrappers deleguen correctamente -->
   <script src="modules/individual-mode.js?v=dbg1" onload="console.log('✅ modules/individual-mode.js cargado')" onerror="console.error('❌ Error cargando modules/individual-mode.js')"></script>
@@ -448,7 +474,7 @@
   <script src="modules/participant-helpers.js" onload="console.log('✅ modules/participant-helpers.js cargado')" onerror="console.error('❌ Error cargando modules/participant-helpers.js')"></script>
   <script src="modules/group-mode-tutor.js" onload="console.log('✅ modules/group-mode-tutor.js cargado')" onerror="console.error('❌ Error cargando modules/group-mode-tutor.js')"></script>
   <script src="modules/config-block.js" onload="console.log('✅ modules/config-block.js cargado')" onerror="console.error('❌ Error cargando modules/config-block.js')"></script>
-  <script src="assets/app.js?v=refactor1" onload="console.log('✅ app.js cargado (refactor1)')" onerror="console.error('❌ Error cargando app.js')"></script>
+  <script src="assets/app.js?v=qr2" onload="console.log('✅ app.js cargado (qr2)')" onerror="console.error('❌ Error cargando app.js')"></script>
   <script>
     // Renderizar los bloques reutilizables cuando el DOM esté listo
     (function(){

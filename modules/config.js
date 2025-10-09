@@ -34,6 +34,13 @@
     VOICE_WAIT_MS: 200,
     MAX_VOICE_ATTEMPTS: 8,
 
+    // Celebración final
+    FINAL_CELEBRATION_THRESHOLD: 70, // porcentaje mínimo para celebrar a pantalla completa
+    FINAL_CELEBRATION_SOUND: true,
+
+    // Onboarding
+    AUTO_TUTORIAL_ON_FIRST_RUN: false, // si true, arranca el tutorial automáticamente al cargar
+
     // Desarrollo
     DEV_DISABLE_SESSION_ID: false,
     DEV_FIXED_TUTOR_ID: 'TUTOR_DEV'

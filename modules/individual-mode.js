@@ -499,6 +499,14 @@
 
       document.getElementById('marcador').innerHTML = `Juego terminado. Aciertos: ${correctas}/${total} (${porcentaje}%)`;
 
+      // Celebración final si supera el umbral
+      try {
+        const umbral = (window.CONFIG && Number.isFinite(window.CONFIG.FINAL_CELEBRATION_THRESHOLD)) ? window.CONFIG.FINAL_CELEBRATION_THRESHOLD : 70;
+        if (porcentaje >= umbral && window.Feedback && typeof window.Feedback.showFinalCongrats === 'function') {
+          window.Feedback.showFinalCongrats(porcentaje);
+        }
+      } catch(_) {}
+
       const acentosCheckbox = document.getElementById('acentosObligatorios');
       if (acentosCheckbox) acentosCheckbox.disabled = false;
 

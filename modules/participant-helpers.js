@@ -4,6 +4,18 @@
 
   // ===== Helpers de audio y UI del participante =====
   
+  // Escapar HTML para evitar inyección en feedback
+  function _escapeHtml(str){
+    try {
+      return String(str || '')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+    } catch(_) { return String(str || ''); }
+  }
+
   function setParticipantAudioPolicy(allowAudio) {
     try {
       const allowed = !!allowAudio;
@@ -245,7 +257,9 @@
             global.mostrarRacha(global.window.rachaActualParticipant);
           }
         } else {
-          feedback.innerHTML = `<p style=\"color: var(--danger);\">❌ Incorrecto. La palabra era: <strong>${data.correctWord}</strong></p>`;
+          const typed = _escapeHtml(global.window._lastSubmittedAnswer || '');
+          const correct = _escapeHtml(typeof data.correctWord === 'string' ? data.correctWord : '');
+          feedback.innerHTML = `<p style="color:#6b7280;">❌ Incorrecto. Escribiste: <strong style="color:#dc3545;">"${typed}"</strong> <span style="color:#6b7280;">| Era:</span> <strong style="color:#16a34a;">"${correct}"</strong></p>`;
           
           // 🔴 NUEVO: Animación de error para participante
           try { (global.Feedback && Feedback.animarError) ? Feedback.animarError() : (typeof global.animarError === 'function' && global.animarError()); } catch(_) {}
@@ -356,6 +370,32 @@
           console.log('[Participante] PDF data ready:', { words: words.length, log: log.length });
         } catch(e) { console.error('[Participante] Error preparando datos PDF:', e); }
         
+        // Celebración final si supera el umbral (participante)
+        try {
+          const log = Array.isArray(global.window.resultsLog) ? global.window.resultsLog : [];
+          const total = (function(){
+            if (Number.isFinite(global.window._participantProgressTotal) && global.window._participantProgressTotal > 0) return global.window._participantProgressTotal;
+            if (Array.isArray(global.window.gameState?.words)) return global.window.gameState.words.length;
+            return log.length;
+          })();
+          const esOk = (val) => {
+            if (val === true) return true;
+            try {
+              const raw = String(val ?? '').trim();
+              const norm = (typeof global.WordFilters !== 'undefined' && global.WordFilters.normalizarBasico)
+                ? global.WordFilters.normalizarBasico(raw)
+                : raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+              return norm === 'si' || norm === 'true' || norm === '1';
+            } catch(_) { return false; }
+          };
+          const correctas = log.filter(r => esOk(r.correcto)).length;
+          const porcentaje = total ? Math.round((correctas / total) * 100) : 0;
+          const umbral = (window.CONFIG && Number.isFinite(window.CONFIG.FINAL_CELEBRATION_THRESHOLD)) ? window.CONFIG.FINAL_CELEBRATION_THRESHOLD : 70;
+          if (porcentaje >= umbral && window.Feedback && typeof window.Feedback.showFinalCongrats === 'function') {
+            window.Feedback.showFinalCongrats(porcentaje);
+          }
+        } catch(_) {}
+
         showParticipantReport(data.results);
         // Bloquear entrada y ocultar teclado virtual en participante
         try {
@@ -402,12 +442,35 @@
       };
       window.ReportUtils.renderReportSummaryAndList(contentDiv, ctx);
       if (reportDiv) reportDiv.style.display = 'block';
+      // Mostrar ayuda contextual (primera vez) también en la ruta principal
+      try {
+        if (window.PageHints && typeof window.PageHints.showAt === 'function') {
+          window.PageHints.showAt('#participantReport', {
+            title: 'Tu reporte 📊',
+            content: 'Aquí puedes <strong>descargar tu PDF</strong> o crear una <strong>práctica manual</strong>. Revisa el resumen y la lista de palabras respondidas.',
+            position: 'bottom',
+            storageKey: 'hint_participant_report_shown'
+          });
+        }
+      } catch(_) {}
       return;
     }
   
     // Fallback mínimo
     contentDiv.innerHTML = '<div class="report-summary">Reporte no disponible</div>';
     if (reportDiv) reportDiv.style.display = 'block';
+
+    // Mostrar ayuda contextual al abrir el reporte por primera vez
+    try {
+      if (window.PageHints && typeof window.PageHints.showAt === 'function') {
+        window.PageHints.showAt('#participantReport', {
+          title: 'Tu reporte 📊',
+          content: 'Aquí puedes <strong>descargar tu PDF</strong> o crear una <strong>práctica manual</strong>. Revisa el resumen y la lista de palabras respondidas.',
+          position: 'bottom',
+          storageKey: 'hint_participant_report_shown'
+        });
+      }
+    } catch(_) {}
   }
 
   // ===== Funciones de UI del Participante =====
