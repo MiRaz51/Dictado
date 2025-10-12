@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="assets/styles/components/badges.css">
   <link rel="stylesheet" href="assets/styles/components/feedback.css">
   <link rel="stylesheet" href="assets/styles/components/peer.css">
+  <link rel="stylesheet" href="assets/styles/components/time-credits.css">
   <!-- Simple Keyboard CSS (solo se usa en móviles/tablets) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/css/index.css">
   <script src="modules/word-filters-fixed.js" onload="console.log('✅ modules/word-filters-fixed.js cargado')" onerror="console.error('❌ Error cargando modules/word-filters-fixed.js')"></script>
@@ -35,6 +36,67 @@
   <button id="help-btn" class="help-button" title="Ver ayuda de esta página">
     <span>?</span>
   </button>
+
+  <!-- Badge de créditos (flotante, visible solo en páginas de participante/individual) -->
+  <button id="tcBadgeBtn" class="tc-badge-floating" title="Ver y canjear créditos de tiempo" type="button" style="display:none;">
+    ⏱ <span class="tc-mins" id="tcMins">0</span> min · <span id="tcUserShort">-</span>
+  </button>
+
+  <!-- Modal de Créditos de Tiempo (fuera del container para que esté siempre disponible) -->
+  <div id="timeCreditsModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Canjear Créditos de Tiempo</h3>
+        <span class="modal-close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <!-- Tarjeta de participante con saldo destacado -->
+        <div style="margin-bottom:20px; padding:16px; background:linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); border-radius:12px; color:#fff; box-shadow:0 4px 12px rgba(14,165,233,0.3);">
+          <div style="font-size:12px; opacity:0.9; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Participante</div>
+          <div style="font-size:24px; font-weight:700; margin-bottom:12px;" id="tcUserLabel">-</div>
+          <div style="display:flex; align-items:baseline; gap:8px;">
+            <div style="font-size:14px; opacity:0.9;">Saldo disponible:</div>
+            <div style="font-size:32px; font-weight:700; font-variant-numeric:tabular-nums;" id="tcBalanceDisplay">0</div>
+            <div style="font-size:18px; font-weight:600;">min</div>
+          </div>
+        </div>
+        
+        <!-- Mensaje informativo con mejor diseño -->
+        <div style="margin-bottom:20px; padding:14px; background:#f0f9ff; border-left:4px solid #0ea5e9; border-radius:8px; line-height:1.6; color:#0f172a;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span style="font-size:20px;">💡</span>
+            <strong style="color:#0284c7; font-size:15px;">Tiempo ganado por buen desempeño</strong>
+          </div>
+          <div style="font-size:13px; color:#475569;">
+            El participante ha ganado estos minutos por su esfuerzo y dedicación. Como padre/tutor, usted decide cómo aprovechar este tiempo de manera beneficiosa: lectura, juegos de mesa, actividades al aire libre, manualidades, música, o si lo considera apropiado, tiempo recreativo con dispositivos electrónicos bajo su supervisión.
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label for="tcMinutes">Minutos a canjear</label>
+            <input id="tcMinutes" type="number" min="1" step="1" value="5">
+            <div class="hint" id="tcBalanceHint">Saldo disponible: 0 min</div>
+          </div>
+          <div class="form-field">
+            <label for="tcPin">PIN de Adulto</label>
+            <input id="tcPin" type="password" inputmode="numeric" placeholder="****" maxlength="8">
+            <div class="hint" style="margin-top:4px; font-size:11px;">Requerido para autorizar el canje</div>
+            <div class="error" id="tcError">PIN inválido</div>
+          </div>
+          <div class="form-field">
+            <label for="tcNote">Nota (opcional)</label>
+            <input id="tcNote" type="text" placeholder="Ej.: tiempo de lectura, juego educativo, etc.">
+            <div class="hint" style="margin-top:4px; font-size:11px;">Registre cómo se usará este tiempo</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="tcCancelBtn" type="button">Cancelar</button>
+        <button class="btn-primary" id="tcRedeemBtn" type="button">Canjear</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Eliminado: script inline duplicado. Todas las funciones reales están en app.js -->
   <div class="container">
   
@@ -512,7 +574,16 @@
   <script>
     // Overrides opcionales de CONFIG (si quieres cambiar por entorno)
     window.CONFIG = Object.assign(window.CONFIG || {}, {
-      RAE_WORD_LIST_URL: './assets/palabras-con-frecuencia.json'
+      RAE_WORD_LIST_URL: './assets/palabras-con-frecuencia.json',
+      // Sistema de Créditos de Tiempo (valores por defecto)
+      TIME_CREDITS_ENABLED: true,
+      TIME_CREDITS_PIN: '1234',
+      TIME_CREDITS_DAILY_LIMIT: 45,
+      TIME_CREDITS_EXERCISE_LIMIT: 30,
+      // Minutos base al 100% antes de aplicar factor de dificultad (nivel/acentos/refuerzo)
+      TIME_CREDITS_MAX_BASE_AT_100: 10,
+      // Palabras requeridas en el ejercicio para aplicar bonos
+      TIME_CREDITS_REQUIRED_WORDS: 25
     });
     // Activar diagnósticos si se requiere
     window.DEBUG = window.DEBUG ?? true;
@@ -534,11 +605,13 @@
   <script src="modules/params.js" onload="console.log('✅ modules/params.js cargado')" onerror="console.error('❌ Error cargando modules/params.js')"></script>
   <script src="modules/error-bank.js" onload="console.log('✅ modules/error-bank.js cargado')" onerror="console.error('❌ Error cargando modules/error-bank.js')"></script>
   <script src="modules/validation.js" onload="console.log('✅ modules/validation.js cargado')" onerror="console.error('❌ Error cargando modules/validation.js')"></script>
-  <script src="modules/router.js" onload="console.log('✅ modules/router.js cargado')" onerror="console.error('❌ Error cargando modules/router.js')"></script>
+  <script src="modules/router.js?v=tc1" onload="console.log('✅ modules/router.js cargado (tc1)')" onerror="console.error('❌ Error cargando modules/router.js')"></script>
   <script src="modules/game-flow.js" onload="console.log('✅ modules/game-flow.js cargado')" onerror="console.error('❌ Error cargando modules/game-flow.js')"></script>
   <!-- Ayudas por página -->
   <script src="modules/page-hints.js" onload="console.log('✅ modules/page-hints.js cargado')" onerror="console.error('❌ Error cargando modules/page-hints.js')"></script>
   <script src="modules/feedback.js" onload="console.log('✅ modules/feedback.js cargado')" onerror="console.error('❌ Error cargando modules/feedback.js')"></script>
+  <!-- Módulo de Créditos de Tiempo -->
+  <script src="modules/time-credits.js" onload="console.log('✅ modules/time-credits.js cargado')" onerror="console.error('❌ Error cargando modules/time-credits.js')"></script>
   <!-- Debe cargarse antes de app.js para que los wrappers deleguen correctamente -->
   <script src="modules/individual-mode.js?v=dbg1" onload="console.log('✅ modules/individual-mode.js cargado')" onerror="console.error('❌ Error cargando modules/individual-mode.js')"></script>
   <!-- Módulos del modo grupal -->
@@ -547,7 +620,7 @@
   <script src="modules/config-block.js" onload="console.log('✅ modules/config-block.js cargado')" onerror="console.error('❌ Error cargando modules/config-block.js')"></script>
   <script src="assets/app.js?v=qr2" onload="console.log('✅ app.js cargado (qr2)')" onerror="console.error('❌ Error cargando app.js')"></script>
   <script src="modules/init.js"></script>
-  
+
   <!-- Eliminado: script de diagnóstico duplicado -->
   
   <!-- Inicializador del teclado virtual movido a assets/init.js -->

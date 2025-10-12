@@ -13,6 +13,43 @@
       return;
     }
 
+  // ===== Integración de Créditos de Tiempo en lista de participantes (Tutor) =====
+  function __handleTutorDataFromParticipant(peerId, data){
+    try {
+      if (!data || typeof data !== 'object') return;
+      switch (data.type) {
+        case 'participant_info': {
+          // Asegurar registro del participante y guardar TC inicial
+          try { global.groupState.addParticipant(peerId, { participantName: data.participantName }); } catch(_) {}
+          const p = global.groupState.getParticipant(peerId);
+          if (p) { p.timeCredits = Number(data.timeCredits || 0); }
+          try { global.groupState.updateParticipantsUI(); } catch(_) {}
+          break;
+        }
+        case 'tc_balance': {
+          const p = global.groupState.getParticipant(peerId);
+          if (p) { p.timeCredits = Number(data.minutes || 0); try { global.groupState.updateParticipantsUI(); } catch(_) {} }
+          break;
+        }
+      }
+    } catch(_) {}
+  }
+
+  // Conectar handlers si existe peerManager (sin sobrescribir el existente de app.js)
+  try {
+    if (global.peerManager) {
+      const prevHandler = global.peerManager.onDataReceived;
+      global.peerManager.onDataReceived = function(peerId, data){
+        try { if (typeof prevHandler === 'function') prevHandler(peerId, data); } catch(_) {}
+        // Procesar solo mensajes de TC o info adicional; no interferir con 'answer'
+        try { __handleTutorDataFromParticipant(peerId, data); } catch(_) {}
+      };
+      // Mantener otros callbacks auxiliares
+      global.peerManager.onParticipantLeft = function(peerId){ try { global.groupState.removeParticipant(peerId); } catch(_) {} };
+      global.peerManager.onParticipantJoined = function(peerId){ try { global.groupState.addParticipant(peerId, { participantName: peerId }); } catch(_) {} };
+    }
+  } catch(_) {}
+
     // Deshabilitar inmediatamente para prevenir doble clic
     try { document.getElementById('startExercise').disabled = true; } catch(_) {}
     if (global.groupState.getParticipantCount() === 0) {

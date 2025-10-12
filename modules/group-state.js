@@ -325,6 +325,7 @@ class GroupStateManager {
                 <span class="participant-status pi-badge">Conectado</span>
                 <div class="pi-corr" title="Correctas">✓ <span class="v-corr">0</span></div>
                 <div class="pi-inc" title="Incorrectas">✗ <span class="v-inc">0</span></div>
+                <div class="pi-tc" title="Créditos de tiempo">⏱ <span class="v-tc">0</span> min</div>
                 <div class="participant-progress pi-prog" title="Progreso %"><span class="v-prog">0</span>%</div>
                 <div class="participant-actions pi-actions">
                   <button class="btn-ghost btn-pdf">📄 PDF</button>
@@ -338,6 +339,23 @@ class GroupStateManager {
           const vi = node.querySelector('.v-inc');  if (vi) vi.textContent = inc;
           const vp = node.querySelector('.v-prog'); if (vp) vp.textContent = prog;
           const progBox = node.querySelector('.pi-prog'); if (progBox) progBox.title = `Progreso ${prog}%`;
+          // Asignar créditos de tiempo
+          (function(){
+            const tcSpan = node.querySelector('.v-tc');
+            const mins = Number(p.timeCredits || 0);
+            if (tcSpan) {
+              tcSpan.textContent = mins;
+            } else {
+              try {
+                const stats = node.querySelector('.pi-stats') || node;
+                const el = document.createElement('div');
+                el.className = 'pi-tc';
+                el.title = 'Créditos de tiempo';
+                el.innerHTML = `⏱ <span class="v-tc">${mins}</span> min`;
+                stats.insertBefore(el, stats.querySelector('.pi-prog'));
+              } catch(_) {}
+            }
+          })();
 
           // Bind botones
           const btnPdf = node.querySelector('.btn-pdf');

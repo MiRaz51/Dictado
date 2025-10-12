@@ -19,6 +19,14 @@ class PeerManager {
     this.limitWarningShown = false; // Para mostrar advertencia solo una vez
   }
 
+  // Enviar al tutor el saldo actual de créditos de tiempo (participante)
+  sendTimeCreditsBalance() {
+    if (this.role !== 'participant') return;
+    let tcMinutes = 0;
+    try { tcMinutes = (window.TimeCredits && typeof window.TimeCredits.getBalance === 'function') ? (window.TimeCredits.getBalance()?.minutesAvailable || 0) : 0; } catch(_) {}
+    this.sendToTutor({ type: 'tc_balance', minutes: tcMinutes, timestamp: Date.now() });
+  }
+
   // Inicializar como tutor (servidor)
   async initAsTutor() {
     try {
@@ -171,11 +179,14 @@ class PeerManager {
         this.sessionId = tutorSessionId;
         this.isConnected = true;
         
-        // Enviar información del participante con nombre
+        // Enviar información del participante con nombre y saldo de créditos
+        let tcMinutes = 0;
+        try { tcMinutes = (window.TimeCredits && typeof window.TimeCredits.getBalance === 'function') ? (window.TimeCredits.getBalance()?.minutesAvailable || 0) : 0; } catch(_) {}
         this.sendToTutor({
           type: 'participant_info',
           participantId: this.peer.id,
           participantName: window.participantName || 'Participante sin nombre',
+          timeCredits: tcMinutes,
           timestamp: Date.now()
         });
         

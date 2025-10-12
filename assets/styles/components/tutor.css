@@ -31,10 +31,38 @@
   margin: 0 !important; 
   border-radius: 0 !important;
 }
+#page-tutor #participantsList .pi-tc {
+  order: 99;               /* enviar al extremo derecho */
+  margin-left: auto;       /* ocupar espacio restante */
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #eef2ff;     /* tono suave acorde al tema */
+  color: #1e293b;
+  border: 1px solid rgba(2,6,23,.08);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-weight: 700;
+  line-height: 1;
+}
 #page-tutor #participantsList .pi-badge { padding:5px 10px; border-radius:999px; background:#e8f5e9; color:#2e7d32; font-size:13px; line-height:1; }
 #page-tutor #participantsList .pi-corr { min-width:76px; text-align:center; background:#e8f7ee; color:#1b7f4a; border-radius:8px; padding:5px 10px; font-weight:700; font-size:13px; line-height:1; }
 #page-tutor #participantsList .pi-inc { min-width:96px; text-align:center; background:#fdecea; color:#b23c17; border-radius:8px; padding:5px 10px; font-weight:700; font-size:13px; line-height:1; }
-#page-tutor #participantsList .pi-prog { width:60px; text-align:center; font-size:13px; color:#374151; font-weight:700; line-height:1; }
+#page-tutor #participantsList .pi-prog {
+  min-width: 64px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  padding: 5px 10px;
+  background: #eef2ff;           /* consistente con .pi-tc */
+  color: #1e293b;
+  border: 1px solid rgba(2,6,23,.08);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
 #page-tutor #participantsList .pi-actions { display:flex; gap:10px; }
 #page-tutor #participantsList .pi-actions .btn-ghost { padding:5px 10px; font-size:13px; line-height:1; height:26px; }
 

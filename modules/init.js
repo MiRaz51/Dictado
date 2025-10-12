@@ -111,11 +111,38 @@
       if (editCfg) editCfg.addEventListener('click', () => { try { window.goToPage && goToPage('page-tutor-config'); } catch(_) {} });
     } catch(_) {}
     on('btnShowQR', 'click', () => { try { window.showSessionQR && showSessionQR(); } catch(_) {} });
+    // Pequeño toast visual cerca del botón
+    function __showCopyToastNear(el, msg){
+      try {
+        const rect = el?.getBoundingClientRect?.();
+        const tip = document.createElement('div');
+        tip.className = 'toast-copy';
+        tip.textContent = msg || 'Copiado';
+        tip.style.position = 'fixed';
+        tip.style.zIndex = '10001';
+        tip.style.padding = '6px 10px';
+        tip.style.borderRadius = '8px';
+        tip.style.background = '#0ea5e9';
+        tip.style.color = '#fff';
+        tip.style.fontSize = '12px';
+        tip.style.boxShadow = '0 6px 18px rgba(2,6,23,.15)';
+        tip.style.opacity = '0';
+        const top = rect ? (rect.top - 8) : 20;
+        const left = rect ? (rect.right + 8) : 20;
+        tip.style.top = `${Math.max(8, top)}px`;
+        tip.style.left = `${Math.min(window.innerWidth - 80, left)}px`;
+        document.body.appendChild(tip);
+        requestAnimationFrame(() => { tip.style.transition = 'opacity .18s ease, transform .18s ease'; tip.style.opacity = '1'; tip.style.transform = 'translateY(-4px)'; });
+        setTimeout(() => { try { tip.style.opacity = '0'; tip.style.transform = 'translateY(-2px)'; } catch(_) {} }, 900);
+        setTimeout(() => { try { tip.remove(); } catch(_) {} }, 1200);
+      } catch(_) {}
+    }
+
     on('btnCopySessionId', 'click', async () => {
       const sidEl = document.getElementById('sessionId');
       const text = (sidEl?.textContent || '').trim();
       if (!text || text === '-') return;
-      const setTip = (msg) => { try { const btn = document.getElementById('btnCopySessionId'); if (btn){ const prev = btn.title; btn.title = msg; setTimeout(()=>{ try { btn.title = prev || 'Copiar ID'; } catch(_) {} }, 1200);} } catch(_) {} };
+      const setTip = (msg) => { try { const btn = document.getElementById('btnCopySessionId'); if (btn){ const prev = btn.title; btn.title = msg; __showCopyToastNear(btn, msg); setTimeout(()=>{ try { btn.title = prev || 'Copiar ID'; } catch(_) {} }, 1200);} } catch(_) {} };
       try {
         if (navigator.clipboard && window.isSecureContext) {
           await navigator.clipboard.writeText(text);
@@ -132,16 +159,15 @@
         // Evitar scroll/resaltado visual
         ta.style.position = 'fixed';
         ta.style.left = '-9999px';
-        ta.style.top = '0';
         document.body.appendChild(ta);
         ta.focus();
         ta.select();
         const ok = document.execCommand('copy');
         document.body.removeChild(ta);
-        if (ok) setTip('¡Copiado!'); else setTip('No se pudo copiar');
-      } catch(e) {
-        setTip('No se pudo copiar');
-      }
+        if (ok) { setTip('¡Copiado!'); return; }
+      } catch(_) {}
+      // Último recurso
+      setTip('No se pudo copiar');
     });
     on('startExercise', 'click', () => { try { window.startGroupExercise && startGroupExercise(); } catch(_) {} });
     on('tutorStopAll', 'click', () => { try { window.tutorToggleLockAll && tutorToggleLockAll(); } catch(_) {} });
@@ -201,6 +227,176 @@
       if (qrClose) qrClose.addEventListener('click', () => { try { window.closeQRModal && closeQRModal(); } catch(_) {} });
       const qrPrimary = document.querySelector('#qrModal .btn-primary');
       if (qrPrimary) qrPrimary.addEventListener('click', () => { try { window.closeQRModal && closeQRModal(); } catch(_) {} });
+    } catch(_) {}
+
+    // Time Credits UI: badge/modal open/close and redeem
+    // Envolver en función para ejecutar después de que el DOM esté listo
+    const initTimeCredits = () => {
+      try {
+        // Global badge refresher
+        if (!window.refreshTimeCreditsBadge) {
+          window.refreshTimeCreditsBadge = function refreshTimeCreditsBadge(){
+            try {
+              const minsEl = document.getElementById('tcMins');
+              const hint = document.getElementById('tcBalanceHint');
+              const balanceDisplay = document.getElementById('tcBalanceDisplay');
+              const userLbl = document.getElementById('tcUserLabel');
+              const userShort = document.getElementById('tcUserShort');
+              // Actualiza etiqueta de usuario si existe
+              try {
+                const uid = (typeof window.getAlumnoCursoId === 'function') ? window.getAlumnoCursoId() : '-';
+                const displayName = (function(){
+                  try {
+                    const s = String(uid || '-');
+                    const ix = s.indexOf('|');
+                    return (ix >= 0) ? s.slice(0, ix) : s;
+                  } catch(_) { return String(uid || '-'); }
+                })();
+                if (userLbl) userLbl.textContent = displayName || '-';
+                if (userShort) userShort.textContent = displayName || '-';
+              } catch(_) {}
+              if (typeof TimeCredits !== 'undefined') {
+                const bal = TimeCredits.getBalance();
+                const mins = bal.minutesAvailable || 0;
+                if (minsEl) minsEl.textContent = String(mins);
+                if (hint) hint.textContent = `Saldo disponible: ${mins} min`;
+                if (balanceDisplay) balanceDisplay.textContent = String(mins);
+              } else {
+                if (minsEl) minsEl.textContent = '0';
+                if (hint) hint.textContent = 'Saldo disponible: 0 min';
+                if (balanceDisplay) balanceDisplay.textContent = '0';
+              }
+            } catch(_) {}
+          };
+        }
+
+        const tcBtn = document.getElementById('tcBadgeBtn');
+        const tcModal = document.getElementById('timeCreditsModal');
+        const tcClose = tcModal ? tcModal.querySelector('.modal-close') : null;
+        const tcCancel = document.getElementById('tcCancelBtn');
+        const tcRedeem = document.getElementById('tcRedeemBtn');
+        const tcMinutes = document.getElementById('tcMinutes');
+        const tcPin = document.getElementById('tcPin');
+        const tcError = document.getElementById('tcError');
+
+        const openTc = () => { 
+          try { 
+            console.log('[TimeCredits] Abriendo modal...');
+            if (tcModal){ 
+              tcModal.style.display = 'flex'; 
+              refreshTimeCreditsBadge(); 
+              // Resetear scroll del modal al inicio para mostrar la tarjeta de información
+              const modalBody = tcModal.querySelector('.modal-body');
+              if (modalBody) modalBody.scrollTop = 0;
+              // NO poner foco automático, dejar que el usuario vea la información primero
+            } else {
+              console.error('[TimeCredits] Modal no encontrado');
+            }
+          } catch(e) { console.error('[TimeCredits] Error abriendo modal:', e); } 
+        };
+        const closeTc = () => { try { if (tcModal) tcModal.style.display = 'none'; if (tcError) tcError.style.display = 'none'; } catch(_) {} };
+
+        // Usar delegación de eventos en document para que funcione en todas las páginas
+        document.addEventListener('click', (e) => {
+          try {
+            // Verificar si el click fue en el badge o en algún elemento hijo
+            const target = e.target;
+            const isBadge = target.id === 'tcBadgeBtn';
+            const isInsideBadge = target.closest('#tcBadgeBtn');
+            
+            if (isBadge || isInsideBadge) {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('[TimeCredits] Click en badge detectado', { target: target.id || target.className, isBadge, isInsideBadge });
+              openTc();
+            }
+          } catch(err) {
+            console.error('[TimeCredits] Error en listener de click:', err);
+          }
+        }, true); // useCapture=true para capturar en fase de captura
+        
+        console.log('[TimeCredits] Listener delegado conectado en document');
+        
+        // Verificar que el badge existe y es visible
+        setTimeout(() => {
+          const badge = document.getElementById('tcBadgeBtn');
+          if (badge) {
+            const styles = window.getComputedStyle(badge);
+            console.log('[TimeCredits] Badge verificado:', {
+              exists: true,
+              display: styles.display,
+              visibility: styles.visibility,
+              zIndex: styles.zIndex,
+              position: styles.position
+            });
+          } else {
+            console.error('[TimeCredits] Badge NO encontrado en el DOM');
+          }
+        }, 500);
+        if (tcClose) tcClose.addEventListener('click', closeTc);
+        if (tcCancel) tcCancel.addEventListener('click', closeTc);
+        if (tcModal) tcModal.addEventListener('click', (e) => { try { if (e.target === tcModal) closeTc(); } catch(_) {} });
+
+        if (tcRedeem) tcRedeem.addEventListener('click', () => {
+          try {
+            if (typeof TimeCredits === 'undefined') return;
+            const minutes = Math.max(0, parseInt((tcMinutes && tcMinutes.value) || '0', 10));
+            const pin = (tcPin && tcPin.value) || '';
+            const note = (document.getElementById('tcNote')?.value || '').trim();
+            
+            // Si no hay PIN, mover foco al campo PIN
+            if (!pin || pin.trim() === '') {
+              if (tcPin) {
+                tcPin.focus();
+                if (tcError) {
+                  tcError.textContent = 'Por favor ingrese el PIN de adulto';
+                  tcError.style.display = 'block';
+                }
+              }
+              return;
+            }
+            
+            const res = TimeCredits.redeem({ activity: 'parent_approved', minutes, pin, note });
+            if (res && res.error) {
+              if (tcError) { tcError.textContent = res.error; tcError.style.display = 'block'; }
+              // Mover foco al PIN si hay error
+              if (tcPin) tcPin.focus();
+              return;
+            }
+            if (tcError) tcError.style.display = 'none';
+            refreshTimeCreditsBadge();
+            // Si estamos en modo participante, enviar saldo actualizado al tutor
+            try {
+              if (window.peerManager && typeof window.peerManager.sendTimeCreditsBalance === 'function' && window.peerManager.role === 'participant') {
+                window.peerManager.sendTimeCreditsBalance();
+              }
+            } catch(_) {}
+            closeTc();
+          } catch(_) {}
+        });
+
+        // Initial badge refresh
+        try { refreshTimeCreditsBadge(); } catch(_) {}
+      } catch(_) {}
+    };
+    
+    // Ejecutar initTimeCredits inmediatamente (el script ya se carga al final del body)
+    try { initTimeCredits(); } catch(_) {}
+    
+    // Ocultar badge en la página inicial (page-mode-select)
+    try {
+      const tcBadge = document.getElementById('tcBadgeBtn');
+      if (tcBadge) {
+        // Verificar qué página está activa al cargar
+        const activePage = document.querySelector('.page.active');
+        if (activePage) {
+          const pageId = activePage.id;
+          const hideBadgePages = ['page-mode-select', 'page-role-select', 'page-tutor-info', 'page-tutor-config', 'page-tutor'];
+          if (hideBadgePages.includes(pageId)) {
+            tcBadge.style.display = 'none';
+          }
+        }
+      }
     } catch(_) {}
 
     // Accessibility: config form input navigation and validation

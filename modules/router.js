@@ -2,6 +2,7 @@
   'use strict';
 
   function goToPage(pageId) {
+    console.log('[Router] Navegando a página:', pageId);
     const ids = ['page-mode-select', 'page-role-select', 'page-config', 'page-game', 'page-tutor-info', 'page-tutor-config', 'page-tutor', 'page-participant', 'page-report'];
     ids.forEach(id => {
       const el = document.getElementById(id);
@@ -9,6 +10,34 @@
         el.classList.toggle('active', id === pageId);
       }
     });
+    
+    // Mostrar/ocultar badge de créditos según la página
+    try {
+      const tcBadge = document.getElementById('tcBadgeBtn');
+      if (tcBadge) {
+        // Páginas donde NO debe aparecer el badge:
+        // - page-mode-select (selección de modo)
+        // - page-role-select (selección de rol grupal)
+        // - page-tutor-info (info del tutor)
+        // - page-tutor-config (configuración del tutor)
+        // - page-tutor (pantalla del tutor)
+        const hideBadgePages = ['page-mode-select', 'page-role-select', 'page-tutor-info', 'page-tutor-config', 'page-tutor'];
+        
+        if (hideBadgePages.includes(pageId)) {
+          console.log('[TimeCredits] Ocultando badge en página:', pageId);
+          tcBadge.style.display = 'none';
+        } else {
+          // Mostrar en: page-config, page-game, page-report (modo individual)
+          // y page-participant (modo grupal)
+          console.log('[TimeCredits] Mostrando badge en página:', pageId);
+          tcBadge.style.display = 'inline-flex';
+        }
+      } else {
+        console.warn('[TimeCredits] Badge no encontrado al navegar a:', pageId);
+      }
+    } catch(e) {
+      console.error('[TimeCredits] Error al mostrar/ocultar badge:', e);
+    }
     // Preseleccionar primer campo cuando se abre la página de juego
     if (pageId === 'page-game') {
       setTimeout(() => {

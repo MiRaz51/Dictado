@@ -12,7 +12,11 @@
 
     const cantidadRow = `<div class="config-field">
         <label class="config-label" for="${id('cantidad')}"><strong>Cantidad de palabras</strong>: </label>
-        <input class="config-input" id="${id('cantidad')}" type="number" min="1" step="1" placeholder="vacío = 25" tabindex="1" onkeydown="handleEnterNavigation(event, '${id('filtroLetras')}')">
+        <input class="config-input" id="${id('cantidad')}" type="number" min="1" step="1" inputmode="numeric" pattern="[0-9]*" placeholder="vacío = 25" tabindex="1"
+          onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault(); handleEnterNavigation(event, '${id('filtroLetras')}')"
+          oninput="this.value=this.value.replace(/\D/g,'');"
+          onpaste="setTimeout(()=>{ this.value=this.value.replace(/\D/g,''); },0)"
+        >
         <div class="config-hint">Al no ingresar cantidad, será 25 palabras como máximo disponible.</div>
       </div>`;
 
@@ -30,7 +34,11 @@
 
     const porcentajeRow = `<div class="config-row" style="margin: 12px 0;">
         <label class="config-label" for="${id('porcentajeRefuerzo')}" style="min-width: 220px;"><strong>Porcentaje de refuerzo</strong> (0–100%): </label>
-        <input class="config-input" id="${id('porcentajeRefuerzo')}" type="number" min="0" max="100" step="1" placeholder="p. ej.: 40" tabindex="2" onkeydown="handleEnterNavigation(event, '${id('acentosObligatorios')}')">
+        <input class="config-input" id="${id('porcentajeRefuerzo')}" type="number" min="0" max="100" step="1" inputmode="numeric" pattern="[0-9]*" placeholder="p. ej.: 40" tabindex="2"
+          onkeydown="if(['e','E','+','-','.'].includes(event.key)) event.preventDefault(); handleEnterNavigation(event, '${id('acentosObligatorios')}')"
+          oninput="this.value=this.value.replace(/\D/g,''); if(this.value!==''&&Number(this.value)>100){this.value='100';}"
+          onpaste="setTimeout(()=>{ this.value=this.value.replace(/\D/g,''); if(this.value!==''&&Number(this.value)>100){this.value='100';} },0)"
+        >
       </div>`;
 
     const acentosYModo = `<!-- Acentos obligatorios y Modo estricto dentro del card -->
