@@ -78,3 +78,12 @@
     max-width: calc(100% - 20px);
   }
 }
+
+/* ====== Responsive (móvil/tablet) ====== */
+@media (max-width: 480px) {
+  .participant-input { gap: 8px; }
+  .participant-input button { min-width: 120px; height: 42px; }
+}
+
+/* Evitar zoom en iOS al enfocar inputs */
+#participantAnswer { font-size: 16px; }

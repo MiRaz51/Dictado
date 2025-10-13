@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <!-- Aplicación optimizada para escritorio -->
   <title>Práctica de Ortografía</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -38,74 +38,20 @@
   </button>
 
   <!-- Badge de créditos (flotante, visible solo en páginas de participante/individual) -->
-  <button id="tcBadgeBtn" class="tc-badge-floating" title="Ver y canjear créditos de tiempo" type="button" style="display:none;">
+  <button id="tcBadgeBtn" class="tc-badge-floating hidden" title="Ver y canjear créditos de tiempo" type="button">
     ⏱ <span class="tc-mins" id="tcMins">0</span> min · <span id="tcUserShort">-</span>
   </button>
-
-  <!-- Modal de Créditos de Tiempo (fuera del container para que esté siempre disponible) -->
-  <div id="timeCreditsModal" class="modal" style="display:none;">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Canjear Créditos de Tiempo</h3>
-        <span class="modal-close">&times;</span>
-      </div>
-      <div class="modal-body">
-        <!-- Tarjeta de participante con saldo destacado -->
-        <div style="margin-bottom:20px; padding:16px; background:linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%); border-radius:12px; color:#fff; box-shadow:0 4px 12px rgba(14,165,233,0.3);">
-          <div style="font-size:12px; opacity:0.9; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.5px;">Participante</div>
-          <div style="font-size:24px; font-weight:700; margin-bottom:12px;" id="tcUserLabel">-</div>
-          <div style="display:flex; align-items:baseline; gap:8px;">
-            <div style="font-size:14px; opacity:0.9;">Saldo disponible:</div>
-            <div style="font-size:32px; font-weight:700; font-variant-numeric:tabular-nums;" id="tcBalanceDisplay">0</div>
-            <div style="font-size:18px; font-weight:600;">min</div>
-          </div>
-        </div>
-        
-        <!-- Mensaje informativo con mejor diseño -->
-        <div style="margin-bottom:20px; padding:14px; background:#f0f9ff; border-left:4px solid #0ea5e9; border-radius:8px; line-height:1.6; color:#0f172a;">
-          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-            <span style="font-size:20px;">💡</span>
-            <strong style="color:#0284c7; font-size:15px;">Tiempo ganado por buen desempeño</strong>
-          </div>
-          <div style="font-size:13px; color:#475569;">
-            El participante ha ganado estos minutos por su esfuerzo y dedicación. Como padre/tutor, usted decide cómo aprovechar este tiempo de manera beneficiosa: lectura, juegos de mesa, actividades al aire libre, manualidades, música, o si lo considera apropiado, tiempo recreativo con dispositivos electrónicos bajo su supervisión.
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-field">
-            <label for="tcMinutes">Minutos a canjear</label>
-            <input id="tcMinutes" type="number" min="1" step="1" value="5">
-            <div class="hint" id="tcBalanceHint">Saldo disponible: 0 min</div>
-          </div>
-          <div class="form-field">
-            <label for="tcPin">PIN de Adulto</label>
-            <input id="tcPin" type="password" inputmode="numeric" placeholder="****" maxlength="8">
-            <div class="hint" style="margin-top:4px; font-size:11px;">Requerido para autorizar el canje</div>
-            <div class="error" id="tcError">PIN inválido</div>
-          </div>
-          <div class="form-field">
-            <label for="tcNote">Nota (opcional)</label>
-            <input id="tcNote" type="text" placeholder="Ej.: tiempo de lectura, juego educativo, etc.">
-            <div class="hint" style="margin-top:4px; font-size:11px;">Registre cómo se usará este tiempo</div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-actions">
-        <button class="btn-ghost" id="tcCancelBtn" type="button">Cancelar</button>
-        <button class="btn-primary" id="tcRedeemBtn" type="button">Canjear</button>
-      </div>
-    </div>
-  </div>
+  <!-- Modal de Créditos de Tiempo se carga desde templates/tplTimeCreditsModal.html -->
 
   <!-- Eliminado: script inline duplicado. Todas las funciones reales están en app.js -->
   <div class="container">
   
   <h2><span class="brand">Práctica</span> de Ortografía</h2>
-  <p id="metaAlumnoCurso" class="meta" style="display:none;"></p>
+  <p id="metaAlumnoCurso" class="meta hidden"></p>
 
   <!-- Página 0: Selección de Modo -->
   <section id="page-mode-select" class="page active">
-    <div class="card" style="text-align: center;">
+    <div class="card center">
       <h3 style="margin-bottom: 20px; color: var(--text);">Selecciona el modo de práctica</h3>
       <div class="mode-grid">
         <div id="modeIndividual" class="mode-card" role="button" tabindex="0">
@@ -125,7 +71,7 @@
 
   <!-- Página 0.5: Selección de Rol Grupal -->
   <section id="page-role-select" class="page">
-    <div class="card" style="text-align: center;">
+    <div class="card center">
       <h3 style="margin-bottom: 20px; color: var(--text);">Selecciona tu rol</h3>
       <div class="mode-grid">
         <div class="mode-card">
@@ -139,7 +85,7 @@
           <p>Unirse a una sesión existente</p>
         </div>
       </div>
-      <div class="actions" style="margin-top: 20px;">
+      <div class="actions">
         <button class="btn-ghost">◂ Volver</button>
       </div>
     </div>
@@ -169,28 +115,28 @@
     
     <p>Selecciona un nivel de dificultad:</p>
     
-    <div class="actions" style="margin-top: 6px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <div class="actions" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:6px;">
       <button id="btnVolverGame" class="btn-ghost">◂ Volver</button>
       <button id="btnNivelBasico" tabindex="7">🌱 Nivel Básico</button>
       <button id="btnNivelIntermedio" tabindex="8">🌿 Nivel Intermedio</button>
       <button id="btnNivelAvanzado" tabindex="9">🌳 Nivel Avanzado</button>
       <button id="btnNivelExperto" tabindex="10">🔥 Nivel Experto</button>
       <button class="btn-ghost" type="button" title="Limpiar caché del JSON y recargar">↻ Refrescar datos</button>
-      <span id="nivelesDiag" class="hint" style="font-size:12px; color:#666; display:none;"></span>
+      <span id="nivelesDiag" class="hint hint-muted hidden"></span>
     </div>
-    <div id="juego" class="card" style="display:none; margin-top:14px;">
+    <div id="juego" class="card mt-14" style="display:none;">
       <div class="avance-row">
         <div class="progress" aria-label="Progreso de palabras">
-          <div id="progressFill" class="progress-fill" style="width:0%"></div>
+          <div id="progressFill" class="progress-fill"></div>
         </div>
         <div id="progressText" class="progress-text">0/0</div>
       </div>
-      <div class="row layout-game-input" style="margin-top:6px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <div class="row layout-game-input">
         <button id="btnSpeak">🔊 Reproducir palabra</button>
         <button id="btnEnableAudio" class="btn-ghost" style="display:none;">Permitir audio</button>
-        <input type="text" id="respuesta" placeholder="Escribe aquí" style="flex: 1 1 200px; min-width: 0; max-width: 100%;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-ms-editor="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-gramm-mode="false" data-lt-installed="false">
+        <input type="text" id="respuesta" placeholder="Escribe aquí" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-ms-editor="false" data-gramm="false" data-gramm_editor="false" data-enable-grammarly="false" data-gramm-mode="false" data-lt-installed="false">
         <!-- Espejo visual del input (móvil/tablet) para mostrar un caret falso en la misma posición -->
-        <div id="vkMirror" class="vk-mirror" aria-hidden="false" style="flex: 1 1 200px; min-width: 0;">
+        <div id="vkMirror" class="vk-mirror" aria-hidden="false">
           <span class="vk-mirror-text"></span><span class="vk-caret"></span>
         </div>
         <button id="btnComprobar">Comprobar</button>
@@ -199,7 +145,7 @@
         <p id="resultado" class="status"></p>
         <p id="marcador" class="status"></p>
       </div>
-      <div class="actions" style="margin-top:8px;">
+      <div class="actions mt-6">
         <button id="btnToReport" style="display:none;">Siguiente ▸</button>
       </div>
     </div>
@@ -221,7 +167,7 @@
       </div>
     </div>
     
-    <div class="actions" style="margin-top: 12px;">
+    <div class="actions">
       <button class="btn-ghost">◂ Volver</button>
       <button id="btnTutorNext" tabindex="3">Siguiente ▸</button>
     </div>
@@ -236,7 +182,7 @@
     
     <p>Selecciona un nivel de dificultad:</p>
     
-    <div class="actions" style="margin-top: 6px;">
+    <div class="actions">
       <button class="btn-ghost">◂ Volver</button>
       <button id="tutorNivelBasico">🌱 Nivel Básico</button>
       <button id="tutorNivelIntermedio">🌿 Nivel Intermedio</button>
@@ -255,7 +201,7 @@
       <div id="tutorConfigSummary" class="config-summary">
         <h4>⚙️ Configuración del Ejercicio</h4>
         <div id="configDetails"></div>
-        <button class="btn-ghost" style="margin-top: 10px;">✏️ Modificar Configuración</button>
+        <button class="btn-ghost">✏️ Modificar Configuración</button>
       </div>
       
       <div id="tutorStatus" class="status-panel">
@@ -267,13 +213,13 @@
           <h4>📡 Información de la Sesión</h4>
           <div class="session-details">
             <div class="session-header-row">
-              <p style="margin:0; display:flex; gap:8px; align-items:center;"><strong>ID de Sesión:</strong> <span id="sessionId" class="session-id">-</span> <button id="btnCopySessionId" class="btn-ghost" type="button" title="Copiar ID">📋</button></p>
+              <p class="session-id-row"><strong>ID de Sesión:</strong> <span id="sessionId" class="session-id">-</span> <button id="btnCopySessionId" class="btn-ghost" type="button" title="Copiar ID">📋</button></p>
               <button id="btnShowQR" title="Mostrar código QR de la sesión">📱 Mostrar QR</button>
             </div>
-            <p style="margin-top:8px;"><strong>Estado:</strong> <span id="serverStatus">Conectando...</span></p>
+            <p class="session-status-row"><strong>Estado:</strong> <span id="serverStatus">Conectando...</span></p>
           </div>
         </div>
-        <div class="tutor-controls" style="margin-bottom:12px; display:flex; gap:12px; flex-wrap:wrap; align-items:center; justify-content:center;">
+        <div class="tutor-controls">
           <button id="startExercise" disabled>▶️ Iniciar Ejercicio</button>
           <button id="tutorStopAll" class="btn-ghost">⛔ Bloquear pantallas</button>
           <button id="tutorNewExercise" class="btn-ghost">🆕 Nuevo ejercicio</button>
@@ -294,19 +240,19 @@
               <label class="inline">
                 <input type="checkbox" id="participantAudio"> Reproducir audio en participantes
               </label>
-              <span class="hint" style="font-size:12px; color:#666;">Por defecto desactivado</span>
+              <span class="hint hint-muted">Por defecto desactivado</span>
             </div>
             <!-- Barra de progreso larga (misma que participantes) con contador a la derecha -->
             <div class="progress-row">
               <div class="progress">
-                <div id="tutorOverallProgressFill" style="height:100%; width:0%; background: linear-gradient(90deg, #4CAF50, #81C784);"></div>
+                <div id="tutorOverallProgressFill"></div>
               </div>
               <span id="tutorOverallProgressText" class="hint">0/0</span>
             </div>
           </div>
           <!-- Fila inferior: Progreso/Resp a la izquierda y botones a la derecha -->
           <div class="row-bottom">
-            <div class="left" style="display:flex; align-items:center; gap:10px;"></div>
+            <div class="left"></div>
             <div class="actions">
               <button id="tutorPlayWord">▶️ Reproducir</button>
               <button id="tutorNextWord">Siguiente ▶</button>
@@ -453,22 +399,7 @@
 
   </div>
 
-  <!-- Template: Tarjeta compacta de participante (render sin HTML en JS) -->
-  <template id="tplParticipantItem">
-    <div class="participant-item pi-item">
-      <div class="participant-name pi-name"></div>
-      <div class="participant-stats pi-stats">
-        <span class="participant-status pi-badge">Conectado</span>
-        <div class="pi-corr" title="Correctas">✓ <span class="v-corr">0</span></div>
-        <div class="pi-inc" title="Incorrectas">✗ <span class="v-inc">0</span></div>
-        <div class="participant-progress pi-prog" title="Progreso %"><span class="v-prog">0</span>%</div>
-        <div class="participant-actions pi-actions">
-          <button class="btn-ghost btn-pdf">📄 PDF</button>
-          <button class="btn-ghost btn-practica">📝 Práctica</button>
-        </div>
-      </div>
-    </div>
-  </template>
+  <!-- Template: Tarjeta compacta de participante cargado externamente -->
 
   <!-- Templates: Banners de límite de participantes (Peer) -->
   <template id="tplSoftLimitBanner">
@@ -605,6 +536,8 @@
   <script src="modules/params.js" onload="console.log('✅ modules/params.js cargado')" onerror="console.error('❌ Error cargando modules/params.js')"></script>
   <script src="modules/error-bank.js" onload="console.log('✅ modules/error-bank.js cargado')" onerror="console.error('❌ Error cargando modules/error-bank.js')"></script>
   <script src="modules/validation.js" onload="console.log('✅ modules/validation.js cargado')" onerror="console.error('❌ Error cargando modules/validation.js')"></script>
+  <!-- Constants for router and modules -->
+  <script src="modules/constants.js" onload="console.log('✅ modules/constants.js cargado')" onerror="console.error('❌ Error cargando modules/constants.js')"></script>
   <script src="modules/router.js?v=tc1" onload="console.log('✅ modules/router.js cargado (tc1)')" onerror="console.error('❌ Error cargando modules/router.js')"></script>
   <script src="modules/game-flow.js" onload="console.log('✅ modules/game-flow.js cargado')" onerror="console.error('❌ Error cargando modules/game-flow.js')"></script>
   <!-- Ayudas por página -->
@@ -612,12 +545,14 @@
   <script src="modules/feedback.js" onload="console.log('✅ modules/feedback.js cargado')" onerror="console.error('❌ Error cargando modules/feedback.js')"></script>
   <!-- Módulo de Créditos de Tiempo -->
   <script src="modules/time-credits.js" onload="console.log('✅ modules/time-credits.js cargado')" onerror="console.error('❌ Error cargando modules/time-credits.js')"></script>
+  <script src="modules/time-credits-ui.js" onload="console.log('✅ modules/time-credits-ui.js cargado')" onerror="console.error('❌ Error cargando modules/time-credits-ui.js')"></script>
   <!-- Debe cargarse antes de app.js para que los wrappers deleguen correctamente -->
   <script src="modules/individual-mode.js?v=dbg1" onload="console.log('✅ modules/individual-mode.js cargado')" onerror="console.error('❌ Error cargando modules/individual-mode.js')"></script>
   <!-- Módulos del modo grupal -->
   <script src="modules/participant-helpers.js" onload="console.log('✅ modules/participant-helpers.js cargado')" onerror="console.error('❌ Error cargando modules/participant-helpers.js')"></script>
   <script src="modules/group-mode-tutor.js" onload="console.log('✅ modules/group-mode-tutor.js cargado')" onerror="console.error('❌ Error cargando modules/group-mode-tutor.js')"></script>
   <script src="modules/config-block.js" onload="console.log('✅ modules/config-block.js cargado')" onerror="console.error('❌ Error cargando modules/config-block.js')"></script>
+  <script src="modules/template-loader.js" onload="console.log('✅ modules/template-loader.js cargado')" onerror="console.error('❌ Error cargando modules/template-loader.js')"></script>
   <script src="assets/app.js?v=qr2" onload="console.log('✅ app.js cargado (qr2)')" onerror="console.error('❌ Error cargando app.js')"></script>
   <script src="modules/init.js"></script>
 

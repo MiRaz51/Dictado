@@ -1,9 +1,16 @@
 (function(global){
   'use strict';
 
+  // Suscriptores para cambios de página
+  const __subscribers = [];
+  function onPageChange(cb){ if (typeof cb === 'function') __subscribers.push(cb); }
+  function __emitPageChange(pageId){ try { __subscribers.forEach(fn => { try { fn(pageId); } catch(_) {} }); } catch(_) {} }
+
   function goToPage(pageId) {
     console.log('[Router] Navegando a página:', pageId);
-    const ids = ['page-mode-select', 'page-role-select', 'page-config', 'page-game', 'page-tutor-info', 'page-tutor-config', 'page-tutor', 'page-participant', 'page-report'];
+    const ids = (global.CONSTANTS && global.CONSTANTS.ROUTER && Array.isArray(global.CONSTANTS.ROUTER.PAGE_IDS))
+      ? global.CONSTANTS.ROUTER.PAGE_IDS
+      : ['page-mode-select', 'page-role-select', 'page-config', 'page-game', 'page-tutor-info', 'page-tutor-config', 'page-tutor', 'page-participant', 'page-report'];
     ids.forEach(id => {
       const el = document.getElementById(id);
       if (el) {
@@ -21,7 +28,9 @@
         // - page-tutor-info (info del tutor)
         // - page-tutor-config (configuración del tutor)
         // - page-tutor (pantalla del tutor)
-        const hideBadgePages = ['page-mode-select', 'page-role-select', 'page-tutor-info', 'page-tutor-config', 'page-tutor'];
+        const hideBadgePages = (global.CONSTANTS && global.CONSTANTS.ROUTER && Array.isArray(global.CONSTANTS.ROUTER.HIDE_TC_BADGE_PAGES))
+          ? global.CONSTANTS.ROUTER.HIDE_TC_BADGE_PAGES
+          : ['page-mode-select', 'page-role-select', 'page-tutor-info', 'page-tutor-config', 'page-tutor'];
         
         if (hideBadgePages.includes(pageId)) {
           console.log('[TimeCredits] Ocultando badge en página:', pageId);
@@ -172,6 +181,8 @@
         setTimeout(tryFocusName, 300);
       } catch(_) {}
     }
+    // Notificar a suscriptores
+    __emitPageChange(pageId);
   }
 
   // Ir de información del tutor a configuración del ejercicio
@@ -204,6 +215,7 @@
   }
 
   global.goToPage = goToPage;
+  global.onPageChange = onPageChange;
   global.goToTutorConfig = goToTutorConfig;
   // selectRole se define en app.js con más funcionalidad
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -67,19 +67,24 @@
 #page-tutor #participantsList .pi-actions .btn-ghost { padding:5px 10px; font-size:13px; line-height:1; height:26px; }
 
 .tutor-controls { display:flex; gap:12px; margin:20px 0; flex-wrap:wrap; }
+#sessionInfo .tutor-controls { margin-bottom:12px; align-items:center; justify-content:center; }
 #tutorPlayback .actions { display:flex; flex-wrap:wrap; gap:8px; }
 #tutorPlayback .actions button { width:auto !important; flex:0 0 auto; min-width:150px; }
 
 /* ====== Mover estilos inline del Panel del Tutor a CSS ====== */
 #page-tutor .session-header-row { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap: wrap; }
+.session-id-row { margin:0; display:flex; gap:8px; align-items:center; }
+.session-status-row { margin-top: 8px; }
 
 #tutorPlayback { margin: 8px 0 12px; display: none; gap: 6px; flex-direction: column; width:100%; }
 #tutorPlayback .row-top { display:flex; flex-direction:column; gap:8px; width:100%; }
 #tutorPlayback .row-top .inline { display:flex; align-items:center; gap:6px; }
 #tutorPlayback .progress-row { display:flex; align-items:center; gap:8px; width:100%; }
 #tutorPlayback .progress { height:8px; background:#eee; border-radius:6px; overflow:hidden; flex:1; }
+#tutorOverallProgressFill { height:100%; width:0%; background: linear-gradient(90deg, #4CAF50, #81C784); }
 #tutorPlayback .row-bottom { display:flex; align-items:center; gap:10px; width:100%; }
 #tutorPlayback .row-bottom .actions { display:flex; gap:8px; flex-wrap: wrap; margin-left:auto; align-items:center; }
+.hint-muted { font-size:12px; color:#666; }
 
 /* Select de autoDelay (movido desde HTML) */
 #autoDelay { min-width: 80px; }
@@ -89,6 +94,14 @@
 
 /* Indicador de respuestas (margen a la izquierda) */
 #tutorResponses { margin-left: 8px; }
+
+/* ====== Responsive (móvil/tablet) ====== */
+@media (max-width: 480px) {
+  #sessionInfo .tutor-controls button { flex: 1 1 45%; min-width: 140px; }
+  #tutorPlayback .actions button { flex: 1 1 45%; min-width: 140px; }
+  #tutorPlayback .progress-row { flex-direction: column; align-items: stretch; gap: 6px; }
+  #tutorPlayback .progress-text { text-align: left; }
+}
 
 @media (max-width: 768px) {
   .tutor-controls { flex-direction:column; }

@@ -1,0 +1,51 @@
+<!-- Time Credits Modal (injected if missing) -->
+<div id="timeCreditsModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Canjear Créditos de Tiempo</h3>
+      <span class="modal-close">&times;</span>
+    </div>
+    <div class="modal-body">
+      <!-- Tarjeta de participante con saldo destacado -->
+      <div class="tc-card">
+        <div class="tc-subtitle">Participante</div>
+        <div class="tc-user-label" id="tcUserLabel">-</div>
+        <div class="tc-row">
+          <div class="tc-balance-title">Saldo disponible:</div>
+          <div class="tc-balance" id="tcBalanceDisplay">0</div>
+          <div class="tc-balance-unit">min</div>
+        </div>
+      </div>
+
+      <!-- Mensaje informativo -->
+      <div class="tc-info">
+        <div class="tc-info-title"><span style="font-size:20px;">💡</span><span>Tiempo ganado por buen desempeño</span></div>
+        <div class="tc-info-text">
+          El participante ha ganado estos minutos por su esfuerzo y dedicación. Como padre/tutor, usted decide cómo aprovechar este tiempo de manera beneficiosa: lectura, juegos de mesa, actividades al aire libre, manualidades, música, o si lo considera apropiado, tiempo recreativo con dispositivos electrónicos bajo su supervisión.
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="tcMinutes">Minutos a canjear</label>
+          <input id="tcMinutes" type="number" min="1" step="1" value="5">
+          <div class="hint" id="tcBalanceHint">Saldo disponible: 0 min</div>
+        </div>
+        <div class="form-field">
+          <label for="tcPin">PIN de Adulto</label>
+          <input id="tcPin" type="password" inputmode="numeric" placeholder="****" maxlength="8">
+          <div class="hint" style="margin-top:4px; font-size:11px;">Requerido para autorizar el canje</div>
+          <div class="error" id="tcError">PIN inválido</div>
+        </div>
+        <div class="form-field">
+          <label for="tcNote">Nota (opcional)</label>
+          <input id="tcNote" type="text" placeholder="Ej.: tiempo de lectura, juego educativo, etc.">
+          <div class="hint" style="margin-top:4px; font-size:11px;">Registre cómo se usará este tiempo</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="tcCancelBtn" type="button">Cancelar</button>
+      <button class="btn-primary" id="tcRedeemBtn" type="button">Canjear</button>
+    </div>
+  </div>
+</div>

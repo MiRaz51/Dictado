@@ -3,6 +3,8 @@
 .center { text-align: center; }
 .inline { display: inline-flex; align-items: center; gap: 6px; }
 .spacer { height: 12px; }
+.mt-6 { margin-top: 6px; }
+.mt-14 { margin-top: 14px; }
 
 /* Actions */
 .actions { margin: 16px 0 0; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }

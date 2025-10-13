@@ -55,6 +55,41 @@
   display: flex;
   flex-direction: column;
 }
+#timeCreditsModal .tc-card {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  border-radius: 12px;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(14,165,233,0.3);
+}
+#timeCreditsModal .tc-card .tc-user-label {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+#timeCreditsModal .tc-card .tc-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+#timeCreditsModal .tc-card .tc-row .tc-balance-title { font-size: 14px; opacity: 0.9; }
+#timeCreditsModal .tc-card .tc-row .tc-balance { font-size: 32px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#timeCreditsModal .tc-card .tc-row .tc-balance-unit { font-size: 18px; font-weight: 600; }
+
+#timeCreditsModal .tc-info {
+  margin-bottom: 20px; 
+  padding: 14px; 
+  background: #f0f9ff; 
+  border-left: 4px solid #0ea5e9; 
+  border-radius: 8px; 
+  line-height: 1.6; 
+  color: #0f172a;
+}
+#timeCreditsModal .tc-info .tc-info-title {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #0284c7; font-size: 15px; font-weight: 700;
+}
+#timeCreditsModal .tc-info .tc-info-text { font-size: 13px; color: #475569; }
 #timeCreditsModal .form-row { display: grid; gap: 8px; }
 #timeCreditsModal label { font-weight: 600; color: #0f172a; }
 #timeCreditsModal input[type="number"] { width: 120px; }
@@ -83,3 +118,36 @@
   border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
 }
+
+/* Asegurar que el modal de créditos quede por encima del botón de ayuda */
+#timeCreditsModal { z-index: 10050 !important; }
+
+/* ====== Responsive (móvil/tablet) ====== */
+@media (max-width: 480px) {
+  /* Convertir badge en ícono circular y ubicarlo debajo del botón de ayuda */
+  .tc-badge-floating {
+    position: fixed !important; /* mismo contexto que help-button */
+    /* El botón de ayuda mantiene top/right:20px por la regla #help-btn.help-button con !important. */
+    top: 66px !important;   /* 20(top) + 36(height) + 10px gap => 66 */
+    right: 20px !important; /* alinear exactamente con help-button */
+    left: auto !important; bottom: auto !important; margin: 0 !important;
+    width: 36px; height: 36px; border-radius: 50%; padding: 0; /* igual que help-button en móvil */
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, var(--primary), var(--primary-600));
+    color: #fff; border: none;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+    box-sizing: border-box; z-index: 10001; /* igual prioridad visual */
+    font-size: 0; /* oculta textos internos (min, nombre) en móvil */
+  }
+  .tc-badge-floating:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5); }
+  .tc-badge-floating:active { transform: scale(0.96); }
+  .tc-badge-floating::before { content: '⏱'; font-size: 16px; line-height: 1; color: #fff; }
+  /* Ocultar textos internos explícitamente */
+  .tc-badge-floating .tc-mins, .tc-badge-floating #tcUserShort { display: none; }
+  #timeCreditsModal .modal-content { max-width: 94vw; }
+  #timeCreditsModal label { font-size: 14px; }
+  #timeCreditsModal .hint { font-size: 11px; }
+}
+
+/* Evitar zoom en iOS al enfocar inputs numéricos/clave */
+#tcPin, #tcMinutes { font-size: 16px; }
