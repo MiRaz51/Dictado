@@ -13,24 +13,26 @@
       const fromParticipant = (global.window && typeof global.window.participantName === 'string') ? global.window.participantName.trim() : '';
       if (fromParticipant) return fromParticipant;
 
-      // Combined alumno|curso id
+      // Combined alumno|curso id (fallback). Avoid showing defaults like 'anon'.
       if (typeof global.getAlumnoCursoId === 'function') {
         const s = String(global.getAlumnoCursoId() || '').trim();
         if (s) {
           const ix = s.indexOf('|');
-          return (ix >= 0) ? s.slice(0, ix) : s;
+          const first = (ix >= 0) ? s.slice(0, ix) : s;
+          if (!first || first === '-' || first.toLowerCase() === 'anon') return '';
+          return first;
         }
       }
     } catch(_) {}
-    return '-';
+    return '';
   }
 
   function getUserShort(){
-    const name = getDisplayName();
-    if (!name || name === '-') return '-';
+    const name = (getDisplayName() || '').trim();
+    if (!name || name === '-') return '';
     try {
       const parts = name.split(/\s+/).filter(Boolean);
-      if (parts.length === 0) return '-';
+      if (parts.length === 0) return '';
       if (parts.length === 1) return parts[0].slice(0, 12);
       return (parts[0] + ' ' + parts[1]).slice(0, 18);
     } catch(_) { return name; }
@@ -54,7 +56,16 @@
       const bal = _computeBalance();
       if (minsEl) minsEl.textContent = String(bal.minutesAvailable|0);
       const nameShort = getUserShort();
-      if (userEl) userEl.textContent = nameShort;
+      if (userEl) {
+        userEl.textContent = nameShort;
+        // Ajustar separador ' · ' cuando no hay nombre
+        try {
+          const prev = userEl.previousSibling;
+          if (prev && prev.nodeType === 3) {
+            prev.textContent = nameShort ? ' min · ' : ' min ';
+          }
+        } catch(_) {}
+      }
       const nameFull = getDisplayName();
       if (userLbl) userLbl.textContent = nameFull;
       if (hint) hint.textContent = `Saldo disponible: ${bal.minutesAvailable|0} min`;
@@ -104,10 +115,15 @@
       } catch(_) {}
     };
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true }); else run();
+    // Actualizar el badge en tiempo real cuando el usuario escribe su nombre en #alumno
+    try {
+      const onAlumnoInput = (e) => { try { if (e && e.target && e.target.id === 'alumno') refreshTimeCreditsBadge(); } catch(_) {} };
+      document.addEventListener('input', onAlumnoInput, true);
+      document.addEventListener('change', onAlumnoInput, true);
+    } catch(_) {}
   } catch(_) {}
 
-  // Periodic refresh as fallback (e.g., after redeem)
-  try { setInterval(() => { try { refreshTimeCreditsBadge(); } catch(_) {} }, 2000); } catch(_) {}
+  // Periodic refresh eliminado tras actualizar en eventos de input/cambio y hooks explícitos
 
   // ===== Modal de Créditos de Tiempo =====
   function openTc(){
@@ -118,6 +134,37 @@
       refreshTimeCreditsBadge();
       const modalBody = tcModal.querySelector('.modal-body');
       if (modalBody) modalBody.scrollTop = 0;
+      // Ajustar variable CSS de viewport visible para evitar que toolbars tapen acciones
+      try {
+        const updateVvVars = () => {
+          const vv = global.visualViewport;
+          const h = (vv && vv.height) ? vv.height : global.innerHeight;
+          document.documentElement.style.setProperty('--vvh', `${Math.round(h)}px`);
+          // Calcular obstrucción inferior (barra UI) relativa al layout viewport
+          let bottomOb = 0;
+          try {
+            if (vv && typeof vv.offsetTop === 'number') {
+              const innerH = global.innerHeight || h;
+              bottomOb = Math.max(0, Math.round(innerH - (vv.height + vv.offsetTop))); // px
+            }
+          } catch(_) {}
+          document.documentElement.style.setProperty('--vvb', `${bottomOb}px`);
+        };
+        updateVvVars();
+        // Guardar handlers para limpiar luego
+        if (!global.__tcVvHandlers) {
+          global.__tcVvHandlers = {
+            resize: () => { try { updateVvVars(); } catch(_){} },
+            scroll: () => { try { updateVvVars(); } catch(_){} }
+          };
+        }
+        if (global.visualViewport) {
+          try { global.visualViewport.addEventListener('resize', global.__tcVvHandlers.resize); } catch(_) {}
+          try { global.visualViewport.addEventListener('scroll', global.__tcVvHandlers.scroll); } catch(_) {}
+        }
+        // Fallback también en window
+        try { global.addEventListener('resize', global.__tcVvHandlers.resize); } catch(_){}
+      } catch(_) {}
     } catch(e) {}
   }
 
@@ -127,6 +174,16 @@
       const tcError = document.getElementById('tcError');
       if (tcModal) tcModal.style.display = 'none';
       if (tcError) tcError.style.display = 'none';
+      // Quitar listeners de VisualViewport y limpiar variable si es necesario
+      try {
+        if (global.__tcVvHandlers) {
+          if (global.visualViewport) {
+            try { global.visualViewport.removeEventListener('resize', global.__tcVvHandlers.resize); } catch(_) {}
+            try { global.visualViewport.removeEventListener('scroll', global.__tcVvHandlers.scroll); } catch(_) {}
+          }
+          try { global.removeEventListener('resize', global.__tcVvHandlers.resize); } catch(_) {}
+        }
+      } catch(_) {}
     } catch(_) {}
   }
 

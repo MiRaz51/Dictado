@@ -8,6 +8,11 @@
   background: rgba(15, 23, 42, 0.45);
   z-index: 10000 !important; /* above badge */
   padding: 12px;
+  /* Ajustes para zonas seguras en móviles con notch/barra */
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px) + max(var(--vvb, 0px), 56px));
+  padding-left: calc(12px + env(safe-area-inset-left, 0px));
+  padding-right: calc(12px + env(safe-area-inset-right, 0px));
 }
 /* Badge flotante global (visible en todas las páginas) */
 .tc-badge-floating {
@@ -48,12 +53,14 @@
 }
 
 /* Modal */
-#timeCreditsModal .modal-content { 
-  max-width: 520px; 
-  max-height: 90vh; 
-  overflow: hidden; 
+#timeCreditsModal .modal-content {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 #timeCreditsModal .tc-card {
   margin-bottom: 20px;
@@ -124,27 +131,74 @@
 
 /* ====== Responsive (móvil/tablet) ====== */
 @media (max-width: 480px) {
-  /* Convertir badge en ícono circular y ubicarlo debajo del botón de ayuda */
+  #timeCreditsModal { align-items: center; justify-content: center; }
+  /* Mostrar SOLO los minutos (números) y permitir que el contenedor crezca para 3 dígitos */
   .tc-badge-floating {
     position: fixed !important; /* mismo contexto que help-button */
     /* El botón de ayuda mantiene top/right:20px por la regla #help-btn.help-button con !important. */
     top: 66px !important;   /* 20(top) + 36(height) + 10px gap => 66 */
     right: 20px !important; /* alinear exactamente con help-button */
     left: auto !important; bottom: auto !important; margin: 0 !important;
-    width: 36px; height: 36px; border-radius: 50%; padding: 0; /* igual que help-button en móvil */
+    height: 36px; min-width: 36px; border-radius: 18px; padding: 0 8px;
     display: inline-flex; align-items: center; justify-content: center;
     background: linear-gradient(135deg, var(--primary), var(--primary-600));
     color: #fff; border: none;
     box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
     box-sizing: border-box; z-index: 10001; /* igual prioridad visual */
-    font-size: 0; /* oculta textos internos (min, nombre) en móvil */
+    font-size: 0; /* ocultar nodos de texto como 'min ·' y cualquier otro */
+    white-space: nowrap;
   }
   .tc-badge-floating:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(14, 165, 233, 0.5); }
   .tc-badge-floating:active { transform: scale(0.96); }
-  .tc-badge-floating::before { content: '⏱'; font-size: 16px; line-height: 1; color: #fff; }
-  /* Ocultar textos internos explícitamente */
-  .tc-badge-floating .tc-mins, .tc-badge-floating #tcUserShort { display: none; }
-  #timeCreditsModal .modal-content { max-width: 94vw; }
+  .tc-badge-floating::before { content: none; }
+  /* Mostrar solo el número de minutos */
+  .tc-badge-floating .tc-mins { display: inline; font-size: 16px; font-weight: 700; color: #fff; line-height: 1; }
+  .tc-badge-floating #tcUserShort { display: none; }
+  #timeCreditsModal .modal-content {
+    width: 94vw;
+    max-width: 520px;
+    /* Alto proporcional al viewport real del móvil */
+    max-height: calc(var(--vvh, 100dvh) - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - max(var(--vvb, 0px), 56px));
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* recorta sombras internas si corresponde */
+    box-sizing: border-box;
+  }
+  @supports (height: 100svh) {
+    #timeCreditsModal .modal-content {
+      max-height: calc(var(--vvh, 100svh) - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - max(var(--vvb, 0px), 56px));
+    }
+  }
+  #timeCreditsModal .modal-header { flex: 0 0 auto; }
+  #timeCreditsModal .modal-actions { flex: 0 0 auto; }
+  #timeCreditsModal .modal-body {
+    /* Solo el body scrollea dentro del alto máximo */
+    flex: 1 1 auto;
+    min-height: 0; /* necesario para que flex permita scroll en el hijo */
+    overflow-y: auto;
+    padding-bottom: 8px; /* pequeño respiro sobre las acciones */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  #timeCreditsModal .modal-actions {
+    position: sticky; bottom: 0; z-index: 1;
+    background: #fff;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px) + max(var(--vvb, 0px), 56px));
+    padding-top: 8px; padding-left: 12px; padding-right: 12px;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
+    border-top: 1px solid #e2e8f0;
+    backdrop-filter: saturate(120%) blur(4px);
+  }
+  /* Reducir paddings/márgenes internos para encajar mejor en pantallas pequeñas */
+  #timeCreditsModal .modal-header { padding: 12px 14px; }
+  #timeCreditsModal .modal-body { padding: 12px 14px; }
+  #timeCreditsModal .tc-card { margin-bottom: 12px; padding: 12px; }
+  #timeCreditsModal .tc-card .tc-user-label { font-size: 20px; }
+  #timeCreditsModal .tc-card .tc-row .tc-balance { font-size: 28px; }
+  #timeCreditsModal .tc-info { margin-bottom: 12px; padding: 12px; }
+  #timeCreditsModal .tc-info .tc-info-title { font-size: 14px; }
+  #timeCreditsModal .tc-info .tc-info-text { font-size: 12px; }
   #timeCreditsModal label { font-size: 14px; }
   #timeCreditsModal .hint { font-size: 11px; }
 }

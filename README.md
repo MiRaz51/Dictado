@@ -18,6 +18,7 @@ Herramienta educativa para practicar ortografía con dos modos:
 - ✅ **Funciona en PC, móviles y tablets** con teclado virtual
 - ✅ **Sin instalación** - Usa desde el navegador
 - ✅ **Privacidad total** - Datos solo en tu dispositivo
+- ✅ **Créditos de Tiempo** visibles en un badge (arriba a la derecha)
 
 ## 🚀 Cómo Usar
 
@@ -32,6 +33,13 @@ Visita: **https://miraz51.github.io/Dictado/**
 5. Escucha y escribe cada palabra
 6. Descarga tu reporte PDF al finalizar
 
+### Créditos de Tiempo (uso general)
+- **¿Qué es?** Minutos que el estudiante puede canjear como recompensa por su desempeño.
+- **Dónde se ven:** Arriba a la derecha, en un pequeño contador.
+- **Móvil:** Se muestra solo el número de minutos para una lectura clara. El botón se adapta automáticamente si llega a 3 dígitos.
+- **Nombre:** El nombre del participante aparece junto al contador en escritorio y se actualiza **al instante** a medida que lo escribes. Si el campo está vacío, no se muestra ningún nombre.
+- **Modal de canje:** En móviles el botón "Canjear" se mantiene visible y el contenido se desplaza dentro del cuadro. Si la barra del navegador ocupa espacio, el modal se ajusta para que puedas llegar al botón.
+
 ### Modo Grupal
 **Como Tutor:**
 1. Selecciona "Grupal" → "Tutor"
@@ -45,6 +53,8 @@ Visita: **https://miraz51.github.io/Dictado/**
 2. Ingresa tu nombre y el ID de sesión del tutor
 3. Espera a que el tutor inicie el ejercicio
 4. Completa las palabras sincronizadas
+
+> Nota sobre Créditos de Tiempo en modo grupal: los créditos de cada participante se **guardan en el navegador del participante** (su dispositivo). El tutor solo ve un resumen en pantalla mientras están conectados.
 
 ## 📊 Niveles de Dificultad
 
@@ -75,6 +85,9 @@ Visita: **https://miraz51.github.io/Dictado/**
 - Asegúrate de que las librerías jsPDF estén cargadas
 - Verifica que hay resultados de práctica disponibles
 - Revisa los permisos de descarga del navegador
+
+### Mis créditos de tiempo no aparecen en otro navegador
+- Los créditos se guardan **solo en el navegador y dispositivo** donde los ganaste. No se sincronizan entre navegadores o dispositivos.
 
 ## 📜 Licencia y Derechos
 

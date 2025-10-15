@@ -146,6 +146,12 @@ Este proyecto puede migrar a un **modelo de suscripción** en el futuro para gru
 - ✅ Exportar datos de práctica manual
 - ✅ Reportar bugs y sugerir mejoras
 
+### ℹ️ Nota sobre Créditos de Tiempo
+
+- Los créditos de tiempo se guardan **localmente** en el navegador y dispositivo del usuario.
+- En **modo grupal**, el tutor solo ve un **resumen** del saldo mientras hay conexión; no se guarda nada en un servidor central.
+- Los créditos **no se sincronizan** automáticamente entre navegadores o dispositivos.
+
 ---
 
 ## 💻 DERECHOS SOBRE EL CÓDIGO FUENTE
