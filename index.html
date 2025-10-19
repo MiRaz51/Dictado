@@ -240,7 +240,7 @@
               <label class="inline">
                 <input type="checkbox" id="participantAudio"> Reproducir audio en participantes
               </label>
-              <span class="hint hint-muted">Por defecto desactivado</span>
+              <span class="hint hint-muted">Por defecto desactivado. El tutor siempre reproduce audio.</span>
             </div>
             <!-- Barra de progreso larga (misma que participantes) con contador a la derecha -->
             <div class="progress-row">
@@ -317,6 +317,7 @@
         </div>
         
         <div id="participantGame" style="display: none;">
+          <!-- Nota: El audio se reproduce automáticamente cuando tocas la pantalla o el input -->
           <!-- Progreso del participante (arriba del cuadro de texto) -->
           <div class="participant-progress" style="margin-top: 16px;">
             <div class="progress" aria-label="Progreso de palabras">
@@ -520,6 +521,12 @@
     window.DEBUG = window.DEBUG ?? true;
   </script>
   <!-- Eliminado: diccionario externo; validación se hace localmente -->
+  <!-- Módulos de utilidades globales -->
+  <script src="modules/device-utils.js" onload="console.log('✅ modules/device-utils.js cargado')" onerror="console.error('❌ Error cargando modules/device-utils.js')"></script>
+  <script src="modules/text-utils.js" onload="console.log('✅ modules/text-utils.js cargado')" onerror="console.error('❌ Error cargando modules/text-utils.js')"></script>
+  <script src="modules/form-utils.js" onload="console.log('✅ modules/form-utils.js cargado')" onerror="console.error('❌ Error cargando modules/form-utils.js')"></script>
+  <!-- Módulo unificado de reproducción de audio -->
+  <script src="modules/audio-player.js" onload="console.log('✅ modules/audio-player.js cargado')" onerror="console.error('❌ Error cargando modules/audio-player.js')"></script>
   <script src="modules/data-loader.js?v=dbg1" onload="console.log('✅ modules/data-loader.js cargado')" onerror="console.error('❌ Error cargando modules/data-loader.js')"></script>
   <script src="modules/data.js" onload="console.log('✅ modules/data.js cargado')" onerror="console.error('❌ Error cargando modules/data.js')"></script>
   <script src="modules/rae-proxy.js" onload="console.log('✅ modules/rae-proxy.js cargado')" onerror="console.error('❌ Error cargando modules/rae-proxy.js')"></script>

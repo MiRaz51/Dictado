@@ -226,74 +226,34 @@
     const palabra = (typeof global.gameState !== 'undefined' && global.gameState.getCurrentWord)
       ? global.gameState.getCurrentWord()
       : null;
-    const idx = (typeof global.gameState !== 'undefined') ? global.gameState.currentIndex : -1;
-    const total = (typeof global.gameState !== 'undefined' && Array.isArray(global.gameState.words)) ? global.gameState.words.length : 0;
-    console.log(`[DEBUG] reproducirPalabra() llamada. Índice: ${idx}, total: ${total}, palabra: ${palabra}`);
+    
     if (!palabra) return;
 
-    if (global.isMobile && fromUser) {
-      await global.unlockTTS();
-    }
-
-    if (!global.voicesReady) {
-      let attempts = 0;
-      while (!global.voicesReady && attempts < 10) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-        global.selectedVoice = global.elegirVozEspanol();
-        global.voicesReady = !!global.selectedVoice;
-      }
-    }
-
-    try { speechSynthesis.cancel(); } catch (_) {}
-    try { speechSynthesis.resume(); } catch (_) {}
-
-    const msg = new SpeechSynthesisUtterance(palabra);
-    if (global.isMobile) {
-      msg.lang = 'es-ES';
-      msg.rate = 0.9; msg.pitch = 1.0; msg.volume = 1.0;
-    } else {
-      const lang = (global.selectedVoice && global.selectedVoice.lang) ? global.selectedVoice.lang : 'es-ES';
-      msg.lang = lang;
-      if (global.selectedVoice) msg.voice = global.selectedVoice;
-      msg.rate = 0.9; msg.pitch = 1.0; msg.volume = 1.0;
-    }
-
-    msg.onstart = () => {
-      if (speakBtn) speakBtn.disabled = true;
-      const res = document.getElementById('resultado');
-      if (res) { res.innerHTML = ''; res.className = ''; }
-    };
-    msg.onend = () => {
-      if (speakBtn) {
-        // Habilitar speak solo si el input está vacío
-        try {
-          const val = (document.getElementById('respuesta')?.value || '').trim();
-          speakBtn.disabled = (val.length > 0);
-        } catch(_) { speakBtn.disabled = false; }
-      }
-      if (!global.isMobile) {
-        const tNow = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-        const dur = tNow - (global.lastStartTime || tNow);
-        if (dur < 250 && !reproducirPalabra._retried) {
-          reproducirPalabra._retried = true;
-          setTimeout(() => reproducirPalabra(), 350);
-          return;
+    // Usar función global unificada
+    if (typeof global.playWord === 'function') {
+      const input = document.getElementById('respuesta');
+      if (input) input.focus();
+      
+      global.playWord(palabra, {
+        rate: 0.9,
+        onstart: () => {
+          if (speakBtn) speakBtn.disabled = true;
+          const res = document.getElementById('resultado');
+          if (res) { res.innerHTML = ''; res.className = ''; }
+        },
+        onend: () => {
+          if (speakBtn) {
+            // Habilitar speak solo si el input está vacío
+            try {
+              const val = (document.getElementById('respuesta')?.value || '').trim();
+              speakBtn.disabled = (val.length > 0);
+            } catch(_) { speakBtn.disabled = false; }
+          }
+        },
+        onerror: () => {
+          if (speakBtn) speakBtn.disabled = false;
         }
-      }
-      reproducirPalabra._retried = false;
-    };
-    msg.onerror = () => { if (speakBtn) speakBtn.disabled = false; };
-
-    const input = document.getElementById('respuesta'); if (input) input.focus();
-    global.lastStartTime = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-
-    try {
-      await global.ensureTTSReady(global.selectedVoice || global.elegirVozEspanol());
-      speechSynthesis.speak(msg);
-      console.log('TTS: Speaking word:', palabra);
-    } catch(e) {
-      console.log('TTS speak error:', e);
+      });
     }
   }
 

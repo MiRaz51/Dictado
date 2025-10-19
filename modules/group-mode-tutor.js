@@ -80,7 +80,8 @@
     global.peerManager.broadcastToParticipants({
       type: 'exercise_start',
       totalWords: words.length,
-      nivel: (global.tutorConfig && global.tutorConfig.nivel) ? global.tutorConfig.nivel : undefined
+      nivel: (global.tutorConfig && global.tutorConfig.nivel) ? global.tutorConfig.nivel : undefined,
+      unlockAudio: true // Señal para que los participantes desbloqueen TTS
     });
 
     // Mostrar controles de reproducción del tutor y estado inicial
@@ -106,11 +107,21 @@
       }, 200);
     } catch(_) {}
     
+    // En móviles, desbloquear TTS AHORA (mientras el gesto del usuario está activo)
+    if (global.isMobile && typeof global.unlockTTS === 'function') {
+      try { global.unlockTTS(); } catch(_) {}
+    }
+    
     // Enviar primera palabra
     setTimeout(() => {
       sendCurrentWordToParticipants();
       // Reproducir también en el equipo del tutor automáticamente
-      try { (async () => { await global.ensureTTSReady(); await global.speakWordSafe(global.groupState.currentWord, { rate: 0.9 }); })(); } catch(_) {}
+      try { 
+        (async () => { 
+          await global.ensureTTSReady(); 
+          await global.speakWordSafe(global.groupState.currentWord, { rate: 0.9 }); 
+        })(); 
+      } catch(_) {}
     }, 1000);
     
     global.updateTutorUI();
@@ -123,15 +134,17 @@
     
     // Determinar si el tutor desea reproducir audio en los participantes
     const playAudio = !!document.getElementById('participantAudio')?.checked;
-
+    
+    // Enviar comando para reproducir
     global.peerManager.broadcastToParticipants({
       type: 'new_word',
       word: global.groupState.currentWord,
       wordIndex: global.groupState.currentWordIndex,
       totalWords: global.groupState.exerciseWords.length,
-      playAudio,
+      playAudio: playAudio,
       nivel: (global.tutorConfig && global.tutorConfig.nivel) ? global.tutorConfig.nivel : undefined
     });
+    
     // Actualizar etiqueta en el tutor
     try {
       const cw = document.getElementById('tutorCurrentWord');
@@ -166,8 +179,10 @@
     
     if (nextWord) {
       sendCurrentWordToParticipants();
-      // Reproducir también en el equipo del tutor automáticamente
-      try { (async () => { await global.ensureTTSReady(); await global.speakWordSafe(global.groupState.currentWord, { rate: 0.9 }); })(); } catch(_) {}
+      // Reproducir también en el equipo del tutor automáticamente usando función global
+      if (typeof global.playWord === 'function') {
+        global.playWord(global.groupState.currentWord, { rate: 0.9 });
+      }
     } else {
       // Ejercicio terminado
       // Recopilar resultados de todos los participantes para enviar al cliente
@@ -202,15 +217,24 @@
   
   async function tutorPlayCurrentWord(){
     if (!global.groupState.currentWord) return;
+    
     sendCurrentWordToParticipants();
-    // Reproducir en local para el tutor también
-    try { await global.ensureTTSReady(); await global.speakWordSafe(global.groupState.currentWord, { rate: 0.9 }); } catch(_) {}
+    
+    // Reproducir en local para el tutor usando función global unificada
+    if (typeof global.playWord === 'function') {
+      global.playWord(global.groupState.currentWord, { rate: 0.9 });
+    }
   }
 
   async function tutorRepeatCurrentWord(){
     if (!global.groupState.currentWord) return;
+    
     sendCurrentWordToParticipants();
-    try { await global.ensureTTSReady(); await global.speakWordSafe(global.groupState.currentWord, { rate: 0.9 }); } catch(_) {}
+    
+    // Reproducir en local para el tutor usando función global unificada
+    if (typeof global.playWord === 'function') {
+      global.playWord(global.groupState.currentWord, { rate: 0.9 });
+    }
   }
 
   // ===== Nuevo ejercicio (mantener sesión y participantes) =====

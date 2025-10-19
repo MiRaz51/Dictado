@@ -149,114 +149,120 @@
     } catch(_) { return null; }
   }
 
-  async function fetchSignificado(palabra) {
+  async function fetchSignificado(palabra, timeout = 2000) {
     const key = (typeof WordFilters !== 'undefined' && WordFilters.normalizarBasico)
       ? WordFilters.normalizarBasico(palabra)
       : String(palabra || '').toLowerCase();
+
+    try {
+      let defs = window.DEFINITIONS || null;
+      if (!defs && !window.__defsLoadAttempted) {
+        window.__defsLoadAttempted = true;
+        try {
+          const resp = await fetch('assets/definitions.json');
+          if (resp.ok) {
+            defs = await resp.json();
+            window.DEFINITIONS = defs;
+          }
+        } catch(_) {}
+      }
+      if (defs) {
+        let val = defs[key] || defs[palabra] || null;
+        if (val) {
+          const clean = sanitizeMeaning(val);
+          if (clean) {
+            const hasSrc = / — Fuente: /.test(clean);
+            return hasSrc ? clean : `${clean} — Fuente: Local`;
+          }
+        }
+      }
+    } catch(_) {}
+
     const cache = cargarCacheSignificados();
     if (cache[key] && cache[key].def) {
       const src = cache[key].src ? ` — Fuente: ${cache[key].src}` : '';
       return (sanitizeMeaning(cache[key].def) || '') + src;
     }
 
-    // Helper: validar pertinencia de resultados
-    const isRelevant = (term, { title = '', extract = '', description = '' } = {}) => {
-      try {
-        const norm = normalizeForLookup(term);
-        const t = normalizeForLookup(title);
-        const ex = normalizeForLookup(extract);
-        const desc = normalizeForLookup(description);
-        // Relevante si el título coincide exactamente o por palabra completa
-        if (t && (t === norm || new RegExp(`(^|\\b)${norm}(\\b|$)`).test(t))) return true;
-        // Relevante si el extract/desc contiene la palabra como término suelto (no como parte de otra)
-        if (ex && new RegExp(`(^|\\b)${norm}(\\b|$)`).test(ex)) return true;
-        if (desc && new RegExp(`(^|\\b)${norm}(\\b|$)`).test(desc)) return true;
-        return false;
-      } catch(_) { return false; }
-    };
-
-    // 1) Wikcionario (prioritario para términos léxicos)
+    // 1) RAE API (rae-api.com) prioritario
     try {
-      const defW = await (async function fetchFromWiktionaryPrimary(term){
-        try {
-          const url = `https://es.wiktionary.org/w/api.php?action=parse&page=${encodeURIComponent(term)}&prop=wikitext&format=json&origin=*`;
-          const resp = await fetch(url);
-          if (!resp.ok) throw new Error('wiktionary http');
-          const data = await resp.json();
-          const wtxt = data?.parse?.wikitext?.['*'];
-          if (!wtxt || typeof wtxt !== 'string') return null;
-          const secStart = (() => {
-            const idx1 = wtxt.indexOf('== Español ==');
-            if (idx1 !== -1) return idx1;
-            const idx2 = wtxt.indexOf('== {{lengua|es}} ==');
-            if (idx2 !== -1) return idx2;
-            return 0;
-          })();
-          const rest = wtxt.slice(secStart);
-          const nextSec = rest.indexOf('\n==');
-          const esBlock = nextSec !== -1 ? rest.slice(0, nextSec) : rest;
-          const lines = esBlock.split('\n').filter(l => /^#\s+/.test(l));
-          if (!lines || lines.length === 0) return null;
-          const raw = lines[0].replace(/^#\s+/, '');
-          const strip = (s) => String(s)
-            .replace(/\{\{[^}]*\}\}/g, '')
-            .replace(/\[\[(?:[^\|\]]+\|)?([^\]]+)\]\]/g, '$1')
-            .replace(/'''/g, '')
-            .replace(/''/g, '')
-            .replace(/==+[^=]+==+/g, '')
-            .replace(/\s+/g, ' ')
-            .trim();
-          const cleaned = strip(raw);
-          return cleaned || null;
-        } catch(_) { return null; }
-      })(palabra);
-      if (defW) {
-        const def = sanitizeMeaning(defW);
-        if (def) { const src = 'Wikcionario'; cache[key] = { def, src, ts: Date.now() }; guardarCacheSignificados(cache); return `${def} — Fuente: ${src}`; }
-      }
-      const altW = normalizeForLookup(palabra);
-      if (altW && altW !== palabra) {
-        const defW2 = await (async function(term){
-          try {
-            const url = `https://es.wiktionary.org/w/api.php?action=parse&page=${encodeURIComponent(term)}&prop=wikitext&format=json&origin=*`;
-            const resp = await fetch(url);
-            if (!resp.ok) throw new Error('wiktionary http');
-            const data = await resp.json();
-            const wtxt = data?.parse?.wikitext?.['*'];
-            if (!wtxt || typeof wtxt !== 'string') return null;
-            const secStart = (() => {
-              const idx1 = wtxt.indexOf('== Español ==');
-              if (idx1 !== -1) return idx1;
-              const idx2 = wtxt.indexOf('== {{lengua|es}} ==');
-              if (idx2 !== -1) return idx2;
-              return 0;
-            })();
-            const rest = wtxt.slice(secStart);
-            const nextSec = rest.indexOf('\n==');
-            const esBlock = nextSec !== -1 ? rest.slice(0, nextSec) : rest;
-            const lines = esBlock.split('\n').filter(l => /^#\s+/.test(l));
-            if (!lines || lines.length === 0) return null;
-            const raw = lines[0].replace(/^#\s+/, '');
-            const strip = (s) => String(s)
-              .replace(/\{\{[^}]*\}\}/g, '')
-              .replace(/\[\[(?:[^\|\]]+\|)?([^\]]+)\]\]/g, '$1')
-              .replace(/'''/g, '')
-              .replace(/''/g, '')
-              .replace(/==+[^=]+==+/g, '')
-              .replace(/\s+/g, ' ')
-              .trim();
-            const cleaned = strip(raw);
-            return cleaned || null;
-          } catch(_) { return null; }
-        })(altW);
-        if (defW2) {
-          const def = sanitizeMeaning(defW2);
-          if (def) { const src = 'Wikcionario (normalizado)'; cache[key] = { def, src, ts: Date.now() }; guardarCacheSignificados(cache); return `${def} — Fuente: ${src}`; }
+      const raeUrl = `https://rae-api.com/api/words/${encodeURIComponent(palabra)}`;
+      const resp = await fetch(raeUrl, { headers: { 'Accept': 'application/json' } });
+      if (resp.ok) {
+        const j = await resp.json();
+        const d = j?.data;
+        let text = null;
+        let sensesCount = 0;
+        if (d) {
+          // meanings -> senses -> first definition-like field
+          const meanings = Array.isArray(d.meanings) ? d.meanings : [];
+          for (const m of meanings) {
+            const senses = Array.isArray(m?.senses) ? m.senses : [];
+            sensesCount += senses.length;
+            for (const s of senses) {
+              const cand = s?.def || s?.definition || s?.raw || s?.text || '';
+              if (cand && String(cand).trim()) { text = String(cand).trim(); break; }
+            }
+            if (text) break;
+          }
+        }
+        const def = sanitizeMeaning(text);
+        if (def) {
+          const src = 'RAE API';
+          const pageLink = `https://rae-api.com/search?q=${encodeURIComponent(palabra)}`;
+          const extra = sensesCount > 1
+            ? ` — Más: <a href="${pageLink}" target="_blank" rel="noopener">ver más</a>`
+            : '';
+          // Guardar también el 'Más' con anchor dentro de def para que no se pierda al leer desde caché
+          cache[key] = { def: `${def}${extra}`, src, ts: Date.now() };
+          guardarCacheSignificados(cache);
+          // Colocar 'Más' antes de ' — Fuente: '
+          return `${def}${extra} — Fuente: ${src}`;
         }
       }
     } catch(_) {}
 
-    // 2) DictionaryAPI (antes de Wikipedia para definiciones cortas)
+    // 1.1) RAE API con término normalizado (sin tildes) como segundo intento
+    try {
+      const alt = normalizeForLookup(palabra);
+      if (alt && alt !== palabra) {
+        const raeUrlN = `https://rae-api.com/api/words/${encodeURIComponent(alt)}`;
+        const respN = await fetch(raeUrlN, { headers: { 'Accept': 'application/json' } });
+        if (respN.ok) {
+          const j = await respN.json();
+          const d = j?.data;
+          let text = null;
+          let sensesCount = 0;
+          if (d) {
+            const meanings = Array.isArray(d.meanings) ? d.meanings : [];
+            for (const m of meanings) {
+              const senses = Array.isArray(m?.senses) ? m.senses : [];
+              sensesCount += senses.length;
+              for (const s of senses) {
+                const cand = s?.def || s?.definition || s?.raw || s?.text || '';
+                if (cand && String(cand).trim()) { text = String(cand).trim(); break; }
+              }
+              if (text) break;
+            }
+          }
+          const def = sanitizeMeaning(text);
+          if (def) {
+            const src = 'RAE API (normalizado)';
+            const pageLink = `https://rae-api.com/search?q=${encodeURIComponent(palabra)}`;
+            const extra = sensesCount > 1
+              ? ` — Más: <a href="${pageLink}" target="_blank" rel="noopener">ver más</a>`
+              : '';
+            // Guardar 'Más' con anchor dentro de def para persistir en caché
+            cache[key] = { def: `${def}${extra}`, src, ts: Date.now() };
+            guardarCacheSignificados(cache);
+            // Colocar 'Más' antes de ' — Fuente: '
+            return `${def}${extra} — Fuente: ${src}`;
+          }
+        }
+      }
+    } catch(_) {}
+
+    // 2) DictionaryAPI (prioritario por velocidad y simplicidad)
     try {
       const resp = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/es/${encodeURIComponent(palabra)}`);
       if (resp.ok) {
@@ -266,78 +272,133 @@
       }
     } catch(_) {}
 
-    // 3) Wikipedia REST summary directo (CORS-friendly) como último recurso enciclopédico breve
+    // 2) Wikcionario (HTML renderizado) como fallback léxico
     try {
-      const resp = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(palabra)}`);
-      if (resp.ok) {
-        const data = await resp.json();
-        let def = null;
-        // Preferir description (más corta) y usar extract solo si no hay description
-        if (typeof data.description === 'string' && data.description.trim()) def = data.description.trim();
-        else if (typeof data.extract === 'string' && data.extract.trim()) def = data.extract.trim();
-        if (!isRelevant(palabra, { title: data.title, extract: def, description: data.description })) throw new Error('Irrelevante');
-        def = sanitizeMeaning(def);
-        if (def) { const src = 'Wikipedia'; cache[key] = { def, src, ts: Date.now() }; guardarCacheSignificados(cache); return `${def} — Fuente: ${src}`; }
-      }
-    } catch(_) {}
-
-    // 3.0) Reintentar con término normalizado (sin tildes)
-    try {
-      const alt = normalizeForLookup(palabra);
-      if (alt && alt !== palabra) {
-        const resp = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(alt)}`);
-        if (resp.ok) {
+      const defW = await (async function fetchFromWiktionaryPrimary(term){
+        try {
+          // Usar API de texto HTML renderizado en lugar de wikitext
+          const url = `https://es.wiktionary.org/w/api.php?action=parse&page=${encodeURIComponent(term)}&prop=text&format=json&origin=*`;
+          const resp = await fetch(url);
+          if (!resp.ok) throw new Error('wiktionary http');
           const data = await resp.json();
-          let def = null;
-          if (typeof data.extract === 'string' && data.extract.trim()) def = data.extract.trim();
-          else if (typeof data.description === 'string' && data.description.trim()) def = data.description.trim();
-          if (!isRelevant(palabra, { title: data.title, extract: def, description: data.description })) throw new Error('Irrelevante');
-          def = sanitizeMeaning(def);
-          if (def) { const src = 'Wikipedia (normalizado)'; cache[key] = { def, src, ts: Date.now() }; guardarCacheSignificados(cache); return `${def} — Fuente: ${src}`; }
-        }
-      }
-    } catch(_) {}
-
-    // 3.1) Wikipedia búsqueda si no hay coincidencia exacta
-    try {
-      const searchUrl = `https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(palabra)}&srlimit=1&format=json&origin=*`;
-      const sResp = await fetch(searchUrl);
-      if (sResp.ok) {
-        const sData = await sResp.json();
-        const firstTitle = sData?.query?.search?.[0]?.title;
-        if (firstTitle) {
-          const sum2 = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(firstTitle)}`);
-          if (sum2.ok) {
-            const sd = await sum2.json();
-            let def = null;
-            if (typeof sd.extract === 'string' && sd.extract.trim()) def = sd.extract.trim();
-            else if (typeof sd.description === 'string' && sd.description.trim()) def = sd.description.trim();
-            if (!isRelevant(palabra, { title: firstTitle, extract: def, description: sd.description })) throw new Error('Irrelevante');
-            def = sanitizeMeaning(def);
-            if (def) { const src = `Wikipedia (búsqueda: ${firstTitle})`; cache[key] = { def, src, ts: Date.now() }; guardarCacheSignificados(cache); return `${def} — Fuente: ${src}`; }
-          }
-        }
-      }
-    } catch(_) {}
-
-    // 4) RAE (opcional). Suele fallar por CORS en local. Intentar solo en HTTPS/producción.
-    try {
-      const isLikelyBlocked = typeof location !== 'undefined' && (!location.protocol.startsWith('https'));
-      if (!isLikelyBlocked) {
-        const raeResp = await fetch(`https://dle.rae.es/data/search?w=${encodeURIComponent(palabra)}`);
-        if (raeResp.ok) {
-          const raeData = await raeResp.json();
-          if (raeData && raeData.res && Array.isArray(raeData.res) && raeData.res.length > 0) {
-            for (const item of raeData.res) {
-              if (item.header && item.header.toLowerCase() === String(palabra).toLowerCase()) {
-                const defRAE = sanitizeMeaning(item.definition || `Palabra encontrada en RAE: ${palabra}`);
-                if (defRAE) { const src = 'RAE'; cache[key] = { def: defRAE, src, ts: Date.now() }; guardarCacheSignificados(cache); return `${defRAE} — Fuente: ${src}`; }
+          const htmlText = data?.parse?.text?.['*'];
+          if (!htmlText || typeof htmlText !== 'string') return null;
+          
+          // Crear un DOM temporal para parsear el HTML
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(htmlText, 'text/html');
+          
+          // Buscar la sección de Español
+          const spanishHeading = Array.from(doc.querySelectorAll('h2 .mw-headline')).find(
+            h => h.textContent.includes('Español')
+          );
+          if (!spanishHeading) return null;
+          
+          // Encontrar el contenedor de la sección española
+          let currentElement = spanishHeading.closest('h2').nextElementSibling;
+          let wordType = '';
+          let definition = '';
+          
+          // Buscar subsección (h3) con el tipo de palabra
+          while (currentElement && currentElement.tagName !== 'H2') {
+            if (currentElement.tagName === 'H3') {
+              const headline = currentElement.querySelector('.mw-headline');
+              if (headline) {
+                wordType = headline.textContent.trim();
               }
             }
+            
+            // Buscar listas ordenadas (ol) con definiciones
+            if (currentElement.tagName === 'OL' && wordType) {
+              const firstLi = currentElement.querySelector('li');
+              if (firstLi) {
+                definition = firstLi.textContent.trim();
+                // Limpiar referencias y notas
+                definition = definition.replace(/\[\d+\]/g, '').trim();
+                break;
+              }
+            }
+            
+            currentElement = currentElement.nextElementSibling;
           }
+          
+          if (wordType && definition) {
+            return `${wordType}: ${definition}`;
+          }
+          return definition || null;
+        } catch(err) { 
+          console.warn('[Wikcionario] Error parsing:', err);
+          return null; 
+        }
+      })(palabra);
+      if (defW) {
+        const def = sanitizeMeaning(defW);
+        if (def) { const src = 'Wikcionario'; cache[key] = { def, src, ts: Date.now() }; guardarCacheSignificados(cache); return `${def} — Fuente: ${src}`; }
+      }
+      
+      // Intentar con palabra normalizada si no funcionó
+      const altW = normalizeForLookup(palabra);
+      if (altW && altW !== palabra) {
+        const defW2 = await (async function(term){
+          try {
+            const url = `https://es.wiktionary.org/w/api.php?action=parse&page=${encodeURIComponent(term)}&prop=text&format=json&origin=*`;
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error('wiktionary http');
+            const data = await resp.json();
+            const htmlText = data?.parse?.text?.['*'];
+            if (!htmlText || typeof htmlText !== 'string') return null;
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            
+            const spanishHeading = Array.from(doc.querySelectorAll('h2 .mw-headline')).find(
+              h => h.textContent.includes('Español')
+            );
+            if (!spanishHeading) return null;
+            
+            let currentElement = spanishHeading.closest('h2').nextElementSibling;
+            let wordType = '';
+            let definition = '';
+            
+            while (currentElement && currentElement.tagName !== 'H2') {
+              if (currentElement.tagName === 'H3') {
+                const headline = currentElement.querySelector('.mw-headline');
+                if (headline) {
+                  wordType = headline.textContent.trim();
+                }
+              }
+              
+              if (currentElement.tagName === 'OL' && wordType) {
+                const firstLi = currentElement.querySelector('li');
+                if (firstLi) {
+                  definition = firstLi.textContent.trim();
+                  definition = definition.replace(/\[\d+\]/g, '').trim();
+                  break;
+                }
+              }
+              
+              currentElement = currentElement.nextElementSibling;
+            }
+            
+            if (wordType && definition) {
+              return `${wordType}: ${definition}`;
+            }
+            return definition || null;
+          } catch(err) { 
+            console.warn('[Wikcionario normalizado] Error parsing:', err);
+            return null; 
+          }
+        })(altW);
+        if (defW2) {
+          const def = sanitizeMeaning(defW2);
+          if (def) { const src = 'Wikcionario (normalizado)'; cache[key] = { def, src, ts: Date.now() }; guardarCacheSignificados(cache); return `${def} — Fuente: ${src}`; }
         }
       }
-    } catch(_) {}
+    } catch(err) {
+      console.warn('[Wikcionario] Error general:', err);
+    }
+
+    // Sin más fuentes: si Wikcionario no da resultado, devolver null
 
     return null;
   }
@@ -405,6 +466,36 @@
   });
 
   // --- Generador de Reporte PDF ---
+  /**
+   * Fuerza la descarga de un blob como archivo
+   * Método más robusto que pdf.save() para compatibilidad con todos los navegadores
+   */
+  function forceDownload(blob, fileName) {
+    try {
+      // Crear URL temporal del blob
+      const url = URL.createObjectURL(blob);
+      
+      // Crear elemento <a> temporal
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.style.display = 'none';
+      
+      // Agregar al DOM, hacer click y remover
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Liberar URL después de un tiempo
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      
+      return true;
+    } catch(e) {
+      console.error('[PDF] Error forzando descarga:', e);
+      return false;
+    }
+  }
+
   async function generarReportePDF() {
     try { window._reportBusy = true; } catch(_) {}
     if (!window.jspdf) { try { alert('No se pudo cargar el generador de PDF.'); } catch(_) {} return; }
@@ -453,6 +544,7 @@
       } catch(_) { nivel = nivel || '-'; }
 
       // Prefetch: esperar a que se carguen las definiciones de todas las palabras relevantes
+      // OPTIMIZACIÓN: Limitar tiempo máximo de espera para no bloquear el PDF
       try {
         const palabrasUnicas = [...new Set(
           resultados
@@ -467,7 +559,12 @@
           return !(cache[key] && cache[key].def);
         });
         if (faltantes.length > 0) {
-          await Promise.allSettled(faltantes.map(p => fetchSignificado(p)));
+          console.log(`[PDF] Buscando significados de ${faltantes.length} palabras...`);
+          // Timeout global de 5 segundos para todas las búsquedas
+          const fetchPromise = Promise.allSettled(faltantes.map(p => fetchSignificado(p, 2000)));
+          const timeoutPromise = new Promise(resolve => setTimeout(resolve, 5000));
+          await Promise.race([fetchPromise, timeoutPromise]);
+          console.log('[PDF] Búsqueda de significados completada (o timeout)');
         }
       } catch(_) {}
 
@@ -684,7 +781,17 @@
       finalizeFootersFor(pdf);
 
       const pdfBlob = pdf.output('blob');
-      pdf.save(fileName);
+      
+      // Forzar descarga usando método robusto
+      const downloaded = forceDownload(pdfBlob, fileName);
+      
+      if (downloaded) {
+        console.log('[PDF] Descarga iniciada:', fileName);
+      } else {
+        console.warn('[PDF] Descarga falló, intentando método alternativo');
+        try { pdf.save(fileName); } catch(_) {}
+      }
+      
       setTimeout(() => { showDownloadModal('Reporte PDF', fileName, '', pdfBlob); markReportReady(); }, 500);
     } catch (e) {
       try { alert('Ocurrió un error al generar el PDF.'); } catch(_) {}
@@ -707,7 +814,8 @@
       if (!resultados || resultados.length === 0) {
         pdf.setFontSize(16); pdf.text('Práctica Manual de Ortografía', 20, 30);
         pdf.text('Completa primero un ejercicio para generar práctica', 20, 50);
-        const pdfBlob1 = pdf.output('blob'); pdf.save('practica-manual-sin-datos.pdf');
+        const pdfBlob1 = pdf.output('blob');
+        forceDownload(pdfBlob1, 'practica-manual-sin-datos.pdf');
         setTimeout(() => { showDownloadModal('Práctica Manual', 'practica-manual-sin-datos.pdf', 'Completa primero un ejercicio para generar práctica.', pdfBlob1); }, 500);
         return;
       }
@@ -720,7 +828,8 @@
       if (palabrasIncorrectas.length === 0) {
         pdf.setFontSize(16); pdf.text('Práctica Manual de Ortografía', 20, 30);
         pdf.text('¡Excelente! No hay palabras incorrectas para practicar', 20, 50);
-        const pdfBlob2 = pdf.output('blob'); pdf.save('practica-manual-sin-errores.pdf');
+        const pdfBlob2 = pdf.output('blob');
+        forceDownload(pdfBlob2, 'practica-manual-sin-errores.pdf');
         setTimeout(() => { showDownloadModal('Práctica Manual', 'practica-manual-sin-errores.pdf', '¡Excelente! No hay palabras incorrectas para practicar.', pdfBlob2); }, 500);
         return;
       }
@@ -901,7 +1010,15 @@
       const alumnoSlug = (alumnoTexto).replace(/\s+/g, '-');
       const base = `Practica_Manual_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}`;
       const nombreArchivo = alumnoSlug ? `${base}_${alumnoSlug}.pdf` : `${base}.pdf`;
-      const pdfBlob3 = pdf2.output('blob'); pdf2.save(nombreArchivo);
+      const pdfBlob3 = pdf2.output('blob');
+      
+      // Forzar descarga
+      const downloaded = forceDownload(pdfBlob3, nombreArchivo);
+      if (!downloaded) {
+        console.warn('[PDF] Descarga falló, intentando método alternativo');
+        try { pdf2.save(nombreArchivo); } catch(_) {}
+      }
+      
       setTimeout(() => { showDownloadModal('Práctica Manual', nombreArchivo, '', pdfBlob3); }, 500);
     } catch (error) {
       console.error('Error en práctica manual:', error);
@@ -936,6 +1053,84 @@
       const mm = Math.floor(sec/60); const ss = sec % 60;
       return `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
     } catch(_) { return ''; }
+  }
+
+  function parseMeaningParts(meaning){
+    try {
+      const SEP_SRC = ' — Fuente: ';
+      const SEP_MORE = ' — Más: ';
+      let s = String(meaning || '').trim();
+      let src = '';
+      let moreUrl = '';
+      const iSrc = s.lastIndexOf(SEP_SRC);
+      if (iSrc > -1) { src = s.slice(iSrc + SEP_SRC.length).trim(); s = s.slice(0, iSrc).trim(); }
+      const iMore = s.lastIndexOf(SEP_MORE);
+      if (iMore > -1) {
+        const tail = s.slice(iMore + SEP_MORE.length).trim();
+        const m = tail.match(/href="([^"]+)"/);
+        moreUrl = m ? m[1] : (/^https?:\/\//.test(tail) ? tail : '');
+        s = s.slice(0, iMore).trim();
+      }
+      return { text: s, source: src, moreUrl };
+    } catch(_) { return { text: String(meaning||''), source: '', moreUrl: '' }; }
+  }
+
+  function createDefCardFromMeaning(meaningStr){
+    const parts = parseMeaningParts(meaningStr);
+    const card = document.createElement('div');
+    card.setAttribute('data-collapsed', 'true');
+    card.style.background = '#f9fafb';
+    card.style.border = '1px solid #e5e7eb';
+    card.style.borderRadius = '8px';
+    card.style.padding = '8px 12px';
+    card.style.marginTop = '6px';
+    card.style.cursor = 'pointer';
+
+    const content = document.createElement('div');
+    content.style.display = '-webkit-box';
+    content.style.webkitLineClamp = '2';
+    content.style.webkitBoxOrient = 'vertical';
+    content.style.overflow = 'hidden';
+    content.style.whiteSpace = 'normal';
+    content.textContent = parts.text || 'Definición no disponible';
+
+    const footer = document.createElement('div');
+    footer.style.display = 'flex';
+    footer.style.gap = '12px';
+    footer.style.alignItems = 'center';
+    footer.style.marginTop = '6px';
+    footer.style.fontSize = '12px';
+    footer.style.color = 'var(--muted)';
+
+    const src = document.createElement('span');
+    src.textContent = 'Fuente: ' + (parts.source || '-');
+
+    const more = document.createElement('a');
+    more.style.color = '#0ea5e9';
+    more.style.textDecoration = 'underline';
+    if (parts.moreUrl) { more.href = parts.moreUrl; more.target = '_blank'; more.rel = 'noopener'; more.textContent = 'ver más'; }
+    else { more.style.display = 'none'; }
+
+    footer.appendChild(src);
+    footer.appendChild(more);
+
+    card.appendChild(content);
+    card.appendChild(footer);
+
+    card.addEventListener('click', (ev) => {
+      if (ev.target === more) return;
+      const collapsed = card.getAttribute('data-collapsed') !== 'false';
+      if (collapsed) {
+        card.setAttribute('data-collapsed','false');
+        content.style.display = 'block';
+        content.style.webkitLineClamp = 'initial';
+      } else {
+        card.setAttribute('data-collapsed','true');
+        content.style.display = '-webkit-box';
+        content.style.webkitLineClamp = '2';
+      }
+    });
+    return card;
   }
 
   function renderReportSummaryAndList(targetElOrId, ctx){
@@ -1004,8 +1199,14 @@
           if (!significado && typeof window.fetchSignificado === 'function') {
             significado = await window.fetchSignificado(r.palabra);
           }
-          if (significado) { defEl.textContent = significado; defEl.style.color = 'var(--text)'; }
-          else { defEl.textContent = 'Significado no encontrado'; defEl.style.color = 'var(--muted)'; }
+          if (significado) {
+            defEl.innerHTML = '';
+            defEl.style.color = 'var(--text)';
+            defEl.appendChild(createDefCardFromMeaning(significado));
+          } else {
+            defEl.textContent = 'Significado no encontrado';
+            defEl.style.color = 'var(--muted)';
+          }
         } catch(_) {
           defEl.textContent = 'Error al buscar significado'; defEl.style.color = 'var(--muted)';
         }

@@ -39,10 +39,11 @@
 
   function updateEnableAudioButton() {
     try {
-      const btn = document.getElementById('btnEnableAudio');
-      if (!btn) return;
       const shouldShow = isMobile && (!ttsUnlocked || !voicesReady);
-      btn.style.display = shouldShow ? '' : 'none';
+      
+      // Botón en modo individual
+      const btn = document.getElementById('btnEnableAudio');
+      if (btn) btn.style.display = shouldShow ? '' : 'none';
     } catch(_) {}
   }
 
@@ -76,25 +77,37 @@
         }
         speechSynthesis.cancel();
         speechSynthesis.resume();
-        // utterance completamente silencioso para evitar ruidos audibles
-        const testMsg = new SpeechSynthesisUtterance(' ');
-        testMsg.volume = 0.0;
-        testMsg.rate = 1.0;
+        
+        // En móviles, usar un utterance audible muy breve para desbloquear correctamente
+        const testMsg = new SpeechSynthesisUtterance('a');
+        testMsg.volume = isMobile ? 0.01 : 0.0;
+        testMsg.rate = 10.0;
         testMsg.lang = 'es-ES';
-        const done = () => { ttsUnlocked = true; updateEnableAudioButton(); resolve(); };
-        testMsg.onstart = done; testMsg.onerror = done; testMsg.onend = done;
+        
+        const done = () => { 
+          ttsUnlocked = true; 
+          updateEnableAudioButton(); 
+          resolve(); 
+        };
+        testMsg.onstart = done; 
+        testMsg.onerror = done;
+        testMsg.onend = done;
+        
         speechSynthesis.speak(testMsg);
         setTimeout(() => { if (!ttsUnlocked) done(); }, 1000);
-      } catch(e) { ttsUnlocked = true; updateEnableAudioButton(); resolve(); }
+      } catch(e) { 
+        ttsUnlocked = true; 
+        updateEnableAudioButton(); 
+        resolve(); 
+      }
     });
   }
 
-  // Auto-unlock en primer gesto (móvil)
+  // Auto-unlock en cada gesto (móvil) - NO remover listeners para que funcione en modo grupal
   if (isMobile) {
     const autoUnlock = () => {
+      // Intentar desbloquear en cada toque (es idempotente)
       unlockTTS();
-      document.removeEventListener('touchstart', autoUnlock, { capture: true });
-      document.removeEventListener('click', autoUnlock, { capture: true });
     };
     document.addEventListener('touchstart', autoUnlock, { capture: true, passive: true });
     document.addEventListener('click', autoUnlock, { capture: true, passive: true });
@@ -152,7 +165,8 @@
    */
   async function speakWordSafe(text, opts={}){
     // Si hay un mute global, no reproducir
-    if (typeof window !== 'undefined' && window.__ttsMuted) { return 'muted'; }
+    if (typeof window !== 'undefined' && window.__ttsMuted) return 'muted';
+    
     const voice = opts.voice || selectedVoice || elegirVozEspanol();
     await ensureTTSReady(voice);
     const u = new SpeechSynthesisUtterance(text);
@@ -164,7 +178,7 @@
     if (typeof opts.onend === 'function') u.onend = opts.onend;
     if (typeof opts.onerror === 'function') u.onerror = opts.onerror;
     speechSynthesis.speak(u);
-    return new Promise((resolve)=>{ u.onend = ()=>{ if(opts.onend) try{opts.onend();}catch(_){} resolve('end'); }; u.onerror = ()=>{ if(opts.onerror) try{opts.onerror();}catch(_){} resolve('error'); }; });
+    return new Promise((resolve)=>{ u.onend = ()=>{ if(opts.onend) try{opts.onend();}catch(_){} resolve('end'); }; u.onerror = (e)=>{ if(opts.onerror) try{opts.onerror(e);}catch(_){} resolve('error'); }; });
   }
   global.speakWordSafe = speakWordSafe;
   global.ensureTTSReady = ensureTTSReady;

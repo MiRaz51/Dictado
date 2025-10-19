@@ -232,14 +232,8 @@
           }
         } catch(_) {}
         // Reproducir palabra (solo si está habilitado)
-        if (data.playAudio) {
-          setTimeout(async () => {
-            try {
-              const v = (typeof global.elegirVozEspanol === 'function') ? global.elegirVozEspanol() : null;
-              await global.ensureTTSReady(v);
-              await global.speakWordSafe(data.word, { voice: v, lang: (v?.lang || 'es-ES'), rate: 0.8 });
-            } catch(_) {}
-          }, 200);
+        if (data.playAudio && typeof global.playWordWithAutoRetry === 'function') {
+          global.playWordWithAutoRetry(data.word, { rate: 0.8 });
         }
         break;
         

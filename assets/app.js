@@ -710,6 +710,9 @@ async function initTutorMode() {
   const statusElement = document.getElementById('tutorStatus');
   const sessionInfo = document.getElementById('sessionInfo');
   
+  // Asegurar que el tutor SIEMPRE pueda reproducir audio (nunca silenciado)
+  try { window.__ttsMuted = false; } catch(_) {}
+  
   try {
     statusElement.innerHTML = '<p>🔄 Iniciando servidor PeerJS...</p>';
     
@@ -753,6 +756,7 @@ async function initTutorMode() {
   try { updateParticipantConnectionStatus(!!(window.peerManager && peerManager.isConnected)); } catch(_) {}
   // Silenciar TTS por defecto en el participante hasta que el tutor lo habilite explícitamente
   try { window.__ttsMuted = true; } catch(_) {}
+  
   // Inicializar buffers para el reporte del participante (modo grupal)
   try {
     window._groupResultsLog = [];
@@ -843,6 +847,12 @@ async function connectToSession() {
   try {
     // Marcar que intentó conectar para mostrar estado si falla
     try { window._participantTriedConnect = true; } catch(_) {}
+    
+    // En móviles, desbloquear TTS AHORA (mientras el gesto del usuario está activo)
+    if (window.isMobile && typeof window.unlockTTS === 'function') {
+      try { await window.unlockTTS(); } catch(_) {}
+    }
+    
     connectBtn.disabled = true;
     statusPanel.style.display = 'block';
     connectionStatus.textContent = 'Conectando al tutor...';

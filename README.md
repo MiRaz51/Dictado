@@ -18,7 +18,7 @@ Herramienta educativa para practicar ortografía con dos modos:
 - ✅ **Funciona en PC, móviles y tablets** con teclado virtual
 - ✅ **Sin instalación** - Usa desde el navegador
 - ✅ **Privacidad total** - Datos solo en tu dispositivo
-- ✅ **Créditos de Tiempo** visibles en un badge (arriba a la derecha)
+- ✅ **Créditos de Tiempo** Recompensa para destinar el tiempo en alguna actividad
 
 ## 🚀 Cómo Usar
 
