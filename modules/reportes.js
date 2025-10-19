@@ -543,30 +543,8 @@
         nivel = map[key] || (nivel || '-');
       } catch(_) { nivel = nivel || '-'; }
 
-      // Prefetch: esperar a que se carguen las definiciones de todas las palabras relevantes
-      // OPTIMIZACIÓN: Limitar tiempo máximo de espera para no bloquear el PDF
-      try {
-        const palabrasUnicas = [...new Set(
-          resultados
-            .filter(r => r && r.palabra)
-            .map(r => String(r.palabra))
-        )];
-        const cache = cargarCacheSignificados();
-        const faltantes = palabrasUnicas.filter(p => {
-          const key = (typeof WordFilters !== 'undefined' && WordFilters.normalizarBasico)
-            ? WordFilters.normalizarBasico(p)
-            : String(p || '').toLowerCase();
-          return !(cache[key] && cache[key].def);
-        });
-        if (faltantes.length > 0) {
-          console.log(`[PDF] Buscando significados de ${faltantes.length} palabras...`);
-          // Timeout global de 5 segundos para todas las búsquedas
-          const fetchPromise = Promise.allSettled(faltantes.map(p => fetchSignificado(p, 2000)));
-          const timeoutPromise = new Promise(resolve => setTimeout(resolve, 5000));
-          await Promise.race([fetchPromise, timeoutPromise]);
-          console.log('[PDF] Búsqueda de significados completada (o timeout)');
-        }
-      } catch(_) {}
+      // PDF solo usa definiciones ya en caché (sin prefetch de red)
+      // Si no están en caché, se mostrará "Definición no disponible" para esa palabra
 
       // Alinear resultados a las palabras del ejercicio y completar faltantes
       const palabrasAll = (typeof gameState !== 'undefined' && Array.isArray(gameState.words) && gameState.words.length > 0)
@@ -965,15 +943,12 @@
           pdf2.setFontSize(10); pdf2.setFont(undefined, 'normal');
           pdf2.text(`Total: ${palabrasErradasUnicas.length}`, 40, 60);
 
-          const pairs = await Promise.all(palabrasErradasUnicas.map(async p => {
+          const pairs = palabrasErradasUnicas.map(p => {
             let significado = getCachedMeaning(p) || '';
-            if (!significado) {
-              try { if (p && p.length > 1) significado = await fetchSignificado(p); } catch(_) {}
-            }
             significado = sanitizeMeaning(significado) || 'Definición no disponible';
             const sig2 = meaningTwoLinesForPDF(significado);
             return [p, sig2];
-          }));
+          });
 
           if (pdf2.autoTable) {
             pdf2.autoTable({
