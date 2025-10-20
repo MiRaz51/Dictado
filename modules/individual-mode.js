@@ -3,7 +3,6 @@
 
   // Iniciar juego en modo individual
   async function iniciarJuego(nivel) {
-    console.log(`[DEBUG] Iniciando juego con nivel: ${nivel}`);
     try {
       if (!global.gameState.sessionStartISO) {
         const now = new Date().toISOString();
@@ -119,7 +118,6 @@
       const filtrosRAE = { ...filtrosAvanzados };
       if (filtros.length === 0 || porcentajeRefuerzo === 0) delete filtrosRAE.letrasEspecificas;
       let seleccionDesdeJSON = global.WordFilters.seleccionarPalabrasPorNivel(global.raeWordsData.wordsByLevel, nivelNumerico, cantidadFinalTemp, filtrosRAE);
-      console.log('[Juego] Selección inicial desde JSON:', Array.isArray(seleccionDesdeJSON) ? seleccionDesdeJSON.length : 'null');
       // Priorizar por defecto palabras con errores previos del alumno (refuerzo adaptativo)
       try {
         const bank = (typeof global.cargarBancoErrores === 'function') ? global.cargarBancoErrores() : (global.ErrorBank?.cargar?.() || {});
@@ -132,7 +130,6 @@
           const resto = seleccionDesdeJSON.filter(w => !setPrior.has(w));
           const combinada = [...priorizadas, ...resto];
           seleccionDesdeJSON = combinada.slice(0, cantidadFinalTemp);
-          console.log('[Juego] Refuerzo adaptativo aplicado. Prioridad de errores previos:', priorizadas.length);
 
           // Inyectar palabras del banco que no hayan entrado en la selección inicial, si existen en el nivel
           try {
@@ -152,7 +149,6 @@
               const sinDup = (arr) => Array.from(new Set(arr));
               const nueva = sinDup([...(aInyectar || []), ...seleccionDesdeJSON]);
               seleccionDesdeJSON = nueva.slice(0, cantidadFinalTemp);
-              console.log('[Juego] Inyectadas desde banco de errores:', aInyectar.length);
             }
           } catch(_) {}
         }
@@ -183,7 +179,6 @@
         // Sincronizar por compatibilidad y además asignar explícitamente al estado
         try { global.syncGameState && global.syncGameState('to'); } catch(_) {}
         try { if (global.gameState) { global.gameState.words = Array.isArray(global.palabras) ? global.palabras.slice() : []; global.gameState.currentIndex = 0; } } catch(_) {}
-        console.log('[Juego] gameState.words asignadas:', Array.isArray(global.gameState?.words) ? global.gameState.words.length : 'null');
         document.getElementById('resultado').innerHTML = '';
         document.getElementById('marcador').innerHTML = '';
         try {
@@ -366,9 +361,8 @@
     try { speechSynthesis.cancel(); } catch (_) {}
 
     if (global.gameState.hasMoreWords()) {
-      console.log(`[DEBUG] Continuando con siguiente palabra. Índice: ${global.gameState.currentIndex}`);
+      // Continuar con siguiente palabra
     } else {
-      console.log('[DEBUG] Juego terminado');
       const palabrasAll = Array.isArray(global.gameState.words) ? global.gameState.words : [];
       const normaliza = (s) => { try { return global.WordFilters.normalizarBasico(String(s || '')); } catch(_) { return String(s || '').toLowerCase().trim(); } };
       const rawLog = Array.isArray(global.gameState.resultsLog) ? global.gameState.resultsLog : global.resultsLog;
@@ -444,7 +438,6 @@
       try {
         if (global.window && window.DEBUG) {
           const sample = resultadosOrdenados.slice(0, Math.min(5, resultadosOrdenados.length)).map(r => ({ p: r.palabra, c: r.correcto }));
-          console.log('[DEBUG] Fin juego — total:', total, 'correctas:', correctas, 'muestra:', sample);
         }
       } catch(_) {}
       const incorrectas = Math.max(0, total - correctas);
@@ -456,7 +449,6 @@
         if (typeof window !== 'undefined' && window.TimeCredits && total > 0) {
           const requiredTotal = (window.CONFIG && Number.isFinite(window.CONFIG.TIME_CREDITS_REQUIRED_WORDS)) ? window.CONFIG.TIME_CREDITS_REQUIRED_WORDS : 25;
           if (total !== requiredTotal) {
-            try { console.log('[Créditos] No se otorgan créditos: ejercicio con', total, 'palabras (requeridas:', requiredTotal, ')'); } catch(_) {}
             throw 'skip_award_not_full_length';
           }
           const alumnoId = (typeof window.getAlumnoCursoId === 'function') ? window.getAlumnoCursoId() : 'anon|sin-curso';

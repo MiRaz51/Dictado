@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Security and download policy -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="no-referrer">
   <!-- Aplicación optimizada para escritorio -->
   <title>Práctica de Ortografía</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,6 +29,8 @@
   <link rel="stylesheet" href="assets/styles/components/feedback.css">
   <link rel="stylesheet" href="assets/styles/components/peer.css">
   <link rel="stylesheet" href="assets/styles/components/time-credits.css">
+  <!-- Responsive styles centralized -->
+  <link rel="stylesheet" href="assets/styles/responsive.css">
   <!-- Simple Keyboard CSS (solo se usa en móviles/tablets) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/css/index.css">
   <script src="modules/word-filters-fixed.js" onload="console.log('✅ modules/word-filters-fixed.js cargado')" onerror="console.error('❌ Error cargando modules/word-filters-fixed.js')"></script>
@@ -117,10 +122,10 @@
     
     <div class="actions" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:6px;">
       <button id="btnVolverGame" class="btn-ghost">◂ Volver</button>
-      <button id="btnNivelBasico" tabindex="7">🌱 Nivel Básico</button>
-      <button id="btnNivelIntermedio" tabindex="8">🌿 Nivel Intermedio</button>
-      <button id="btnNivelAvanzado" tabindex="9">🌳 Nivel Avanzado</button>
-      <button id="btnNivelExperto" tabindex="10">🔥 Nivel Experto</button>
+      <button id="btnNivelBasico" class="btn-nivel" tabindex="7">🌱 Nivel Básico</button>
+      <button id="btnNivelIntermedio" class="btn-nivel" tabindex="8">🌿 Nivel Intermedio</button>
+      <button id="btnNivelAvanzado" class="btn-nivel" tabindex="9">🌳 Nivel Avanzado</button>
+      <button id="btnNivelExperto" class="btn-nivel" tabindex="10">🔥 Nivel Experto</button>
       <button class="btn-ghost" type="button" title="Limpiar caché del JSON y recargar">↻ Refrescar datos</button>
       <span id="nivelesDiag" class="hint hint-muted hidden"></span>
     </div>
@@ -184,10 +189,10 @@
     
     <div class="actions">
       <button class="btn-ghost">◂ Volver</button>
-      <button id="tutorNivelBasico">🌱 Nivel Básico</button>
-      <button id="tutorNivelIntermedio">🌿 Nivel Intermedio</button>
-      <button id="tutorNivelAvanzado">🌳 Nivel Avanzado</button>
-      <button id="tutorNivelExperto">🔥 Nivel Experto</button>
+      <button id="tutorNivelBasico" class="btn-nivel">🌱 Nivel Básico</button>
+      <button id="tutorNivelIntermedio" class="btn-nivel">🌿 Nivel Intermedio</button>
+      <button id="tutorNivelAvanzado" class="btn-nivel">🌳 Nivel Avanzado</button>
+      <button id="tutorNivelExperto" class="btn-nivel">🔥 Nivel Experto</button>
       <button class="btn-ghost" type="button" title="Limpiar caché del JSON y recargar">↻ Refrescar datos</button>
     </div>
   </section>
@@ -261,9 +266,9 @@
               </label>
               <select id="autoDelay">
                 <option value="1500">1.5 s</option>
-                <option value="2000" selected>2 s</option>
+                <option value="2000">2 s</option>
                 <option value="3000">3 s</option>
-                <option value="4000">4 s</option>
+                <option value="4000" selected>4 s</option>
                 <option value="5000">5 s</option>
               </select>
               <span class="hint" id="tutorResponses" style="margin-left:8px;">Resp: 0/0</span>
@@ -278,10 +283,6 @@
           </div>
         </div>
       </div>
-    </div>
-    
-    <div class="actions">
-      <button class="btn-ghost">◂ Configuración</button>
     </div>
   </section>
 
@@ -372,8 +373,8 @@
   <script src="https://cdn.jsdelivr.net/npm/simple-keyboard@latest/build/index.js"></script>
   <!-- Confetti para animaciones de éxito -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-  <!-- QRCode generator -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- QRCode generator (qrious - librería moderna y confiable) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
   <!-- Módulos del sistema: (se cargan más abajo con onload/onerror y logs) -->
   
   <!-- Modal personalizado para confirmación de descarga -->
@@ -472,19 +473,19 @@
   
   <!-- Modal para QR de sesión (fuera de secciones .page) -->
   <div id="qrModal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:420px;">
+    <div class="modal-content">
       <div class="modal-header">
         <h3>Conéctate por QR</h3>
         <span class="modal-close">&times;</span>
       </div>
-      <div class="modal-body" style="display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px;">
-        <div id="qrCodeContainer" style="width:256px; height:256px;"></div>
-        <div id="qrSessionIdRow" class="hint" style="font-size:13px; color:#334155; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; padding:8px 10px;">
-          ID de Sesión: <code id="qrSessionId" style="font-weight:700; color:#0ea5e9;">-</code>
+      <div class="modal-body">
+        <div id="qrCodeContainer"></div>
+        <div id="qrSessionIdRow">
+          ID de Sesión: <code id="qrSessionId">-</code>
         </div>
-        <div class="hint" style="font-size:12px; color:#64748b;">Escanea con el dispositivo del participante. Precargará el ID de sesión automáticamente.</div>
+        <div class="hint">Escanea con el dispositivo del participante. Precargará el ID de sesión automáticamente.</div>
       </div>
-      <div class="modal-actions" style="justify-content:center;">
+      <div class="modal-actions">
         <button class="btn-primary">Cerrar</button>
       </div>
     </div>

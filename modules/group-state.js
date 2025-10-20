@@ -20,12 +20,10 @@ class GroupStateManager {
   // Configurar modo y rol
   setMode(mode) {
     this.currentMode = mode;
-    console.log('[GroupState] Modo configurado:', mode);
   }
 
   setRole(role) {
     this.currentRole = role;
-    console.log('[GroupState] Rol configurado:', role);
   }
 
   // Gestión de participantes
@@ -46,7 +44,6 @@ class GroupStateManager {
         joinedAt: Date.now()
       });
       
-      console.log('[GroupState] Participante agregado:', participantId, 'Nombre final:', participantName, 'Info recibida:', participantInfo);
       this.updateParticipantsUI();
     }
   }
@@ -55,7 +52,6 @@ class GroupStateManager {
     const participant = this.participants.get(participantId);
     if (participant) {
       this.participants.delete(participantId);
-      console.log('[GroupState] Participante removido:', participant);
       this.updateParticipantsUI();
     }
   }
@@ -81,8 +77,6 @@ class GroupStateManager {
     this.exerciseStarted = true;
     this.participantAnswers.clear();
     
-    console.log('[GroupState] Ejercicio iniciado con', words.length, 'palabras');
-    
     // Limpiar resultados previos
     this.participants.forEach((participant, id) => {
       participant.answers = [];
@@ -103,7 +97,6 @@ class GroupStateManager {
       this.currentWordIndex++;
       this.currentWord = this.exerciseWords[this.currentWordIndex];
       this.participantAnswers.clear();
-      console.log('[GroupState] Siguiente palabra:', this.currentWord);
       return this.currentWord;
     } else {
       this.finishExercise();
@@ -114,7 +107,6 @@ class GroupStateManager {
   finishExercise() {
     this.exerciseActive = false;
     this.currentWord = null;
-    console.log('[GroupState] Ejercicio finalizado');
     
     // Calcular estadísticas finales
     this.calculateFinalStats();
@@ -175,13 +167,6 @@ class GroupStateManager {
     }
 
     this.participantAnswers.set(participantId, answerRecord);
-    
-    console.log('[GroupState] Respuesta registrada:', {
-      participantId,
-      word: this.currentWord,
-      answer,
-      isCorrect
-    });
 
     // Actualizar progreso individual (por cantidad de palabras respondidas únicas)
     try {
@@ -266,7 +251,6 @@ class GroupStateManager {
       });
     });
 
-    console.log('[GroupState] Estadísticas finales:', stats);
     return stats;
   }
 
@@ -289,8 +273,6 @@ class GroupStateManager {
     });
     // Habilitar botones de reporte solo cuando el ejercicio ha terminado (no activo y con palabras cargadas)
     const canReport = (!this.exerciseActive && (this.exerciseWords.length > 0));
-    
-    console.log('[GroupState] Actualizando UI con participantes:', participants);
     
     // Actualizar contador
     if (participantCount) {
@@ -368,6 +350,17 @@ class GroupStateManager {
             btnPr.onclick = () => tutorManualPractice(p.id);
             if (!canReport) { btnPr.disabled = true; btnPr.title = 'Disponible al finalizar'; }
           }
+
+          // Mobile: tap row to open detail modal (do not trigger when clicking action buttons)
+          try {
+            if (window.isMobile) {
+              node.addEventListener('click', (ev) => {
+                if (ev.target.closest('.pi-actions')) return; // ignore clicks on buttons area
+                openParticipantDetailModal(p, { canReport, prog });
+              });
+              node.style.cursor = 'pointer';
+            }
+          } catch(_) {}
 
           frag.appendChild(node);
         } catch(e) { console.warn('Render participante falló:', e); }
@@ -463,10 +456,47 @@ class GroupStateManager {
     this.exerciseWords = [];
     this.participantAnswers.clear();
     this.exerciseResults.clear();
-    
-    console.log('[GroupState] Estado reseteado');
   }
 }
 
 // Instancia global del gestor de estado
+// ===== Helper: Mobile detail modal for participant =====
+function openParticipantDetailModal(p, opts){
+  try {
+    const canReport = !!(opts && opts.canReport);
+    const prog = Number((opts && opts.prog) || 0);
+    // Create modal container
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>👤 ${p.name}</h3>
+          <span class="modal-close" aria-label="Cerrar">&times;</span>
+        </div>
+        <div class="modal-body">
+          <p><strong>Correctas:</strong> ${Number(p.correctCount||0)} &nbsp; | &nbsp; <strong>Incorrectas:</strong> ${Number(p.incorrectCount||0)}</p>
+          <p><strong>Progreso:</strong> ${prog}%</p>
+          <p><strong>Créditos de tiempo:</strong> ${Number(p.timeCredits||0)} min</p>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-ghost btn-pdf">📄 PDF</button>
+          <button class="btn-ghost btn-practica">📝 Práctica</button>
+          <button class="btn-primary btn-close">Cerrar</button>
+        </div>
+      </div>`;
+    // Close helpers
+    const close = () => { try { modal.remove(); } catch(_) {} };
+    modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+    modal.querySelector('.modal-close').addEventListener('click', close);
+    modal.querySelector('.btn-close').addEventListener('click', close);
+    // Wire actions
+    const pdf = modal.querySelector('.btn-pdf');
+    if (pdf) { pdf.onclick = () => tutorGenerateParticipantPDF(p.id); if (!canReport) { pdf.disabled = true; pdf.title = 'Disponible al finalizar'; } }
+    const pr = modal.querySelector('.btn-practica');
+    if (pr) { pr.onclick = () => tutorManualPractice(p.id); if (!canReport) { pr.disabled = true; pr.title = 'Disponible al finalizar'; } }
+    document.body.appendChild(modal);
+  } catch(e) { console.warn('Modal participante falló:', e); }
+}
+
 window.groupState = new GroupStateManager();

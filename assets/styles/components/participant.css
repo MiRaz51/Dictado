@@ -36,6 +36,29 @@
 /* Acciones del reporte del participante */
 #participantReport .actions { margin: 12px 0; }
 
+/* Botones PDF y Práctica Manual en horizontal en móvil */
+@media (max-width: 520px) {
+  #participantReport .actions {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 6px !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+  }
+  
+  #participantReport .actions button {
+    flex: 1 1 calc(50% - 3px) !important;
+    min-width: 0 !important;
+    white-space: normal !important;
+    padding: 10px 6px !important;
+    font-size: 13px !important;
+    line-height: 1.3 !important;
+    text-align: center !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
+
 /* Label del ID de sesión */
 #page-participant label[for="sessionIdInput"] { display:block; margin-bottom:6px; }
 

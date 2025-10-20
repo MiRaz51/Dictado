@@ -77,12 +77,10 @@
   // ===== Handler de datos recibidos del tutor =====
   
   function handleParticipantDataReceived(tutorId, data) {
-    console.log('[Participante] Datos recibidos del tutor:', data);
     let pf = null, pt = null;
     
     switch (data.type) {
       case 'exercise_config':
-        console.log('[Participante] Configuración recibida:', data.config);
         try { global.window._exerciseConfigParticipant = data.config || null; } catch(_) {}
         // Preparar confirmación condicionada al contenido del input
         try {
@@ -317,7 +315,6 @@
         break;
         
       case 'progress_update':
-        try { console.log('[Participante] progress_update recibido:', data); } catch(_) {}
         (function(){
           const safeTotal = Number(data.total || 0);
           const safeCurrent = Math.max(0, Math.min(Number(data.current || 0), safeTotal));
@@ -385,8 +382,6 @@
           global.window.gameState.words = words;
           global.window.gameState.resultsLog = log;
           global.window.sessionEndISO = new Date().toISOString();
-          
-          console.log('[Participante] PDF data ready:', { words: words.length, log: log.length });
         } catch(e) { console.error('[Participante] Error preparando datos PDF:', e); }
         
         // Celebración final si supera el umbral (participante)

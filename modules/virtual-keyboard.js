@@ -17,7 +17,6 @@ class VirtualKeyboardManager {
      */
     async init() {
         if (this.isInitialized) {
-            console.log('⚠️ Teclado virtual ya inicializado');
             return;
         }
 
@@ -72,7 +71,6 @@ class VirtualKeyboardManager {
             });
 
             this.isInitialized = true;
-            console.log('✅ Teclado virtual inicializado');
 
             // Marcar modo VK en el body para estilos (ocultar caret nativo, etc.)
             try { document.body.classList.add('vk-mode'); } catch(_) {}
@@ -348,7 +346,6 @@ class VirtualKeyboardManager {
     handleKeyPress(button) {
         // Bloquear teclas mientras se espera la próxima palabra
         try { if (typeof window !== 'undefined' && window._waitNextWord) return; } catch(_) {}
-        console.log('Tecla presionada:', button);
 
         // Manejar Enter si el input lo soporta
         if (button === '{enter}' && this.currentInput) {
@@ -397,7 +394,6 @@ class VirtualKeyboardManager {
             this.container = null;
         }
         this.isInitialized = false;
-        console.log('🗑️ Teclado virtual destruido');
     }
 
     /**
@@ -432,7 +428,6 @@ async function initVirtualKeyboardIfNeeded() {
     const needsKeyboard = window.DeviceDetector.shouldUseVirtualKeyboard();
     
     if (needsKeyboard) {
-        console.log('📱 Dispositivo móvil/tablet detectado. Inicializando teclado virtual...');
         
         if (!virtualKeyboardManager) {
             virtualKeyboardManager = new VirtualKeyboardManager();
@@ -440,7 +435,6 @@ async function initVirtualKeyboardIfNeeded() {
         
         // Esperar a que Simple Keyboard esté disponible
         if (typeof SimpleKeyboard === 'undefined') {
-            console.log('⏳ Esperando a que Simple Keyboard se cargue...');
             await waitForSimpleKeyboard();
         }
         
@@ -454,8 +448,6 @@ async function initVirtualKeyboardIfNeeded() {
                 };
             }
         } catch(_) {}
-    } else {
-        console.log('💻 Dispositivo desktop detectado. Usando teclado físico.');
     }
 }
 
@@ -484,5 +476,3 @@ if (typeof window !== 'undefined') {
     window.virtualKeyboardManager = virtualKeyboardManager;
     window.initVirtualKeyboardIfNeeded = initVirtualKeyboardIfNeeded;
 }
-
-console.log('✅ Virtual Keyboard Manager cargado');

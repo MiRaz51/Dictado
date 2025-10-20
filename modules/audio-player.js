@@ -35,12 +35,35 @@
       utterance.volume = options.volume || 1.0;
       utterance.pitch = options.pitch || 1.0;
       
-      // Seleccionar voz española si está disponible
-      const voices = speechSynthesis.getVoices();
-      const spanishVoice = voices.find(v => v.lang.startsWith('es-ES')) || 
-                          voices.find(v => v.lang.startsWith('es'));
+      // Seleccionar voz española usando la estrategia correcta
+      // Prioridad: 1) selectedVoice global, 2) VoiceStrategy, 3) elegirVozEspanol, 4) fallback
+      let spanishVoice = null;
+      
+      // Intentar usar la voz ya seleccionada globalmente
+      if (global.selectedVoice) {
+        spanishVoice = global.selectedVoice;
+      } 
+      // Si no, usar VoiceStrategy para Chrome (prioriza "Google español")
+      else if (global.VoiceStrategy && typeof global.VoiceStrategy.pickVoice === 'function') {
+        const voices = speechSynthesis.getVoices();
+        spanishVoice = global.VoiceStrategy.pickVoice(voices);
+      }
+      // Si no, usar elegirVozEspanol de tts.js
+      else if (global.elegirVozEspanol && typeof global.elegirVozEspanol === 'function') {
+        spanishVoice = global.elegirVozEspanol();
+      }
+      // Fallback: buscar cualquier voz es-ES
+      else {
+        const voices = speechSynthesis.getVoices();
+        spanishVoice = voices.find(v => v.lang.startsWith('es-ES')) || 
+                      voices.find(v => v.lang.startsWith('es'));
+      }
+      
       if (spanishVoice) {
         utterance.voice = spanishVoice;
+        console.log('[AudioPlayer] Usando voz:', spanishVoice.name, '-', spanishVoice.lang);
+      } else {
+        console.warn('[AudioPlayer] No se encontró voz española, usando voz por defecto');
       }
       
       // Eventos

@@ -466,35 +466,8 @@
   });
 
   // --- Generador de Reporte PDF ---
-  /**
-   * Fuerza la descarga de un blob como archivo
-   * Método más robusto que pdf.save() para compatibilidad con todos los navegadores
-   */
-  function forceDownload(blob, fileName) {
-    try {
-      // Crear URL temporal del blob
-      const url = URL.createObjectURL(blob);
-      
-      // Crear elemento <a> temporal
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      link.style.display = 'none';
-      
-      // Agregar al DOM, hacer click y remover
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Liberar URL después de un tiempo
-      setTimeout(() => URL.revokeObjectURL(url), 100);
-      
-      return true;
-    } catch(e) {
-      console.error('[PDF] Error forzando descarga:', e);
-      return false;
-    }
-  }
+  // Nota: Usamos pdf.save() nativo de jsPDF que es más confiable
+  // y no genera advertencias de seguridad en los navegadores
 
   async function generarReportePDF() {
     try { window._reportBusy = true; } catch(_) {}
@@ -758,17 +731,11 @@
       // Dibujar pies de página con total definitivo
       finalizeFootersFor(pdf);
 
+      // Usar método nativo de jsPDF (más confiable y sin advertencias)
+      pdf.save(fileName);
+      
+      // Generar blob solo para preview en modal
       const pdfBlob = pdf.output('blob');
-      
-      // Forzar descarga usando método robusto
-      const downloaded = forceDownload(pdfBlob, fileName);
-      
-      if (downloaded) {
-        console.log('[PDF] Descarga iniciada:', fileName);
-      } else {
-        console.warn('[PDF] Descarga falló, intentando método alternativo');
-        try { pdf.save(fileName); } catch(_) {}
-      }
       
       setTimeout(() => { showDownloadModal('Reporte PDF', fileName, '', pdfBlob); markReportReady(); }, 500);
     } catch (e) {
@@ -779,7 +746,6 @@
 
   // --- Práctica manual PDF ---
   async function generarPracticaManual() {
-    console.log('=== INICIO PRÁCTICA MANUAL ===');
     try {
       if (!window.jspdf) { alert('jsPDF no está cargado. Verifica que las librerías estén incluidas.'); return; }
       const { jsPDF } = window.jspdf;
@@ -792,8 +758,8 @@
       if (!resultados || resultados.length === 0) {
         pdf.setFontSize(16); pdf.text('Práctica Manual de Ortografía', 20, 30);
         pdf.text('Completa primero un ejercicio para generar práctica', 20, 50);
+        pdf.save('practica-manual-sin-datos.pdf');
         const pdfBlob1 = pdf.output('blob');
-        forceDownload(pdfBlob1, 'practica-manual-sin-datos.pdf');
         setTimeout(() => { showDownloadModal('Práctica Manual', 'practica-manual-sin-datos.pdf', 'Completa primero un ejercicio para generar práctica.', pdfBlob1); }, 500);
         return;
       }
@@ -806,8 +772,8 @@
       if (palabrasIncorrectas.length === 0) {
         pdf.setFontSize(16); pdf.text('Práctica Manual de Ortografía', 20, 30);
         pdf.text('¡Excelente! No hay palabras incorrectas para practicar', 20, 50);
+        pdf.save('practica-manual-sin-errores.pdf');
         const pdfBlob2 = pdf.output('blob');
-        forceDownload(pdfBlob2, 'practica-manual-sin-errores.pdf');
         setTimeout(() => { showDownloadModal('Práctica Manual', 'practica-manual-sin-errores.pdf', '¡Excelente! No hay palabras incorrectas para practicar.', pdfBlob2); }, 500);
         return;
       }
@@ -985,14 +951,11 @@
       const alumnoSlug = (alumnoTexto).replace(/\s+/g, '-');
       const base = `Practica_Manual_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}`;
       const nombreArchivo = alumnoSlug ? `${base}_${alumnoSlug}.pdf` : `${base}.pdf`;
-      const pdfBlob3 = pdf2.output('blob');
+      // Usar método nativo de jsPDF
+      pdf2.save(nombreArchivo);
       
-      // Forzar descarga
-      const downloaded = forceDownload(pdfBlob3, nombreArchivo);
-      if (!downloaded) {
-        console.warn('[PDF] Descarga falló, intentando método alternativo');
-        try { pdf2.save(nombreArchivo); } catch(_) {}
-      }
+      // Generar blob solo para preview en modal
+      const pdfBlob3 = pdf2.output('blob');
       
       setTimeout(() => { showDownloadModal('Práctica Manual', nombreArchivo, '', pdfBlob3); }, 500);
     } catch (error) {

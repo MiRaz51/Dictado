@@ -2,7 +2,14 @@
 .avance-row { display:flex; align-items:center; gap:12px; margin: 16px 0 20px; }
 .progress { position: relative; flex: 1; height: 12px; background: #eef2f7; border-radius: 999px; overflow: hidden; border: 1px solid rgba(2,6,23,.08); }
 .progress-fill { position: absolute; left:0; top:0; bottom:0; width:0; background: linear-gradient(90deg, #22c55e, #16a34a); transition: width .3s ease; }
-.progress-text { font-size: clamp(12px, 2.8vw, 14px); color: #1f2937; font-weight: 600; min-width: 52px; text-align: right; }
+.progress-text { font-size: 14px; color: #1f2937; font-weight: 600; min-width: 52px; text-align: right; }
+
+/* Mobile responsive */
+@media (max-width: 520px) {
+  .avance-row { gap: 8px; margin: 12px 0 16px; }
+  .progress { height: 10px; }
+  .progress-text { font-size: 13px; min-width: 48px; }
+}
 
 /* Game input row (moved from inline) */
 .layout-game-input { margin-top: 6px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }

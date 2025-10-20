@@ -56,9 +56,13 @@ function syncGameState(direction = 'from') {
 function buildDeepLinkForSession(sessionId){
   try {
     const loc = window.location;
-    const base = loc.origin + loc.pathname.replace(/[#?].*$/, '');
-    return `${base}?session=${encodeURIComponent(sessionId)}#page-participant`;
-  } catch(_) { return window.location.href; }
+    let base = loc.origin + loc.pathname.replace(/[#?].*$/, '');
+    if (base.endsWith('/')) base = base.slice(0, -1);
+    return `${base}?session=${encodeURIComponent(sessionId)}&t=${Date.now()}#page-participant`;
+  } catch(err) { 
+    console.error('[buildDeepLink] Error:', err);
+    return window.location.origin + '/?session=' + sessionId;
+  }
 }
 
 // Helper global único para escapar HTML (reutilizable en toda la app)
@@ -79,23 +83,60 @@ try {
 
 function showSessionQR(){
   try {
-    const sessionId = (document.getElementById('sessionId')?.textContent || '').trim();
-    if (!sessionId || sessionId === '-') { alert('La sesión aún no está lista.'); return; }
+    // Obtener sessionId actual del DOM o del peerManager
+    let sessionId = (document.getElementById('sessionId')?.textContent || '').trim();
+    
+    // Fallback: intentar obtener del peerManager global
+    if ((!sessionId || sessionId === '-') && window.peerManager && window.peerManager.sessionId) {
+      sessionId = window.peerManager.sessionId;
+      console.log('[QR] SessionId obtenido de peerManager:', sessionId);
+    }
+    
+    if (!sessionId || sessionId === '-') { 
+      alert('La sesión aún no está lista. Por favor espera a que se inicie el servidor.'); 
+      return; 
+    }
+    
     const modal = document.getElementById('qrModal');
-    const box = document.getElementById('qrCodeContainer');
+    let box = document.getElementById('qrCodeContainer');
     const sidLabel = document.getElementById('qrSessionId');
     if (!modal || !box) return;
+    
+    // Limpiar completamente el contenedor
     box.innerHTML = '';
+    
     const url = buildDeepLinkForSession(sessionId);
-    if (typeof QRCode === 'function') {
-      new QRCode(box, { text: url, width: 256, height: 256, correctLevel: QRCode.CorrectLevel.M });
+    
+    // Usar QRious para generar el código QR
+    if (typeof QRious === 'function') {
+      try {
+        const canvas = document.createElement('canvas');
+        box.appendChild(canvas);
+        
+        new QRious({
+          element: canvas,
+          value: url,
+          size: 256,
+          level: 'H',
+          background: '#ffffff',
+          foreground: '#000000'
+        });
+        
+      } catch(err) {
+        console.error('[QR] Error al generar:', err);
+        box.innerHTML = '<p style="color:red;">Error al generar QR</p><p style="font-size:11px; word-break:break-all;">' + url + '</p>';
+      }
     } else {
-      box.textContent = url; // Fallback textual si la librería no cargó
+      console.error('[QR] Librería QRious no disponible');
+      box.innerHTML = '<p style="color:red;">Librería QR no cargada</p><p style="font-size:11px; word-break:break-all;">' + url + '</p>';
     }
+    
     if (sidLabel) sidLabel.textContent = sessionId.toUpperCase();
-    // Usar flex para centrar según CSS del overlay
     modal.style.display = 'flex';
-  } catch(e) { console.error('QR error:', e); }
+  } catch(e) { 
+    console.error('[QR] ❌ Error general:', e); 
+    alert('Error al mostrar QR: ' + e.message);
+  }
 }
 
 function closeQRModal(){ try { const m = document.getElementById('qrModal'); if (m) m.style.display = 'none'; } catch(_) {} }
@@ -107,6 +148,62 @@ try {
   }
 } catch(_) {}
 
+// Reubicar controles Auto/Delay sobre la barra de progreso en móvil
+function reflowTutorAutoControls() {
+  try {
+    const pb = document.querySelector('#sessionInfo #tutorPlayback');
+    if (!pb) return;
+    const rowTop = pb.querySelector('.row-top');
+    const progressRow = pb.querySelector('.row-top .progress-row');
+    const actions = pb.querySelector('.row-bottom .actions');
+    if (!rowTop || !progressRow || !actions) return;
+    const label = actions.querySelector('label.inline');
+    const select = actions.querySelector('#autoDelay');
+    if (!label || !select) return;
+    let container = pb.querySelector('#autoControlsRow');
+    // Always place Auto + Delay above progress (desktop and mobile)
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'autoControlsRow';
+      rowTop.insertBefore(container, progressRow);
+    }
+    if (label.parentElement !== container) container.appendChild(label);
+    if (select.parentElement !== container) container.appendChild(select);
+    // ensure enabled/disabled state is correct after any move
+    syncAutoDelayEnabled();
+  } catch(_) {}
+}
+
+// Enable/disable the delay select based on the Auto checkbox
+function syncAutoDelayEnabled(){
+  try {
+    const auto = document.getElementById('autoAdvance');
+    const delaySel = document.getElementById('autoDelay');
+    if (!delaySel) return;
+    const enabled = !!(auto && auto.checked);
+    delaySel.disabled = !enabled;
+    if (!enabled) {
+      // optionally dim when disabled
+      delaySel.classList.add('is-disabled');
+    } else {
+      delaySel.classList.remove('is-disabled');
+    }
+  } catch(_) {}
+}
+
+try {
+  window.addEventListener('resize', reflowTutorAutoControls);
+  document.addEventListener('DOMContentLoaded', () => {
+    reflowTutorAutoControls();
+    // bind change listener
+    try {
+      const auto = document.getElementById('autoAdvance');
+      if (auto) auto.addEventListener('change', syncAutoDelayEnabled);
+    } catch(_) {}
+    syncAutoDelayEnabled();
+  });
+} catch(_) {}
+
 // Manejar apertura con ?session=ID para precargar y mostrar participante (robusto)
 (function handleSessionDeepLink(){
   const run = () => {
@@ -114,6 +211,7 @@ try {
       const usp = new URLSearchParams(window.location.search);
       const sid = usp.get('session') || usp.get('sid') || usp.get('s');
       if (!sid) return;
+      
       // Guardar global para diagnósticos
       try { window.__DEEP_LINK_SID = sid; } catch(_) {}
       // Navegar a modo grupal/participante y abrir página específica
@@ -128,13 +226,13 @@ try {
           const input = document.getElementById('sessionIdInput');
           if (input) {
             input.value = String(sid).toUpperCase();
-            // Bloquear edición del ID para evitar cambios accidentales
             input.readOnly = true;
             input.setAttribute('aria-readonly', 'true');
             input.title = 'ID de sesión establecido por QR';
           }
           const name = document.getElementById('participantName');
           if (name) name.focus();
+          
           // Autoconectar opcional: ?auto=1&name=TuNombre
           const auto = usp.get('auto');
           const pname = usp.get('name') || usp.get('n');
@@ -145,9 +243,13 @@ try {
               window.connectToSession();
             }
           }
-        } catch(_) {}
+        } catch(err) {
+          console.error('[DeepLink] Error al precargar:', err);
+        }
       }, 300);
-    } catch(_) {}
+    } catch(err) {
+      console.error('[DeepLink] ❌ Error general:', err);
+    }
   };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', run, { once: true });

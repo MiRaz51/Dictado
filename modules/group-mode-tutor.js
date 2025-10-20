@@ -90,7 +90,7 @@
       const cw = document.getElementById('tutorCurrentWord');
       const pr = document.getElementById('tutorProgress');
       const btnNext = document.getElementById('tutorNextWord');
-      if (pb) pb.style.display = '';
+      if (pb) { pb.classList.add('is-active'); try { pb.style.removeProperty('display'); } catch(_) {} }
       if (cw) global.refreshTutorCurrentWordLabel();
       if (pr) pr.textContent = `${global.groupState.currentWordIndex+1}/${global.groupState.exerciseWords.length}`;
       global.refreshTutorOverallProgress();
@@ -206,8 +206,7 @@
       
       // Mostrar estadísticas finales
       const stats = global.groupState.calculateFinalStats();
-      console.log('Estadísticas finales:', stats);
-      try { const pb = document.getElementById('tutorPlayback'); if (pb) pb.style.display='none'; } catch(_) {}
+      try { const pb = document.getElementById('tutorPlayback'); if (pb) { pb.classList.remove('is-active'); pb.style.display='none'; } } catch(_) {}
       // Actualizar botones del tutor al finalizar
       global.updateTutorUI();
     }
@@ -611,7 +610,6 @@
         conAcentos: global.tutorConfig.acentosObligatorios || undefined
       });
       global.tutorConfig.palabrasGeneradas = Array.isArray(seleccion) ? seleccion : [];
-      console.log('[Tutor] Palabras generadas desde JSON:', global.tutorConfig.palabrasGeneradas.length);
     } catch (error) {
       console.error('[Tutor] Error generando palabras:', error);
       global.tutorConfig.palabrasGeneradas = [];

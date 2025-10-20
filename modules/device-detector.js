@@ -120,5 +120,3 @@ if (typeof window !== 'undefined') {
         getDeviceInfo
     };
 }
-
-console.log('✅ Device Detector cargado');

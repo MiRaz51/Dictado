@@ -30,11 +30,8 @@
      */
     start() {
       if (this.completed) {
-        console.log('[Tutorial] Ya completado anteriormente');
         return;
       }
-
-      console.log('[Tutorial] Iniciando...');
       
       // Esperar un momento para que la página cargue
       setTimeout(() => {
@@ -57,7 +54,6 @@
       // Verificar que estamos en la página correcta
       const currentPage = document.querySelector('.page.active');
       if (currentPage && currentPage.id !== step.page) {
-        console.log(`[Tutorial] Esperando página ${step.page}...`);
         // Esperar a que cambie la página
         const observer = new MutationObserver(() => {
           const newPage = document.querySelector('.page.active');
@@ -261,7 +257,6 @@
      * Completa el tutorial
      */
     complete() {
-      console.log('[Tutorial] Completado');
       localStorage.setItem('tutorial_completed', 'true');
       this.completed = true;
       this.cleanup();
@@ -274,7 +269,6 @@
       localStorage.removeItem('tutorial_completed');
       this.completed = false;
       this.currentStep = 0;
-      console.log('[Tutorial] Reiniciado');
     }
 
     /**
@@ -318,14 +312,10 @@
           const allowAuto = !!(window.CONFIG && window.CONFIG.AUTO_TUTORIAL_ON_FIRST_RUN);
           if (allowAuto && !tutorial.completed) {
             tutorial.start();
-          } else {
-            console.log('[Tutorial] Auto-start deshabilitado por configuración');
           }
         } catch(_) {}
       }, 1000);
     });
   }
-
-  console.log('✅ Tutorial module loaded');
 
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -122,7 +122,6 @@
       const medio = intermedio;
       const dificil = [...avanzado, ...experto];
       global.palabrasPorNivelDinamico = { basico, intermedio, avanzado, experto, facil, medio, dificil };
-      console.log(`Niveles dinámicos preparados:\n  Básico: ${basico.length}\n  Intermedio: ${intermedio.length}\n  Avanzado: ${avanzado.length}\n  Experto: ${experto.length}`);
     } catch (e) {
       console.warn('Error preparando niveles dinámicos:', e);
     } finally {

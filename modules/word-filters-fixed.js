@@ -329,6 +329,4 @@
   if (typeof global !== 'undefined'){
     global.WordFilters = api;
   }
-
-  console.log('✅ WordFilters (fixed) loaded');
 })(typeof window !== 'undefined' ? window : globalThis);

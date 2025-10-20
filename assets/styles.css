@@ -1,34 +1,5 @@
-/* Layout móvil: input arriba; botones lado a lado (hablar izquierda, comprobar derecha) */
-@media (max-width: 768px) {
-  .layout-game-input {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: stretch;
-  }
-  /* Input/mirror ocupa toda la primera fila */
-  .layout-game-input #vkMirror,
-  .layout-game-input #respuesta {
-    order: 1;
-    width: 100%;
-  }
-  /* Botones ocupan segunda fila, 50% cada uno */
-  .layout-game-input #btnSpeak {
-    order: 2;               /* misma fila */
-    flex: 1 1 calc(50% - 5px);
-    min-width: 0;
-  }
-  .layout-game-input #btnComprobar {
-    order: 2;               /* misma fila */
-    flex: 1 1 calc(50% - 5px);
-    min-width: 0;
-  }
-  /* Botón de permiso de audio (si aparece) debajo del speak para no romper el layout */
-  .layout-game-input #btnEnableAudio {
-    order: 3;               /* debajo de la fila de botones */
-    width: 100%;
-  }
-
 /* ===== Compactación específica: Lista de participantes (Tutor) ===== */
+/* NOTA: Media queries movidos a responsive.css */
 #page-tutor #participantsList {
   padding: 6px !important;
   min-height: 0 !important;
@@ -60,12 +31,6 @@
 #page-tutor #participantsList .participant-progress .progress { height: 6px !important; }
 #page-tutor #participantsList .participant-actions button { padding: 3px 6px !important; font-size: 12px !important; }
 
-  /* Compactar botones para asegurar cabida en una fila */
-  .layout-game-input button {
-    padding: 10px 12px;     /* más compacto */
-    font-size: 14px;        /* tipografía más contenida */
-  }
-}
 /* Paleta clara por defecto: fresca y profesional */
 /* Global box-sizing to prevent overflow on mobile */
 html { box-sizing: border-box; }
@@ -86,21 +51,30 @@ html { box-sizing: border-box; }
 }
 
 /* Previene espacios por overflow en móviles */
-html, body { overflow-x: hidden; }
-
-/* Layout base para sticky footer */
-html, body {
+html, body { 
+  overflow-x: hidden;
   height: 100%;
 }
+
+/* Layout base para sticky footer */
 body {
+  margin: 0;
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  margin: 0;
+  align-items: center;
+  justify-content: flex-start;
+  padding-bottom: 0;
+  position: relative;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  color: var(--text);
+  background: var(--bg);
 }
+
 body > .container {
   flex: 1 0 auto;
 }
+
 footer {
   flex-shrink: 0;
 }
@@ -108,27 +82,13 @@ footer {
 /* Forzar tema claro también cuando el sistema esté en oscuro */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #f7fafc;          /* claro */
+    --bg: #f7fafc;
     --panel: #ffffff;
     --panel-2: #ffffff;
-    --text: #0f172a;        /* texto oscuro para mejor legibilidad */
-    --muted: #334155;       /* un poco más oscuro que antes */
+    --text: #0f172a;
+    --muted: #334155;
     --shadow: 0 12px 28px rgba(2,6,23,.08);
   }
-}
-
-html, body { height: 100%; }
-body {
-  margin: 0;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  color: var(--text);
-  background: var(--bg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding-bottom: 0;
-  position: relative;
 }
 
 /* Aumentar padding inferior solo cuando el teclado flotante esté visible */
@@ -192,73 +152,10 @@ label { color: #1f2937; font-size: 14px; }
   to { transform: rotate(360deg); }
 }
 
-/* Badges (chips) para estados en reportes */
-.badge {
-  display: inline-block;
-  padding: 2px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 999px;
-  border: 1px solid transparent;
-  line-height: 1.5;
-}
-.badge-ok {
-  color: #065f46;
-  background: #d1fae5;
-  border-color: #a7f3d0;
-}
-.badge-off {
-  color: #374151;
-  background: #f3f4f6;
-  border-color: #e5e7eb;
-}
-
-/* Informativa (azul) */
-.badge-info {
-  color: #1e40af;
-  background: #dbeafe;
-  border-color: #bfdbfe;
-}
-
-/* Nivel badges */
-.badge-level-basico {
-  color: #065f46;       /* emerald-800 */
-  background: #d1fae5;  /* emerald-100 */
-  border-color: #a7f3d0;/* emerald-200 */
-}
-.badge-level-intermedio {
-  color: #92400e;       /* amber-800 */
-  background: #fef3c7;  /* amber-100 */
-  border-color: #fde68a;/* amber-200 */
-}
-.badge-level-avanzado {
-  color: #1e3a8a;       /* blue-900 */
-  background: #dbeafe;  /* blue-100 */
-  border-color: #bfdbfe;/* blue-200 */
-}
-.badge-level-experto {
-  color: #7c2d12;       /* orange-900 */
-  background: #ffedd5;  /* orange-100 */
-  border-color: #fed7aa;/* orange-200 */
-}
+/* Badges moved to assets/styles/components/badges.css */
 
 /* report-summary moved to assets/styles/components/reportes.css */
-
-input[type="text"], input[type="number"], select {
-  background: #fff;
-  color: var(--text);
-  border: 1px solid rgba(2,6,23,.12);
-  border-radius: 12px;
-  padding: 12px 14px;
-  outline: none;
-  box-shadow: 0 1px 2px rgba(2,6,23,.04);
-  transition: border-color .2s, box-shadow .2s, background .2s;
-}
-input::placeholder { color: #64748b; }
-input[type="text"]:focus, input[type="number"]:focus, select:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px var(--ring);
-}
+/* input/form styles moved to assets/styles/forms.css */
 
 /* Estados de validación */
 .input-error { border-color: var(--danger) !important; box-shadow: 0 0 0 4px rgba(220,38,38,.15) !important; }
@@ -277,8 +174,23 @@ button:hover { filter: brightness(1.05); box-shadow: 0 12px 28px rgba(2,132,199,
 button:active { transform: translateY(1px); }
 button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 
-.btn-ghost { background: #f8fafc; color: var(--text); border: 1px solid rgba(2,6,23,.12); box-shadow: none; }
-.btn-ghost:hover { color: var(--text); border-color: var(--primary); }
+.btn-ghost { 
+  background: #f8fafc; 
+  color: var(--text); 
+  border: 1px solid rgba(2,6,23,.12); 
+  box-shadow: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+.btn-ghost:hover { 
+  color: var(--primary); 
+  border-color: var(--primary);
+  background: rgba(14,165,233,.05);
+  transform: translateY(-1px);
+}
+.btn-ghost:active {
+  transform: translateY(0);
+}
 
 /* Botón de peligro/alerta (para desbloquear pantallas) */
 .btn-danger {
@@ -449,34 +361,53 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
   .progress-text { text-align: left; }
 }
 
-/* Modal personalizado */
+/* Modal personalizado - Diseño mejorado */
 .modal {
   position: fixed;
-  z-index: 10010; /* por encima de cualquier overlay */
+  z-index: 10010;
   left: 0;
   top: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px) saturate(120%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: modalFadeIn 0.25s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(8px) saturate(120%);
+  }
 }
 
 .modal-content {
   position: relative;
-  background-color: var(--panel);
-  margin: 10% auto;
+  background: linear-gradient(to bottom, #ffffff 0%, #fafbfc 100%);
+  margin: 0;
   padding: 0;
-  border-radius: var(--card-radius);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
+  box-shadow: 
+    0 24px 48px rgba(0, 0, 0, 0.2),
+    0 12px 24px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
   width: 90%;
   max-width: 500px;
-  animation: modalSlideIn 0.3s ease-out;
+  animation: modalSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  overflow: hidden;
 }
 
 @keyframes modalSlideIn {
   from {
     opacity: 0;
-    transform: translateY(-50px) scale(0.9);
+    transform: translateY(-30px) scale(0.95);
   }
   to {
     opacity: 1;
@@ -485,44 +416,82 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 }
 
 .modal-header {
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid rgba(2,6,23,.08);
+  padding: 24px 28px 20px;
+  border-bottom: 1px solid rgba(2,6,23,.06);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.8), transparent);
 }
 
 .modal-header h3 {
   margin: 0;
   color: var(--text);
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .modal-close {
   color: var(--muted);
-  font-size: 28px;
-  font-weight: bold;
+  font-size: 24px;
+  font-weight: 400;
   cursor: pointer;
   line-height: 1;
-  padding: 0 4px;
-  border-radius: 4px;
-  transition: all 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: none;
 }
 
 .modal-close:hover {
   color: var(--text);
-  background-color: rgba(2,6,23,.06);
+  background-color: rgba(2,6,23,.08);
+  transform: scale(1.1);
+}
+
+.modal-close:active {
+  transform: scale(0.95);
 }
 
 .modal-body {
-  padding: 20px 24px 24px;
+  padding: 24px 28px 28px;
+  max-height: 70vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.3);
 }
 
 .modal-body p {
-  margin: 0 0 20px 0;
+  margin: 0 0 16px 0;
   color: var(--text);
-  line-height: 1.5;
+  line-height: 1.6;
+  font-size: 15px;
 }
 
 .modal-actions {
@@ -530,39 +499,96 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
   gap: 12px;
   justify-content: flex-end;
   flex-wrap: wrap;
+  padding: 20px 28px;
+  border-top: 1px solid rgba(2,6,23,.04);
+  background: linear-gradient(to top, rgba(255,255,255,0.8), transparent);
 }
 
 .btn-primary {
-  background: linear-gradient(180deg, var(--primary), var(--primary-600));
+  background: linear-gradient(135deg, var(--primary), var(--primary-600));
   border: none;
   color: #fff;
-  padding: 12px 20px;
+  padding: 13px 24px;
   font-weight: 600;
-  letter-spacing: .2px;
+  font-size: 15px;
+  letter-spacing: 0.3px;
   border-radius: 12px;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(14,165,233,.28);
-  transition: all 0.2s ease;
+  box-shadow: 
+    0 4px 12px rgba(14,165,233,.25),
+    0 2px 4px rgba(14,165,233,.15);
+  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s;
 }
 
 .btn-primary:hover {
-  filter: brightness(1.05);
-  box-shadow: 0 12px 28px rgba(2,132,199,.36);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 20px rgba(14,165,233,.35),
+    0 4px 8px rgba(14,165,233,.2);
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 
+    0 2px 8px rgba(14,165,233,.3),
+    0 1px 3px rgba(14,165,233,.2);
 }
 
 /* Modal responsive */
 @media (max-width: 640px) {
   .modal-content {
-    margin: 20% auto;
+    margin: 15% auto;
     width: 95%;
+    max-width: 95vw;
+  }
+  
+  .modal-header {
+    padding: 16px 18px 14px;
+  }
+  
+  .modal-body {
+    padding: 16px 18px 18px;
   }
   
   .modal-actions {
     flex-direction: column;
+    padding: 12px 18px;
   }
   
   .modal-actions button {
     width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-content {
+    margin: 10% auto;
+    width: 96%;
+  }
+  
+  .modal-header h3 {
+    font-size: 16px;
+  }
+  
+  .modal-body p {
+    font-size: 14px;
   }
 }
 
@@ -620,6 +646,22 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
     grid-template-columns: 1fr;
     gap: 16px;
   }
+  
+  .mode-card {
+    padding: 24px 20px;
+  }
+  
+  .mode-icon {
+    font-size: 48px;
+  }
+  
+  .mode-card h4 {
+    font-size: 17px;
+  }
+  
+  .mode-card p {
+    font-size: 13px;
+  }
 }
 
 /* Estilos para interfaces de tutor y participante */
@@ -641,6 +683,26 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 
 .session-details p {
   margin: 4px 0;
+}
+
+@media (max-width: 520px) {
+  .status-panel {
+    padding: 12px;
+    margin: 12px 0;
+  }
+  
+  .session-card {
+    padding: 12px;
+    margin: 12px 0;
+  }
+  
+  .session-card h4 {
+    font-size: 16px;
+  }
+  
+  .session-details p {
+    font-size: 14px;
+  }
 }
 
 .session-id {
@@ -762,6 +824,23 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 .connection-panel,
 .exercise-panel {
   margin: 16px 0;
+}
+
+@media (max-width: 520px) {
+  .participant-info {
+    padding: 12px;
+    margin: 12px 0;
+  }
+  
+  .participant-info p {
+    font-size: 14px;
+    margin: 6px 0;
+  }
+  
+  .connection-panel,
+  .exercise-panel {
+    margin: 12px 0;
+  }
 }
 
 /* Realce sutil del resultado al comprobar */
@@ -891,6 +970,26 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
   font-size: 14px;
 }
 
+@media (max-width: 520px) {
+  .config-summary {
+    padding: 12px;
+    margin: 12px 0;
+  }
+  
+  .config-summary h4 {
+    font-size: 15px;
+  }
+  
+  .config-summary p {
+    font-size: 13px;
+  }
+  
+  .config-summary button {
+    width: 100%;
+    margin-top: 8px;
+  }
+}
+
 .participant-progress {
   display: flex;
   align-items: center;
@@ -907,6 +1006,61 @@ button:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 }
 .participant-stats p {
   margin: 6px 0;
+}
+
+/* Botones de nivel: 2x2 en móvil (unificado para individual y tutor) */
+@media (max-width: 768px) {
+  /* Todos los botones de nivel usando clase común */
+  .actions .btn-nivel {
+    flex: 1 1 calc(50% - 5px) !important;
+    min-width: 0 !important;
+    padding: 14px 10px !important;
+    font-size: 14px !important;
+    box-sizing: border-box !important;
+  }
+  
+  /* Botones ghost (volver, refrescar) en su propia línea */
+  .actions .btn-ghost {
+    flex: 1 1 100% !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .actions .btn-nivel {
+    flex: 1 1 calc(50% - 4px) !important;
+    padding: 12px 8px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* Página de reporte: botones en horizontal en móvil */
+@media (max-width: 768px) {
+  #page-report .actions {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  
+  #page-report .actions button {
+    flex: 1 1 calc(50% - 5px) !important;
+    min-width: 0 !important;
+    padding: 14px 10px !important;
+    font-size: 14px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+@media (max-width: 520px) {
+  #page-report .actions {
+    gap: 8px !important;
+  }
+  
+  #page-report .actions button {
+    flex: 1 1 calc(50% - 4px) !important;
+    padding: 12px 8px !important;
+    font-size: 13px !important;
+  }
 }
 
 /* Modo y roles: ajustar SOLO en móviles */

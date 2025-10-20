@@ -369,6 +369,4 @@
 
   const instance = new PageHints();
   global.PageHints = instance;
-
-  console.log('✅ PageHints module loaded');
 })(typeof window !== 'undefined' ? window : globalThis);

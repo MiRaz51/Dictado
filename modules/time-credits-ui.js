@@ -218,6 +218,27 @@
       if (tcCancel) tcCancel.addEventListener('click', closeTc);
       if (tcModal) tcModal.addEventListener('click', (e) => { try { if (e.target === tcModal) closeTc(); } catch(_) {} });
 
+      // Listener para mantener el PIN visible cuando se enfoca (móvil con teclado)
+      if (tcPin) {
+        tcPin.addEventListener('focus', () => {
+          try {
+            // Pequeño delay para que el teclado se abra primero
+            setTimeout(() => {
+              try {
+                const body = document.querySelector('#timeCreditsModal .modal-body');
+                if (body && global.isMobile) {
+                  const pinRect = tcPin.getBoundingClientRect();
+                  const bodyRect = body.getBoundingClientRect();
+                  // Centrar el PIN en el área visible del modal body
+                  const offset = (pinRect.top - bodyRect.top) - (body.clientHeight/2 - pinRect.height/2);
+                  body.scrollBy({ top: offset, behavior: 'smooth' });
+                }
+              } catch(_) {}
+            }, 300);
+          } catch(_) {}
+        });
+      }
+
       if (tcRedeem) tcRedeem.addEventListener('click', () => {
         try {
           if (typeof global.TimeCredits === 'undefined') return;

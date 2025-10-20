@@ -4,7 +4,7 @@
 .session-details p { margin:4px 0; }
 .session-id { font-family: monospace; background:#fff; padding:4px 8px; border-radius:4px; border:1px solid #ddd; font-weight:bold; color: var(--primary); }
 .participants-panel { margin:20px 0; }
-.participants-list { background:#f8fafc; border:1px solid rgba(2,6,23,.08); border-radius:8px; padding:6px; min-height:60px; /* quitar límite fijo de alto, lo controla JS */ max-height:none; overflow-y:visible; }
+.participants-list { background:#f8fafc; border:1px solid rgba(2,6,23,.08); border-radius:8px; padding:6px; min-height:60px; max-height:none; overflow-y:visible; height:auto; }
 /* Fila compacta de participante: menos padding y sin tarjeta extra */
 .participants-list .participant-item { display:flex; align-items:center; justify-content:space-between; }
 .participant-name { font-weight:500; color: var(--text); }
@@ -66,6 +66,29 @@
 #page-tutor #participantsList .pi-actions { display:flex; gap:10px; }
 #page-tutor #participantsList .pi-actions .btn-ghost { padding:5px 10px; font-size:13px; line-height:1; height:26px; }
 
+/* Prevent horizontal overflow in participant rows */
+#page-tutor #participantsList { overflow-x: hidden; }
+#page-tutor #participantsList .pi-item { flex-wrap: nowrap; max-width: 100%; }
+#page-tutor #participantsList .pi-name { flex: 1 1 140px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#page-tutor #participantsList .pi-stats { flex: 0 0 auto; flex-wrap: nowrap; }
+#page-tutor #participantsList .pi-corr,
+#page-tutor #participantsList .pi-inc,
+#page-tutor #participantsList .pi-prog,
+#page-tutor #participantsList .pi-tc { min-width: 0; flex: 0 1 auto; }
+#page-tutor #participantsList .pi-actions { margin-left: auto; flex-wrap: wrap; }
+
+/* ====== Desktop: lista de participantes sin scroll vertical ====== */
+#page-tutor .participants-list,
+#page-tutor #participantsList {
+  max-height: none !important;
+  overflow-y: visible !important;
+  height: auto !important;
+}
+
+/* Ocultar scrollbars si algún estilo inline/JS los activa accidentalmente */
+#page-tutor #participantsList { scrollbar-width: none; }
+#page-tutor #participantsList::-webkit-scrollbar { display: none; }
+
 .tutor-controls { display:flex; gap:12px; margin:20px 0; flex-wrap:wrap; }
 #sessionInfo .tutor-controls { margin-bottom:12px; align-items:center; justify-content:center; }
 #tutorPlayback .actions { display:flex; flex-wrap:wrap; gap:8px; }
@@ -77,6 +100,8 @@
 .session-status-row { margin-top: 8px; }
 
 #tutorPlayback { margin: 8px 0 12px; display: none; gap: 6px; flex-direction: column; width:100%; }
+/* Visible solo cuando el ejercicio está activo */
+#tutorPlayback.is-active { display: flex; }
 #tutorPlayback .row-top { display:flex; flex-direction:column; gap:8px; width:100%; }
 #tutorPlayback .row-top .inline { display:flex; align-items:center; gap:6px; }
 #tutorPlayback .progress-row { display:flex; align-items:center; gap:8px; width:100%; }
@@ -89,24 +114,46 @@
 /* Select de autoDelay (movido desde HTML) */
 #autoDelay { min-width: 80px; }
 
+/* ====== Auto + Delay en la misma línea (desktop por defecto) ====== */
+#autoControlsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#autoControlsRow label.inline {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+#autoControlsRow #autoDelay {
+  min-width: 100px;
+}
+
 /* Zona izquierda de la fila inferior (antes inline) */
 #tutorPlayback .row-bottom .left { display:flex; align-items:center; gap:10px; }
 
 /* Indicador de respuestas (margen a la izquierda) */
 #tutorResponses { margin-left: 8px; }
 
-/* ====== Responsive (móvil/tablet) ====== */
-@media (max-width: 480px) {
-  #sessionInfo .tutor-controls button { flex: 1 1 45%; min-width: 140px; }
-  #tutorPlayback .actions button { flex: 1 1 45%; min-width: 140px; }
-  #tutorPlayback .progress-row { flex-direction: column; align-items: stretch; gap: 6px; }
-  #tutorPlayback .progress-text { text-align: left; }
+/* Mobile tweaks for participant list - KEPT HERE (specific to tutor) */
+@media (max-width: 520px) {
+  #page-tutor #participantsList .pi-item { gap: 8px; }
+  /* Only show: name + correct + incorrect in a single line */
+  #page-tutor #participantsList .pi-item { flex-wrap: nowrap; align-items: center; }
+  #page-tutor #participantsList .pi-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  #page-tutor #participantsList .pi-stats { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 8px; }
+  /* Hide extra elements on mobile */
+  #page-tutor #participantsList .pi-badge,
+  #page-tutor #participantsList .pi-prog,
+  #page-tutor #participantsList .pi-actions,
+  #page-tutor #participantsList .pi-tc { display: none !important; }
+  /* Compact chips */
+  #page-tutor #participantsList .pi-corr,
+  #page-tutor #participantsList .pi-inc { padding: 4px 8px; font-size: 12px; line-height: 1; }
 }
 
-@media (max-width: 768px) {
-  .tutor-controls { flex-direction:column; }
-  #tutorPlayback .actions button { min-width: calc(50% - 8px); flex:1 1 auto; }
-}
+/* Tutor controls responsive moved to responsive.css */
 
 /* Copy session ID button: increase size */
 #btnCopySessionId {
@@ -120,19 +167,9 @@
   justify-content: center;
 }
 
-/* Mobile: stack session header so QR button doesn't overflow */
-@media (max-width: 520px) {
-  #page-tutor .session-header-row { flex-direction: column; align-items: stretch; gap: 8px; }
-  #page-tutor .session-header-row > p { margin: 0; }
-  #btnShowQR { width: 100%; }
-}
+/* Session header responsive moved to responsive.css */
 
-/* Extra spacing under the QR modal close button */
-#qrModal .modal-actions { margin-bottom: 12px; }
-#qrModal .modal-actions .btn-primary { margin-bottom: 8px; }
-#qrModal .modal-content { padding-bottom: 18px; }
-
-/* Center QR modal on screen via overlay container */
+/* QR Modal - Layout corregido */
 #qrModal {
   position: fixed !important;
   inset: 0;
@@ -143,10 +180,291 @@
   z-index: 9999;
   box-sizing: border-box;
 }
+
 #qrModal .modal-content {
   position: relative;
   transform: none;
-  max-width: 92vw;
+  max-width: 420px;
   width: auto;
   margin: 0 auto;
+}
+
+/* QR Modal Body - Asegurar layout vertical correcto */
+#qrModal .modal-body {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 16px !important;
+  padding: 24px 28px !important;
+}
+
+/* QR Code Container - Dimensiones fijas */
+#qrModal #qrCodeContainer {
+  width: 256px !important;
+  height: auto !important;
+  min-height: 256px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  overflow: visible !important;
+}
+
+/* Estilos para canvas QR (QRious) */
+#qrModal #qrCodeContainer canvas {
+  width: 256px !important;
+  height: 256px !important;
+  margin: 0 auto !important;
+  display: block !important;
+}
+
+/* QR Session ID Row - Centrado y espaciado */
+#qrModal #qrSessionIdRow {
+  width: 100%;
+  max-width: 280px;
+  text-align: center;
+  font-size: 13px;
+  color: #334155;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 !important;
+  margin-top: 8px !important;
+  box-sizing: border-box;
+  position: relative !important;
+  z-index: 1 !important;
+  flex-shrink: 0 !important;
+}
+
+#qrModal #qrSessionId {
+  font-weight: 700;
+  color: #0ea5e9;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+}
+
+/* Hint text debajo del QR */
+#qrModal .modal-body .hint {
+  text-align: center;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+  max-width: 300px;
+  margin: 0 !important;
+  margin-top: 4px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Modal actions centradas */
+#qrModal .modal-actions {
+  justify-content: center !important;
+  padding: 16px 28px 20px !important;
+}
+
+/* QR modal responsive moved to responsive.css */
+@media (max-width: 520px) {
+  /* QR modal specific styles in responsive.css */
+  
+  #qrModal .modal-content { 
+    max-width: 95vw;
+    width: 95vw;
+  }
+  
+  #qrModal .modal-header { 
+    padding: 16px 18px 14px;
+  }
+  
+  #qrModal .modal-header h3 {
+    font-size: 18px;
+  }
+  
+  #qrModal .modal-body { 
+    padding: 20px 18px !important;
+    gap: 14px !important;
+  }
+  
+  #qrModal #qrCodeContainer { 
+    width: 220px !important; 
+    min-height: 220px !important;
+  }
+  
+  #qrModal #qrCodeContainer canvas {
+    width: 220px !important;
+    height: 220px !important;
+  }
+  
+  #qrModal #qrSessionIdRow {
+    max-width: 100%;
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+  
+  #qrModal #qrSessionId {
+    font-size: 13px;
+  }
+  
+  #qrModal .modal-body .hint {
+    font-size: 12px;
+    max-width: 100%;
+  }
+  
+  #qrModal .modal-actions { 
+    padding: 14px 18px 18px !important;
+  }
+  
+  #qrModal .modal-actions button {
+    width: 100%;
+    padding: 14px 20px;
+  }
+}
+
+/* ====== Tutor controls: grid 2x2 moved to responsive.css ====== */
+@media (max-width: 520px) {
+  /* Tutor controls grid in responsive.css */
+  #sessionInfo > .tutor-controls:not(#tutorPlayback) {
+    /* Styles in responsive.css */
+    grid-template-columns: 1fr 1fr !important;
+    grid-auto-rows: auto;
+    gap: 10px !important;
+    align-items: stretch;
+    justify-items: stretch;
+  }
+
+  /* Start Exercise spans full width on first row */
+  #sessionInfo > .tutor-controls:not(#tutorPlayback) #startExercise {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Ensure the four action buttons fill the grid cells uniformly */
+  #sessionInfo > .tutor-controls:not(#tutorPlayback) #tutorStopAll,
+  #sessionInfo > .tutor-controls:not(#tutorPlayback) #tutorNewExercise,
+  #sessionInfo > .tutor-controls:not(#tutorPlayback) #tutorNewSession,
+  #sessionInfo > .tutor-controls:not(#tutorPlayback) #stopSession {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 0 0 auto !important; /* neutralize previous flex rules */
+  }
+
+  /* Neutralize earlier mobile rule that forced flex sizing */
+  #sessionInfo > .tutor-controls:not(#tutorPlayback) button {
+    flex: initial !important;
+    min-width: 0 !important;
+  }
+
+  /* No forzar display en móvil; solo ajustar dirección cuando esté activo */
+  #sessionInfo > #tutorPlayback.is-active {
+    flex-direction: column !important;
+  }
+
+  /* And restore its inner actions row/buttons exactly as before */
+  #sessionInfo > #tutorPlayback .actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin-left: auto;
+    align-items: center;
+    justify-content: center; /* centrar el grupo de botones */
+  }
+  #sessionInfo > #tutorPlayback .actions button {
+    width: auto !important;
+    flex: 0 0 auto !important;
+    min-width: 150px !important;
+  }
+
+  /* --- Align Reproducir y Siguiente en la misma fila (solo móvil) --- */
+  #sessionInfo > #tutorPlayback .actions #tutorPlayWord,
+  #sessionInfo > #tutorPlayback .actions #tutorNextWord {
+    flex: 1 1 calc(50% - 8px) !important; /* 2 por fila, mismas dimensiones */
+    min-width: 0 !important;
+    order: 1;
+    display: inline-flex;           /* igualar alto y centrar contenido */
+    align-items: center;
+    justify-content: center;
+    padding: 14px 16px !important;  /* mismo padding para ambos */
+    height: 48px !important;        /* misma altura visual */
+    box-sizing: border-box;
+  }
+
+  /* 'Auto' y 'Delay' juntos en la segunda fila (50% + 50%) */
+  #sessionInfo > #tutorPlayback .actions label.inline { 
+    flex: 1 1 calc(50% - 8px) !important; 
+    min-width: 0 !important; 
+    order: 2; 
+    display: flex !important; 
+    align-items: center; 
+    justify-content: flex-start; 
+  }
+  #sessionInfo > #tutorPlayback .actions #autoDelay { 
+    flex: 1 1 calc(50% - 8px) !important; 
+    min-width: 0 !important; 
+    order: 2; 
+  }
+  /* 'Resp' queda debajo en la tercera fila */
+  #sessionInfo > #tutorPlayback .actions #tutorResponses { 
+    flex: 1 1 100% !important; 
+    min-width: 0 !important; 
+    order: 3; 
+  }
+
+  /* === Auto + Delay por encima del progreso: misma línea === */
+  #autoControlsRow {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 8px;
+    align-items: center;
+    margin: 2px 0 6px 0;
+    box-sizing: border-box;
+  }
+  #autoControlsRow label.inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    min-width: 0; /* allow shrinking */
+  }
+  #autoControlsRow #autoDelay {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Mantener barra de progreso y contador en la misma fila */
+  #sessionInfo > #tutorPlayback .row-top .progress-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  #sessionInfo > #tutorPlayback .row-top .progress {
+    flex: 1 1 auto !important;
+  }
+  #sessionInfo > #tutorPlayback .row-top #tutorOverallProgressText {
+    white-space: nowrap;
+  }
+
+  /* Centrado perfecto de los botones: eliminar columna izquierda vacía y expandir acciones */
+  #sessionInfo > #tutorPlayback .row-bottom .left { 
+    display: none !important; 
+  }
+  #sessionInfo > #tutorPlayback .row-bottom .actions { 
+    margin-left: 0 !important; 
+    width: 100% !important; 
+    justify-content: center !important; 
+  }
+}
+
+/* Apariencia cuando el select está deshabilitado por Auto apagado */
+select.is-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

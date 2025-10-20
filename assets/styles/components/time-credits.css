@@ -131,7 +131,11 @@
 
 /* ====== Responsive (móvil/tablet) ====== */
 @media (max-width: 480px) {
-  #timeCreditsModal { align-items: center; justify-content: center; }
+  #timeCreditsModal { 
+    align-items: flex-start; 
+    justify-content: flex-start;
+    padding: 8px 0 0 0;
+  }
   /* Mostrar SOLO los minutos (números) y permitir que el contenedor crezca para 3 dígitos */
   .tc-badge-floating {
     position: fixed !important; /* mismo contexto que help-button */
@@ -157,17 +161,20 @@
   #timeCreditsModal .modal-content {
     width: 94vw;
     max-width: 520px;
-    /* Alto proporcional al viewport real del móvil */
-    max-height: calc(var(--vvh, 100dvh) - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - max(var(--vvb, 0px), 56px));
+    /* Alto que ocupa todo el espacio disponible */
+    height: calc(var(--vvh, 100dvh) - 16px - env(safe-area-inset-top, 0px));
+    max-height: calc(var(--vvh, 100dvh) - 16px - env(safe-area-inset-top, 0px));
     border-radius: 12px;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* recorta sombras internas si corresponde */
+    overflow: hidden;
     box-sizing: border-box;
+    margin: 8px auto;
   }
   @supports (height: 100svh) {
     #timeCreditsModal .modal-content {
-      max-height: calc(var(--vvh, 100svh) - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - max(var(--vvb, 0px), 56px));
+      height: calc(var(--vvh, 100svh) - 16px - env(safe-area-inset-top, 0px));
+      max-height: calc(var(--vvh, 100svh) - 16px - env(safe-area-inset-top, 0px));
     }
   }
   #timeCreditsModal .modal-header { flex: 0 0 auto; }
@@ -175,32 +182,73 @@
   #timeCreditsModal .modal-body {
     /* Solo el body scrollea dentro del alto máximo */
     flex: 1 1 auto;
-    min-height: 0; /* necesario para que flex permita scroll en el hijo */
+    min-height: 0;
     overflow-y: auto;
-    padding-bottom: 8px; /* pequeño respiro sobre las acciones */
+    padding-bottom: 8px;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    /* Asegurar que el contenido sea visible */
+    display: flex;
+    flex-direction: column;
   }
   #timeCreditsModal .modal-actions {
     position: sticky; bottom: 0; z-index: 1;
     background: #fff;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px) + max(var(--vvb, 0px), 56px));
-    padding-top: 8px; padding-left: 12px; padding-right: 12px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    padding-top: 10px; padding-left: 12px; padding-right: 12px;
     box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
     border-top: 1px solid #e2e8f0;
     backdrop-filter: saturate(120%) blur(4px);
+    /* Botones en horizontal en móvil */
+    flex-direction: row !important;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  #timeCreditsModal .modal-actions button {
+    flex: 1 1 48%;
+    min-width: 0;
   }
   /* Reducir paddings/márgenes internos para encajar mejor en pantallas pequeñas */
-  #timeCreditsModal .modal-header { padding: 12px 14px; }
-  #timeCreditsModal .modal-body { padding: 12px 14px; }
-  #timeCreditsModal .tc-card { margin-bottom: 12px; padding: 12px; }
-  #timeCreditsModal .tc-card .tc-user-label { font-size: 20px; }
-  #timeCreditsModal .tc-card .tc-row .tc-balance { font-size: 28px; }
-  #timeCreditsModal .tc-info { margin-bottom: 12px; padding: 12px; }
-  #timeCreditsModal .tc-info .tc-info-title { font-size: 14px; }
-  #timeCreditsModal .tc-info .tc-info-text { font-size: 12px; }
-  #timeCreditsModal label { font-size: 14px; }
-  #timeCreditsModal .hint { font-size: 11px; }
+  #timeCreditsModal .modal-header { padding: 10px 12px; }
+  #timeCreditsModal .modal-body { padding: 10px 12px; padding-bottom: 6px; }
+  #timeCreditsModal .tc-card { margin-bottom: 8px; padding: 10px; }
+  #timeCreditsModal .tc-card .tc-user-label { font-size: 18px; margin-bottom: 8px; }
+  #timeCreditsModal .tc-card .tc-row .tc-balance { font-size: 24px; }
+  #timeCreditsModal .tc-card .tc-row .tc-balance-title { font-size: 13px; }
+  #timeCreditsModal .tc-card .tc-row .tc-balance-unit { font-size: 16px; }
+  /* Mensaje informativo destacado en móvil */
+  #timeCreditsModal .tc-info { 
+    margin-bottom: 10px; 
+    padding: 12px 14px;
+    min-height: 140px;
+    max-height: 180px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Hacer más visible y llamativo */
+    background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+    border-left: 4px solid #0284c7;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
+    flex-shrink: 0;
+  }
+  #timeCreditsModal .tc-info .tc-info-title { 
+    font-size: 14px; 
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: #0284c7;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #timeCreditsModal .tc-info .tc-info-text { 
+    font-size: 12px; 
+    line-height: 1.6;
+    color: #334155;
+  }
+  #timeCreditsModal .form-row { gap: 6px; }
+  #timeCreditsModal .form-field { margin-bottom: 0; }
+  #timeCreditsModal label { font-size: 13px; margin-bottom: 4px; }
+  #timeCreditsModal input { padding: 8px 10px; font-size: 16px; }
+  #timeCreditsModal .hint { font-size: 10px; margin-top: 2px; }
 }
 
 /* Evitar zoom en iOS al enfocar inputs numéricos/clave */

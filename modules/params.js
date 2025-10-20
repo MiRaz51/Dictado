@@ -58,7 +58,4 @@
 
   global.Params = Params;
   global.validateFields = validateFields;
-  
-  // Log de confirmación
-  console.log('[Params] validateFields() expuesta globalmente');
 })(typeof window !== 'undefined' ? window : globalThis);

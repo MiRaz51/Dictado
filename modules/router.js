@@ -7,7 +7,6 @@
   function __emitPageChange(pageId){ try { __subscribers.forEach(fn => { try { fn(pageId); } catch(_) {} }); } catch(_) {} }
 
   function goToPage(pageId) {
-    console.log('[Router] Navegando a página:', pageId);
     const ids = (global.CONSTANTS && global.CONSTANTS.ROUTER && Array.isArray(global.CONSTANTS.ROUTER.PAGE_IDS))
       ? global.CONSTANTS.ROUTER.PAGE_IDS
       : ['page-mode-select', 'page-role-select', 'page-config', 'page-game', 'page-tutor-info', 'page-tutor-config', 'page-tutor', 'page-participant', 'page-report'];
@@ -33,12 +32,10 @@
           : ['page-mode-select', 'page-role-select', 'page-tutor-info', 'page-tutor-config', 'page-tutor'];
         
         if (hideBadgePages.includes(pageId)) {
-          console.log('[TimeCredits] Ocultando badge en página:', pageId);
           tcBadge.style.display = 'none';
         } else {
           // Mostrar en: page-config, page-game, page-report (modo individual)
           // y page-participant (modo grupal)
-          console.log('[TimeCredits] Mostrando badge en página:', pageId);
           tcBadge.style.display = 'inline-flex';
         }
       } else {

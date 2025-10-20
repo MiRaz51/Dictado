@@ -173,7 +173,6 @@
     on('tutorStopAll', 'click', () => { try { window.tutorToggleLockAll && tutorToggleLockAll(); } catch(_) {} });
     on('tutorPlayWord', 'click', () => { try { window.tutorPlayCurrentWord && tutorPlayCurrentWord(); } catch(_) {} });
     on('tutorNextWord', 'click', (e) => {
-      try { console.log('[Init] tutorNextWord clicked'); } catch(_) {}
       try { e && e.preventDefault && e.preventDefault(); } catch(_) {}
       try { window.nextWordInExercise && nextWordInExercise(); } catch(err) { try { console.error('[Init] nextWordInExercise error:', err); } catch(_) {} }
     });
