@@ -9,7 +9,7 @@
   'use strict';
 
   function configurarEnterSiguiente(){
-    const fieldOrder = ['alumno', 'curso', 'filtroLetras', 'cantidad', 'btnNext'];
+    const fieldOrder = ['alumno', 'edad', 'btnNext'];
 
     const focusElement = (elementId) => {
       const element = document.getElementById(elementId);
@@ -27,6 +27,17 @@
       element.addEventListener('keydown', (e) => {
         if (e.key !== 'Enter') return;
         e.preventDefault();
+        
+        // Validar edad antes de avanzar
+        if (id === 'edad') {
+          const edadVal = parseInt(element.value || '0');
+          if (!edadVal || edadVal < 6) {
+            alert('Por favor, ingresa una edad válida (mínimo 6 años).');
+            element.focus();
+            return;
+          }
+        }
+        
         if (id === 'btnNext') { try { global.goNextFromConfig && global.goNextFromConfig(); } catch(_) {} return; }
         for (let i = index + 1; i < fieldOrder.length; i++) {
           if (focusElement(fieldOrder[i])) break;

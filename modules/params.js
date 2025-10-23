@@ -6,6 +6,7 @@
       try {
         const params = {
           alumno: document.getElementById('alumno')?.value || '',
+          edad: document.getElementById('edad')?.value || '',
           cantidad: document.getElementById('cantidad')?.value || '',
           strict: !!document.getElementById('strictMode')?.checked,
         };
@@ -22,6 +23,9 @@
         const p = CacheManager.get(global.CONFIG.PARAMS_KEY);
         if (!p) return null;
         if (p.alumno) document.getElementById('alumno').value = p.alumno;
+        if (p.edad) {
+          const el = document.getElementById('edad'); if (el) el.value = p.edad;
+        }
         if (typeof p.cantidad === 'string' || typeof p.cantidad === 'number') {
           const el = document.getElementById('cantidad'); if (el) el.value = p.cantidad;
         }
@@ -35,12 +39,17 @@
     updateNextEnabled(){
       try {
         const alumnoVal = (document.getElementById('alumno')?.value || '').trim();
+        const edadEl = document.getElementById('edad');
+        const edadVal = edadEl?.value || '';
         const btn = document.getElementById('btnNext');
         if (!btn) return false;
-        const ready = !!(alumnoVal);
+        
+        // Habilitar botón si ambos campos tienen información (sin validar edad mínima)
+        const ready = !!(alumnoVal && edadVal);
         btn.disabled = !ready;
         if (ready) btn.classList.remove('btn-ghost');
         else if (!btn.classList.contains('btn-ghost')) btn.classList.add('btn-ghost');
+        
         return ready;
       } catch(_) { return false; }
     }

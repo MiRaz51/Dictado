@@ -104,7 +104,7 @@
       const page = document.getElementById('page-participant');
       if (!page) return;
 
-      const order = ['participantName', 'sessionIdInput', 'connectToSession'];
+      const order = ['participantName', 'participantEdad', 'sessionIdInput', 'connectToSession'];
 
       order.forEach((id, idx) => {
         const el = document.getElementById(id);

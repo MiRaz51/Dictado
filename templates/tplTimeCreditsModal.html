@@ -8,8 +8,18 @@
     <div class="modal-body">
       <!-- Tarjeta de participante con saldo destacado -->
       <div class="tc-card">
-        <div class="tc-subtitle">Participante</div>
-        <div class="tc-user-label" id="tcUserLabel">-</div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+          <!-- Columna Participante -->
+          <div style="flex: 1;">
+            <div class="tc-subtitle">Participante</div>
+            <div class="tc-user-label" id="tcUserLabel" style="margin: 0;">-</div>
+          </div>
+          <!-- Columna Edad -->
+          <div style="text-align: right;">
+            <div class="tc-subtitle">Edad</div>
+            <div class="tc-user-label" id="tcAgeLabel" style="margin: 0;">-</div>
+          </div>
+        </div>
         <div class="tc-row">
           <div class="tc-balance-title">Saldo disponible:</div>
           <div class="tc-balance" id="tcBalanceDisplay">0</div>

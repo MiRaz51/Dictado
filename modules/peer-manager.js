@@ -179,13 +179,14 @@ class PeerManager {
         this.sessionId = tutorSessionId;
         this.isConnected = true;
         
-        // Enviar información del participante con nombre y saldo de créditos
+        // Enviar información del participante con nombre, edad y saldo de créditos
         let tcMinutes = 0;
         try { tcMinutes = (window.TimeCredits && typeof window.TimeCredits.getBalance === 'function') ? (window.TimeCredits.getBalance()?.minutesAvailable || 0) : 0; } catch(_) {}
         this.sendToTutor({
           type: 'participant_info',
           participantId: this.peer.id,
           participantName: window.participantName || 'Participante sin nombre',
+          participantEdad: window.participantEdad || 0,
           timeCredits: tcMinutes,
           timestamp: Date.now()
         });

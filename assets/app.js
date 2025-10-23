@@ -509,19 +509,31 @@ function probarSistemaNiveles() {
 function goNextFromConfig() {
   const alumnoEl = document.getElementById('alumno');
   const alumnoVal = (alumnoEl?.value || '').trim();
+  const edadEl = document.getElementById('edad');
+  const edadVal = parseInt(edadEl?.value || '0');
 
   // Limpiar estado previo
   alumnoEl?.classList.remove('input-error');
+  edadEl?.classList.remove('input-error');
   const aErr = document.getElementById('alumnoError'); if (aErr) aErr.style.display = 'none';
 
-  if (!alumnoVal) {
-    const msg = `Falta completar: Alumno.`;
-    try { alert(msg); } catch(_) {}
-    alumnoEl?.classList.add('input-error');
-    const h = document.getElementById('alumnoError');
-    if (h) h.style.display = 'block';
-    alumnoEl?.focus();
-    return; // no avanzar
+  // Usar función de validación del módulo
+  const validation = window.validarConfiguracion ? window.validarConfiguracion(alumnoVal, edadVal) : null;
+  
+  if (validation && !validation.valid) {
+    validation.errors.forEach(error => {
+      try { alert(error.message); } catch(_) {}
+      if (error.field === 'alumno') {
+        alumnoEl?.classList.add('input-error');
+        const h = document.getElementById('alumnoError');
+        if (h) h.style.display = 'block';
+        alumnoEl?.focus();
+      } else if (error.field === 'edad') {
+        edadEl?.classList.add('input-error');
+        edadEl?.focus();
+      }
+    });
+    return;
   }
 
   // Guardar y avanzar
@@ -922,21 +934,32 @@ async function initTutorMode() {
 // Conectar a sesión (participante)
 async function connectToSession() {
   const participantNameInput = document.getElementById('participantName');
+  const participantEdadInput = document.getElementById('participantEdad');
   const sessionIdInput = document.getElementById('sessionIdInput');
   const connectBtn = document.getElementById('connectToSession');
   const statusPanel = document.getElementById('participantStatus');
   const connectionStatus = document.getElementById('connectionStatus');
   
   const participantName = participantNameInput.value.trim();
+  const participantEdad = participantEdadInput ? parseInt(participantEdadInput.value) : 0;
   let sessionId = (sessionIdInput.value || '').trim().toUpperCase();
   const DEV_BYPASS = (typeof window !== 'undefined') && window.CONFIG && window.CONFIG.DEV_DISABLE_SESSION_ID;
   if (DEV_BYPASS && !sessionId) {
     sessionId = (window.CONFIG.DEV_FIXED_TUTOR_ID || 'TUTOR_DEV');
   }
   
-  if (!participantName) {
-    alert('Por favor ingresa tu nombre');
-    participantNameInput.focus();
+  // Usar función de validación del módulo
+  const validation = window.validarConfiguracion ? window.validarConfiguracion(participantName, participantEdad) : null;
+  
+  if (validation && !validation.valid) {
+    validation.errors.forEach(error => {
+      alert(error.message);
+      if (error.field === 'alumno') {
+        participantNameInput.focus();
+      } else if (error.field === 'edad' && participantEdadInput) {
+        participantEdadInput.focus();
+      }
+    });
     return;
   }
   
@@ -959,8 +982,9 @@ async function connectToSession() {
     statusPanel.style.display = 'block';
     connectionStatus.textContent = 'Conectando al tutor...';
     
-    // Guardar nombre del participante
+    // Guardar nombre y edad del participante
     window.participantName = participantName;
+    window.participantEdad = participantEdad;
     
     await peerManager.initAsParticipant(sessionId);
     

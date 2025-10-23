@@ -443,50 +443,41 @@
       const incorrectas = Math.max(0, total - correctas);
       const porcentaje = total ? Math.round((correctas / total) * 100) : 0;
 
-      // Créditos de Tiempo: otorgar SOLO al finalizar el ejercicio, proporcional a dificultad real
-      // Factores: nivel, acentos activos, porcentaje de refuerzo de letras, y % logrado
+      // Créditos de Tiempo: usar función unificada
       try {
-        if (typeof window !== 'undefined' && window.TimeCredits && total > 0) {
-          const requiredTotal = (window.CONFIG && Number.isFinite(window.CONFIG.TIME_CREDITS_REQUIRED_WORDS)) ? window.CONFIG.TIME_CREDITS_REQUIRED_WORDS : 25;
-          if (total !== requiredTotal) {
-            throw 'skip_award_not_full_length';
-          }
+        if (typeof window !== 'undefined' && window.TimeCredits && window.TimeCredits.calculateAndAwardCredits && total > 0) {
           const alumnoId = (typeof window.getAlumnoCursoId === 'function') ? window.getAlumnoCursoId() : 'anon|sin-curso';
-          const levelCode = (global.gameState?.currentLevel || global.currentNivel || '-');
-          const day = new Date().toISOString().slice(0,10);
-          const exSeed = (global.gameState?.sessionStartISO || global.sessionStartISO || '');
-          const exerciseId = `${alumnoId}|${day}|${levelCode}|${total}|${exSeed}`;
-
-          // Determinar dificultad
-          const lc = String(levelCode || '').toLowerCase();
-          const levelWeight = lc.includes('experto') || lc === '4' ? 1.5
-                            : lc.includes('avanzado') || lc === '3' ? 1.3
-                            : lc.includes('intermedio') || lc === '2' ? 1.15
-                            : 1.0; // básico/otro
-
+          const nivel = (global.gameState?.currentLevel || global.currentNivel || '-');
+          const rangoEdad = document.getElementById('edad')?.value || ''; // Ahora es edad numérica
+          
           // ¿Acentos activos?
-          const acentosActiva = (function(){
+          const acentosActivos = (function(){
             try {
-              const n = String(global.gameState?.currentLevel || global.currentNivel || '').toLowerCase();
+              const n = String(nivel || '').toLowerCase();
               const expert = n.includes('experto') || n === '4' || (global.currentNivel === 'experto');
               const basic = n.includes('básico') || n.includes('basico') || n === '1' || (global.currentNivel === 'basico');
               if (expert) return true; if (basic) return false; return !!(document.getElementById('acentosObligatorios')?.checked);
             } catch(_) { return !!(document.getElementById('acentosObligatorios')?.checked); }
           })();
-          const accentsWeight = acentosActiva ? 1.15 : 1.0;
-
+          
           // Porcentaje de refuerzo de letras
-          let prN = 0;
-          try { const prRaw = document.getElementById('porcentajeRefuerzo')?.value; const n = parseInt(prRaw ?? '0', 10); prN = Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0; } catch(_) { prN = 0; }
-          const reinforceWeight = 1 + (prN * 0.003); // hasta +0.30 a 100%
-
-          const difficultyWeight = Math.max(1.0, Math.min(2.0, levelWeight * accentsWeight * reinforceWeight));
-          const baseAt100 = (window.CONFIG && Number.isFinite(window.CONFIG.TIME_CREDITS_MAX_BASE_AT_100)) ? window.CONFIG.TIME_CREDITS_MAX_BASE_AT_100 : 10;
-          const baseMinutes = Math.max(0, (porcentaje / 100) * baseAt100);
-          const customMinutes = Math.floor(baseMinutes * difficultyWeight);
-
-          window.TimeCredits.award({ customMinutes, percent: porcentaje, exerciseId, reason: 'exercise_end_scaled' });
-          try { if (typeof window.refreshTimeCreditsBadge === 'function') window.refreshTimeCreditsBadge(); } catch(_) {}
+          let porcentajeRefuerzo = 0;
+          try { 
+            const prRaw = document.getElementById('porcentajeRefuerzo')?.value; 
+            const n = parseInt(prRaw ?? '0', 10); 
+            porcentajeRefuerzo = Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : 0; 
+          } catch(_) { porcentajeRefuerzo = 0; }
+          
+          window.TimeCredits.calculateAndAwardCredits({
+            correctas,
+            total,
+            nivel,
+            rangoEdad,
+            acentosActivos,
+            porcentajeRefuerzo,
+            alumnoId,
+            mode: 'individual'
+          });
         }
       } catch(_) {}
 

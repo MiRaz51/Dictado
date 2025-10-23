@@ -210,9 +210,8 @@
         if (def) {
           const src = 'RAE API';
           const pageLink = `https://rae-api.com/search?q=${encodeURIComponent(palabra)}`;
-          const extra = sensesCount > 1
-            ? ` — Más: <a href="${pageLink}" target="_blank" rel="noopener">ver más</a>`
-            : '';
+          // Siempre mostrar enlace "ver más" para que el usuario pueda revisar en RAE API
+          const extra = ` — Más: <a href="${pageLink}" target="_blank" rel="noopener">ver más</a>`;
           // Guardar también el 'Más' con anchor dentro de def para que no se pierda al leer desde caché
           cache[key] = { def: `${def}${extra}`, src, ts: Date.now() };
           guardarCacheSignificados(cache);
@@ -249,9 +248,8 @@
           if (def) {
             const src = 'RAE API (normalizado)';
             const pageLink = `https://rae-api.com/search?q=${encodeURIComponent(palabra)}`;
-            const extra = sensesCount > 1
-              ? ` — Más: <a href="${pageLink}" target="_blank" rel="noopener">ver más</a>`
-              : '';
+            // Siempre mostrar enlace "ver más" para que el usuario pueda revisar en RAE API
+            const extra = ` — Más: <a href="${pageLink}" target="_blank" rel="noopener">ver más</a>`;
             // Guardar 'Más' con anchor dentro de def para persistir en caché
             cache[key] = { def: `${def}${extra}`, src, ts: Date.now() };
             guardarCacheSignificados(cache);
@@ -576,13 +574,15 @@
         }
         const strictTxt = (document.getElementById('strictMode')?.checked ? 'Sí' : 'No');
 
-        // Orden alineado a la solicitud: primero Alumno y Curso/Grupo, luego Nivel y el resto
-        // 1) Alumno, 2) Curso/Grupo, 3) Nivel, 4) Inicio de sesión, 5) Total palabras,
-        // 6) Aciertos, 7) Incorrectas, 8) Cantidad solicitada, 9) Porcentaje de acierto,
-        // 10) Letras a reforzar, 11) Porcentaje de refuerzo, 12) Acentos obligatorios, 13) Modo estricto
+        // Orden alineado a la solicitud: primero Alumno y Curso/Grupo, luego Edad, Nivel y el resto
+        // 1) Alumno, 2) Curso/Grupo, 3) Edad, 4) Nivel, 5) Inicio de sesión, 6) Total palabras,
+        // 7) Aciertos, 8) Incorrectas, 9) Cantidad solicitada, 10) Porcentaje de acierto,
+        // 11) Letras a reforzar, 12) Porcentaje de refuerzo, 13) Acentos obligatorios, 14) Modo estricto
+        const edadUsuario = window.getUserAge ? window.getUserAge() : null;
         const body = [
           ['Alumno', alumno || '-'],
           ['Curso/Grupo', curso || '-'],
+          ['Edad', edadUsuario !== null ? `${edadUsuario} años` : '-'],
           ['Nivel', nivel],
           ['Inicio de ejercicio', fechaSesion],
           ...(fechaFinTxt ? [['Fin de ejercicio', fechaFinTxt]] : []),
@@ -669,7 +669,9 @@
       if (resultados.length > 0) {
         pdf.addPage();
         pdf.setFontSize(14); pdf.text('Detalle de intentos', 40, 40);
-        pdf.setFontSize(10); pdf.text(`Alumno: ${alumno || '-'}  ·  Curso/Grupo: ${curso || '-'}  ·  Nivel: ${nivel}  ·  Inicio: ${fechaSesion}`, 40, 58);
+        const edadPdf = window.getUserAge ? window.getUserAge() : null;
+        const edadTxt = edadPdf !== null ? `  ·  Edad: ${edadPdf} años` : '';
+        pdf.setFontSize(10); pdf.text(`Alumno: ${alumno || '-'}  ·  Curso/Grupo: ${curso || '-'}${edadTxt}  ·  Nivel: ${nivel}  ·  Inicio: ${fechaSesion}`, 40, 58);
 
         if (pdf.autoTable) {
           const head2 = [[ 'Palabra','Respuesta','Correcto','Tiempo (ms)','Significado' ]];
@@ -826,7 +828,9 @@
 
       pdf2.setFontSize(10);
       let yHeader = 60;
-      pdf2.text(`Alumno: ${alumnoTexto}  ·  Curso/Grupo: ${cursoTexto}`, 40, yHeader); yHeader += 13;
+      const edadPM = window.getUserAge ? window.getUserAge() : null;
+      const edadPMTxt = edadPM !== null ? `  ·  Edad: ${edadPM} años` : '';
+      pdf2.text(`Alumno: ${alumnoTexto}  ·  Curso/Grupo: ${cursoTexto}${edadPMTxt}`, 40, yHeader); yHeader += 13;
       pdf2.text(`Fecha: ${fechaTextoPM}`, 40, yHeader); yHeader += 13;
       pdf2.text(`Total palabras: ${totalEjercicioPM}   ·   Aciertos: ${correctasPM}   ·   Incorrectas: ${incorrectasPM}`, 40, yHeader); yHeader += 13;
       pdf2.text(`Palabras a practicar: ${palabrasCorrectas.length}`, 40, yHeader);
@@ -865,7 +869,7 @@
         if (thirdSectionWords.length > 0) {
           let currentPageNum = 2; pdf2.addPage();
           pdf2.setFontSize(16); pdf2.setFont(undefined, 'bold'); pdf2.text('Práctica Manual de Ortografía (continuación)', margin, 40);
-          pdf2.setFontSize(10); pdf2.setFont(undefined, 'normal'); pdf2.text(`Alumno: ${alumnoTexto}  ·  Curso/Grupo: ${cursoTexto}`, margin, 60);
+          pdf2.setFontSize(10); pdf2.setFont(undefined, 'normal'); pdf2.text(`Alumno: ${alumnoTexto}  ·  Curso/Grupo: ${cursoTexto}${edadPMTxt}`, margin, 60);
 
           let wordIndex = 0; let currentRow = 0; const maxWordsPerRow = 4; const rowHeight = 280; const newPageStartY = 100;
           while (wordIndex < thirdSectionWords.length) {
@@ -885,7 +889,7 @@
               if (wordIndex < thirdSectionWords.length) {
                 addFooter(currentPageNum); pdf2.addPage(); currentPageNum++; currentRow = 0;
                 pdf2.setFontSize(16); pdf2.setFont(undefined, 'bold'); pdf2.text('Práctica Manual de Ortografía (continuación)', margin, 40);
-                pdf2.setFontSize(10); pdf2.setFont(undefined, 'normal'); pdf2.text(`Alumno: ${alumnoTexto}  ·  Curso/Grupo: ${cursoTexto}`, margin, 60);
+                pdf2.setFontSize(10); pdf2.setFont(undefined, 'normal'); pdf2.text(`Alumno: ${alumnoTexto}  ·  Curso/Grupo: ${cursoTexto}${edadPMTxt}`, margin, 60);
               }
             }
           }
@@ -1084,32 +1088,44 @@
     const finTxt = ctx?.endISO ? new Date(ctx.endISO).toLocaleString() : '';
     const durTxt = (ctx?.startISO && ctx?.endISO) ? formatDuration(ctx.startISO, ctx.endISO) : '';
 
-    let html = '';
-    html += '<div class="report-summary" style="font-size:14px; margin-bottom:10px;">';
-    const nivelBadgeClass = (function(){ const n = String(nivelTxt||'').toLowerCase(); if (n.includes('básico')||n.includes('basico')||n==='1') return 'badge-level-basico'; if (n.includes('intermedio')||n==='2') return 'badge-level-intermedio'; if (n.includes('avanzado')||n==='3') return 'badge-level-avanzado'; if (n.includes('experto')||n==='4') return 'badge-level-experto'; return 'badge-off';})();
-    const nivelBadge = nivelTxt && nivelTxt !== '-' ? `<span class="badge ${nivelBadgeClass}">${nivelTxt}</span>` : `<span class="badge badge-off">-</span>`;
-    html += `<div><strong>Nivel:</strong> ${nivelBadge}</div>`;
-    html += `<div><strong>Inicio de ejercicio:</strong> <span class="badge badge-off">${inicioTxt}</span></div>`;
-    if (finTxt) html += `<div><strong>Fin de ejercicio:</strong> <span class="badge badge-off">${finTxt}</span></div>`;
-    if (durTxt) html += `<div><strong>Duración total:</strong> <span class="badge badge-info">${durTxt}</span></div>`;
+    // Obtener nombre del alumno
+    const alumnoNombre = ctx?.alumno || (function(){
+      try {
+        const input = document.getElementById('alumno');
+        if (input && input.value) return String(input.value).trim();
+        if (window && typeof window.participantName === 'string') return window.participantName.trim();
+      } catch(_) {}
+      return '-';
+    })();
+    const edadWeb = window.getUserAge ? window.getUserAge() : null;
+    
+    // Helper para badges
+    const badge = (text, type = 'info') => `<span class="badge badge-${type}">${text}</span>`;
+    const nivelClass = (function(){ const n = String(nivelTxt||'').toLowerCase(); if (n.includes('básico')||n.includes('basico')||n==='1') return 'level-basico'; if (n.includes('intermedio')||n==='2') return 'level-intermedio'; if (n.includes('avanzado')||n==='3') return 'level-avanzado'; if (n.includes('experto')||n==='4') return 'level-experto'; return 'off';})();
+    
+    let html = '<div class="report-summary" style="display:grid;grid-template-columns:1fr 1fr;grid-auto-flow:column;grid-template-rows:repeat(7,auto);gap:2px 30px;font-size:14px;margin-bottom:10px;">';
+    
+    // Columna 1
+    html += `<div><strong>Alumno:</strong> ${badge(alumnoNombre !== '-' ? alumnoNombre : '-', alumnoNombre !== '-' ? 'info' : 'off')}</div>`;
+    if (edadWeb !== null) html += `<div><strong>Edad:</strong> ${badge(edadWeb + ' años', 'info')}</div>`;
+    html += `<div><strong>Nivel:</strong> ${badge(nivelTxt || '-', nivelClass)}</div>`;
+    html += `<div><strong>Inicio de ejercicio:</strong> ${badge(inicioTxt, 'off')}</div>`;
+    if (finTxt) html += `<div><strong>Fin de ejercicio:</strong> ${badge(finTxt, 'off')}</div>`;
+    if (durTxt) html += `<div><strong>Duración total:</strong> ${badge(durTxt, 'info')}</div>`;
     html += `<div><strong>Total palabras:</strong> ${total}</div>`;
+    
+    // Columna 2
     html += `<div><strong>Correctas:</strong> ${correctas}</div>`;
     html += `<div><strong>Incorrectas:</strong> ${incorrectas}</div>`;
     html += `<div><strong>Porcentaje de acierto:</strong> ${porcentaje}%</div>`;
     if (ctx?.filterTxt != null) {
-      const ftxt = (String(ctx.filterTxt).trim() || '-');
-      const filtroBadge = ftxt !== '-' ? `<span class="badge badge-info">${ftxt}</span>` : `<span class="badge badge-off">-</span>`;
-      html += `<div><strong>Letras a reforzar:</strong> ${filtroBadge}</div>`;
+      const ftxt = String(ctx.filterTxt).trim() || '-';
+      html += `<div><strong>Letras a reforzar:</strong> ${badge(ftxt, ftxt !== '-' ? 'info' : 'off')}</div>`;
     }
     if (ctx?.refuerzoTxt != null) html += `<div><strong>Porcentaje de refuerzo:</strong> ${ctx.refuerzoTxt}${ctx.refuerzoTxt !== '-' ? '%' : ''}</div>`;
-    if (ctx?.acentosObligatorios != null) {
-      const badge = ctx.acentosObligatorios ? `<span class="badge badge-ok">Sí</span>` : `<span class="badge badge-off">No</span>`;
-      html += `<div><strong>Acentos obligatorios:</strong> ${badge}</div>`;
-    }
-    if (ctx?.strictTxt != null) {
-      const badge = ctx.strictTxt === 'Sí' ? `<span class="badge badge-ok">Sí</span>` : `<span class="badge badge-off">No</span>`;
-      html += `<div><strong>Modo estricto:</strong> ${badge}</div>`;
-    }
+    if (ctx?.acentosObligatorios != null) html += `<div><strong>Acentos obligatorios:</strong> ${badge(ctx.acentosObligatorios ? 'Sí' : 'No', ctx.acentosObligatorios ? 'ok' : 'off')}</div>`;
+    if (ctx?.strictTxt != null) html += `<div><strong>Modo estricto:</strong> ${badge(ctx.strictTxt, ctx.strictTxt === 'Sí' ? 'ok' : 'off')}</div>`;
+    
     html += '</div>';
 
     // Lista de palabras con significado

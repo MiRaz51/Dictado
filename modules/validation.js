@@ -52,7 +52,53 @@
     }
   }
 
+  // Obtener edad del usuario (modo individual o grupal)
+  function getUserAge() {
+    try {
+      // Modo individual: leer del campo edad
+      const edadInput = document.getElementById('edad');
+      if (edadInput && edadInput.value) {
+        const edad = parseInt(edadInput.value);
+        if (edad >= 6) return edad;
+      }
+      // Modo participante: leer de variable global
+      if (global && typeof global.participantEdad !== 'undefined') {
+        const edad = parseInt(global.participantEdad);
+        if (edad >= 6) return edad;
+      }
+    } catch(_) {}
+    return null;
+  }
+
+  // Validar edad mínima
+  function validarEdad(edad) {
+    const edadNum = parseInt(edad);
+    return edadNum >= 6;
+  }
+
+  // Validar campos de configuración (alumno y edad)
+  function validarConfiguracion(alumno, edad) {
+    const errors = [];
+    
+    if (!alumno || !String(alumno).trim()) {
+      errors.push({ field: 'alumno', message: 'Por favor, ingresa tu nombre.' });
+    }
+    
+    const edadNum = parseInt(edad);
+    if (!edadNum || edadNum < 6) {
+      errors.push({ field: 'edad', message: 'Por favor, ingresa una edad válida (mínimo 6 años).' });
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors: errors
+    };
+  }
+
   // Exponer globales para compatibilidad con HTML inline handlers
   global.validarPalabraUsuario = global.validarPalabraUsuario || validarPalabraUsuario;
   global.filtrarLetrasEspanol = global.filtrarLetrasEspanol || filtrarLetrasEspanol;
+  global.getUserAge = global.getUserAge || getUserAge;
+  global.validarEdad = global.validarEdad || validarEdad;
+  global.validarConfiguracion = global.validarConfiguracion || validarConfiguracion;
 })(typeof window !== 'undefined' ? window : globalThis);

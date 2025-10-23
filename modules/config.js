@@ -16,7 +16,7 @@
     // Parámetros
     PARAMS_KEY: 'dictado_params_v1',
     ERROR_BANK_KEY: 'dictado_error_bank_v1',
-    MEANING_CACHE_KEY: 'dictado_meaning_cache_v1',
+    MEANING_CACHE_KEY: 'dictado_meaning_cache_v2', // v2: Incluye enlace "ver más" en todas las palabras
 
     // Límites y configuración
     MAX_WORD_LENGTH: 15,

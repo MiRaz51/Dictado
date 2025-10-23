@@ -105,6 +105,13 @@
           <input id="alumno" type="text" placeholder="Nombre y apellido" tabindex="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
           <div id="alumnoError" class="help-error">Este campo es obligatorio.</div>
         </div>
+        <div class="form-field" style="grid-column: 1 / -1;">
+          <label for="edad"><strong>Edad</strong>:</label>
+          <input id="edad" type="number" min="6" max="99" placeholder="Ingresa tu edad (mínimo 6 años)" tabindex="2" autocomplete="off" title="La edad mínima es de 6 años" required oninvalid="this.setCustomValidity('Por favor, ingresa una edad válida. La edad mínima es de 6 años.')" oninput="this.setCustomValidity('')">
+          <div class="hint" style="font-size: 0.85rem; color: #666; margin-top: 4px;">
+            ℹ️ La edad mínima es de <strong>6 años</strong>.
+          </div>
+        </div>
       </div>
     </div>
     <div class="actions">
@@ -297,13 +304,20 @@
           <input id="participantName" type="text" placeholder="Ingresa tu nombre y apellido" tabindex="1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
         </div>
         <div class="form-field">
+          <label for="participantEdad"><strong>Edad:</strong></label>
+          <input id="participantEdad" type="number" min="6" max="99" placeholder="Ingresa tu edad (mínimo 6 años)" tabindex="2" autocomplete="off" title="La edad mínima es de 6 años" required oninvalid="this.setCustomValidity('Por favor, ingresa una edad válida. La edad mínima es de 6 años.')" oninput="this.setCustomValidity('')">
+          <div class="hint" style="font-size: 0.85rem; color: #666; margin-top: 4px;">
+            ℹ️ La edad mínima es de <strong>6 años</strong>.
+          </div>
+        </div>
+        <div class="form-field">
           <label for="sessionIdInput"><strong>ID de Sesión del Tutor (MAYÚSCULAS):</strong></label>
-          <input id="sessionIdInput" type="text" placeholder="Ingresa el ID de sesión" tabindex="2" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <input id="sessionIdInput" type="text" placeholder="Ingresa el ID de sesión" tabindex="3" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
           <div class="hint session-id-hint">
             ⚠️ Importante: el ID <strong>distingue mayúsculas</strong>. Escríbelo en <strong>MAYÚSCULAS</strong> (ej.: <code>TUTOR_AB12CD</code>).
           </div>
         </div>
-        <button id="connectToSession" tabindex="3">🔗 Conectar a Sesión</button>
+        <button id="connectToSession" tabindex="4">🔗 Conectar a Sesión</button>
       </div>
       
       <div id="participantStatus" class="status-panel" style="display: none;">

@@ -214,7 +214,136 @@
     return { day: d, awarded: dt.awarded|0, redeemed: dt.redeemed|0 };
   }
 
-  const api = { getBalance, award, redeem, getHistory, getToday };
+  // Calcular rango desde edad numérica (función unificada)
+  function calcularRangoDesdeEdad(edad){
+    try {
+      const edadNum = parseInt(edad) || 0;
+      if (edadNum < 6) return 0; // Edad inválida
+      if (edadNum >= 6 && edadNum < 8) return 1;  // Rango 1: 6-7 años
+      if (edadNum >= 8 && edadNum < 10) return 2; // Rango 2: 8-9 años
+      if (edadNum >= 10 && edadNum < 12) return 3; // Rango 3: 10-11 años
+      return 4; // Rango 4: 12+ años
+    } catch(_) { return 0; }
+  }
+
+  // Calcular multiplicador de desafío basado en rango de edad y nivel
+  function getChallengeMultiplier(rangoEdad, nivel){
+    try {
+      // Si rangoEdad es una edad numérica (>= 6), calcular el rango
+      let rango = parseInt(rangoEdad) || 0;
+      if (rango >= 6) {
+        rango = calcularRangoDesdeEdad(rango);
+      }
+      if (rango < 1 || rango > 4) return 1.0;
+      
+      // Convertir nivel a número (1=básico, 2=intermedio, 3=avanzado, 4=experto)
+      const nivelMap = { basico:1, intermedio:2, avanzado:3, experto:4, facil:1, medio:2, dificil:3 };
+      const nivelNum = nivelMap[String(nivel||'').toLowerCase()] || 1;
+      
+      // Matriz de multiplicadores [rango][nivel-1]
+      // Rango 1 (6-8): [1.0, 1.3, 1.6, 1.9]
+      // Rango 2 (8-10): [0.8, 1.0, 1.3, 1.7]
+      // Rango 3 (10-12): [0.7, 0.85, 1.0, 1.4]
+      // Rango 4 (12+): [0.7, 0.8, 0.9, 1.0]
+      const matrix = [
+        [1.0, 1.3, 1.6, 1.9],  // Rango 1
+        [0.8, 1.0, 1.3, 1.7],  // Rango 2
+        [0.7, 0.85, 1.0, 1.4], // Rango 3
+        [0.7, 0.8, 0.9, 1.0]   // Rango 4
+      ];
+      
+      return matrix[rango - 1]?.[nivelNum - 1] || 1.0;
+    } catch(_) { return 1.0; }
+  }
+
+  // Función unificada para calcular y otorgar créditos (individual y grupal)
+  function calculateAndAwardCredits({ 
+    correctas = 0, 
+    total = 0, 
+    nivel = '', 
+    rangoEdad = '', 
+    acentosActivos = false,
+    porcentajeRefuerzo = 0,
+    alumnoId = '',
+    mode = 'individual' // 'individual' o 'group'
+  } = {}) {
+    try {
+      if (!global.CONFIG || total === 0) return { added: 0, balance: 0 };
+      
+      // Validar que sea ejercicio completo (25 palabras por defecto)
+      const requiredTotal = (global.CONFIG && Number.isFinite(global.CONFIG.TIME_CREDITS_REQUIRED_WORDS)) 
+        ? global.CONFIG.TIME_CREDITS_REQUIRED_WORDS : 25;
+      if (total !== requiredTotal) {
+        return { added: 0, balance: 0, reason: 'incomplete_exercise' };
+      }
+      
+      const porcentaje = total ? Math.round((correctas / total) * 100) : 0;
+      
+      // Generar exerciseId único
+      const day = new Date().toISOString().slice(0,10);
+      const sessionStart = (global.gameState?.sessionStartISO || global.sessionStartISO || new Date().toISOString());
+      const exerciseId = `${alumnoId}|${day}|${nivel}|${total}|${sessionStart}`;
+      
+      // Calcular peso del nivel
+      const lc = String(nivel || '').toLowerCase();
+      const levelWeight = lc.includes('experto') || lc === '4' ? 1.5
+                        : lc.includes('avanzado') || lc === '3' ? 1.3
+                        : lc.includes('intermedio') || lc === '2' ? 1.15
+                        : 1.0; // básico
+      
+      // Peso de acentos
+      const accentsWeight = acentosActivos ? 1.15 : 1.0;
+      
+      // Peso de refuerzo de letras
+      const prN = Math.max(0, Math.min(100, parseInt(porcentajeRefuerzo) || 0));
+      const reinforceWeight = 1 + (prN * 0.003); // hasta +0.30 a 100%
+      
+      // Multiplicador de desafío (edad vs nivel)
+      const challengeMultiplier = getChallengeMultiplier(rangoEdad, nivel);
+      
+      // Calcular peso total de dificultad
+      const difficultyWeight = Math.max(1.0, Math.min(2.5, 
+        levelWeight * accentsWeight * reinforceWeight * challengeMultiplier
+      ));
+      
+      // Calcular minutos base
+      const baseAt100 = (global.CONFIG && Number.isFinite(global.CONFIG.TIME_CREDITS_MAX_BASE_AT_100)) 
+        ? global.CONFIG.TIME_CREDITS_MAX_BASE_AT_100 : 10;
+      const baseMinutes = Math.max(0, (porcentaje / 100) * baseAt100);
+      const customMinutes = Math.floor(baseMinutes * difficultyWeight);
+      
+      // Otorgar créditos
+      const result = award({ 
+        customMinutes, 
+        percent: porcentaje, 
+        exerciseId, 
+        reason: `exercise_end_${mode}` 
+      });
+      
+      // Actualizar badge si está disponible
+      try { 
+        if (typeof global.refreshTimeCreditsBadge === 'function') {
+          global.refreshTimeCreditsBadge(); 
+        }
+      } catch(_) {}
+      
+      return result;
+    } catch(e) {
+      console.error('[TimeCredits] Error en calculateAndAwardCredits:', e);
+      return { added: 0, balance: 0, error: e.message };
+    }
+  }
+
+  const api = { 
+    getBalance, 
+    award, 
+    redeem, 
+    getHistory, 
+    getToday, 
+    getChallengeMultiplier,
+    calculateAndAwardCredits,
+    calcularRangoDesdeEdad
+  };
   global.TimeCredits = global.TimeCredits || api;
 
 })(typeof window !== 'undefined' ? window : globalThis);

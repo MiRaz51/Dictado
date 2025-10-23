@@ -186,10 +186,7 @@
 
 /* ====== TABLET (max-width: 640px) ====== */
 @media (max-width: 640px) {
-  /* Report Summary - Single column */
-  .report-summary {
-    column-count: 1;
-  }
+  /* Report Summary responsive rules moved to components/reportes.css */
 }
 
 /* ====== TABLET/MOBILE (max-width: 768px) ====== */

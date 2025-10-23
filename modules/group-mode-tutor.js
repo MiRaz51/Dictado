@@ -19,8 +19,13 @@
       if (!data || typeof data !== 'object') return;
       switch (data.type) {
         case 'participant_info': {
-          // Asegurar registro del participante y guardar TC inicial
-          try { global.groupState.addParticipant(peerId, { participantName: data.participantName }); } catch(_) {}
+          // Asegurar registro del participante y guardar TC inicial y edad
+          try { 
+            global.groupState.addParticipant(peerId, { 
+              participantName: data.participantName,
+              participantEdad: data.participantEdad 
+            }); 
+          } catch(_) {}
           const p = global.groupState.getParticipant(peerId);
           if (p) { p.timeCredits = Number(data.timeCredits || 0); }
           try { global.groupState.updateParticipantsUI(); } catch(_) {}

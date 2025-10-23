@@ -213,6 +213,8 @@
   #timeCreditsModal .modal-body { padding: 10px 12px; padding-bottom: 6px; }
   #timeCreditsModal .tc-card { margin-bottom: 8px; padding: 10px; }
   #timeCreditsModal .tc-card .tc-user-label { font-size: 18px; margin-bottom: 8px; }
+  #timeCreditsModal .tc-card .tc-age-label { font-size: 14px; }
+  #timeCreditsModal .tc-card .tc-subtitle { font-size: 11px; }
   #timeCreditsModal .tc-card .tc-row .tc-balance { font-size: 24px; }
   #timeCreditsModal .tc-card .tc-row .tc-balance-title { font-size: 13px; }
   #timeCreditsModal .tc-card .tc-row .tc-balance-unit { font-size: 16px; }

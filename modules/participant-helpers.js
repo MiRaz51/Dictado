@@ -384,7 +384,7 @@
           global.window.sessionEndISO = new Date().toISOString();
         } catch(e) { console.error('[Participante] Error preparando datos PDF:', e); }
         
-        // Celebración final si supera el umbral (participante)
+        // Calcular resultados y otorgar créditos (participante)
         try {
           const log = Array.isArray(global.window.resultsLog) ? global.window.resultsLog : [];
           const total = (function(){
@@ -404,6 +404,30 @@
           };
           const correctas = log.filter(r => esOk(r.correcto)).length;
           const porcentaje = total ? Math.round((correctas / total) * 100) : 0;
+          
+          // Otorgar créditos usando función unificada
+          try {
+            if (window.TimeCredits && typeof window.TimeCredits.calculateAndAwardCredits === 'function' && total > 0) {
+              const alumnoId = (typeof window.getAlumnoCursoId === 'function') ? window.getAlumnoCursoId() : 'anon|sin-curso';
+              const nivel = global.window._exerciseConfigParticipant?.nivel || global.window.currentNivel || '-';
+              const rangoEdad = global.window.participantEdad || 0; // Ahora es edad numérica
+              const acentosActivos = global.window._exerciseConfigParticipant?.acentosObligatorios || false;
+              const porcentajeRefuerzo = parseInt(global.window._exerciseConfigParticipant?.porcentajeRefuerzo || '0') || 0;
+              
+              window.TimeCredits.calculateAndAwardCredits({
+                correctas,
+                total,
+                nivel,
+                rangoEdad,
+                acentosActivos,
+                porcentajeRefuerzo,
+                alumnoId,
+                mode: 'group'
+              });
+            }
+          } catch(_) {}
+          
+          // Celebración final si supera el umbral
           const umbral = (window.CONFIG && Number.isFinite(window.CONFIG.FINAL_CELEBRATION_THRESHOLD)) ? window.CONFIG.FINAL_CELEBRATION_THRESHOLD : 70;
           if (porcentaje >= umbral && window.Feedback && typeof window.Feedback.showFinalCongrats === 'function') {
             window.Feedback.showFinalCongrats(porcentaje);

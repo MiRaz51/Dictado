@@ -27,6 +27,25 @@
     return '';
   }
 
+  // Get user age from multiple sources (individual or participant mode)
+  function getUserAge(){
+    try {
+      // Individual mode: read from edad input
+      const edadInput = document.getElementById('edad');
+      if (edadInput && edadInput.value) {
+        const edad = parseInt(edadInput.value);
+        if (edad >= 6) return edad;
+      }
+
+      // Participant mode: read from window.participantEdad
+      if (global.window && typeof global.window.participantEdad !== 'undefined') {
+        const edad = parseInt(global.window.participantEdad);
+        if (edad >= 6) return edad;
+      }
+    } catch(_) {}
+    return null;
+  }
+
   function getUserShort(){
     const name = (getDisplayName() || '').trim();
     if (!name || name === '-') return '';
@@ -51,6 +70,7 @@
       const minsEl = document.getElementById('tcMins');
       const userEl = document.getElementById('tcUserShort');
       const userLbl = document.getElementById('tcUserLabel');
+      const ageLbl = document.getElementById('tcAgeLabel');
       const hint = document.getElementById('tcBalanceHint');
       const balanceDisplay = document.getElementById('tcBalanceDisplay');
       const bal = _computeBalance();
@@ -68,6 +88,19 @@
       }
       const nameFull = getDisplayName();
       if (userLbl) userLbl.textContent = nameFull;
+      
+      // Actualizar edad del participante (solo el número)
+      const edad = getUserAge();
+      if (ageLbl) {
+        if (edad !== null) {
+          ageLbl.textContent = `${edad} años`;
+          ageLbl.style.display = 'block';
+        } else {
+          ageLbl.textContent = '-';
+          ageLbl.style.display = 'block';
+        }
+      }
+      
       if (hint) hint.textContent = `Saldo disponible: ${bal.minutesAvailable|0} min`;
       if (balanceDisplay) balanceDisplay.textContent = String(bal.minutesAvailable|0);
     } catch(_) {}

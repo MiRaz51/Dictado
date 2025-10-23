@@ -31,10 +31,12 @@ class GroupStateManager {
     if (!this.participants.has(participantId)) {
       // Extraer el nombre directamente del objeto de información
       const participantName = participantInfo.participantName || participantInfo.name || `Participante ${this.participants.size + 1}`;
+      const edad = participantInfo.participantEdad || participantInfo.edad || 0;
       
       this.participants.set(participantId, {
         id: participantId,
         name: participantName,
+        edad: edad,
         connected: true,
         answers: [],
         score: 0,

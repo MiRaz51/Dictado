@@ -4,7 +4,102 @@
   function celebrarAcierto(){
     try {
       if (typeof confetti === 'function') {
-        confetti({ particleCount: 100, spread: 65, origin: { y: 0.6 } });
+        // Obtener edad del usuario (modo individual o grupal)
+        let edad = 0;
+        try {
+          const edadIndividual = document.getElementById('edad')?.value;
+          const edadGrupal = global.window?.participantEdad;
+          edad = parseInt(edadIndividual || edadGrupal || '0');
+        } catch(_) {}
+        
+        // Obtener nivel actual del juego
+        let nivel = '';
+        try {
+          const nivelIndividual = global.gameState?.currentLevel || global.currentNivel;
+          const nivelGrupal = global.window?._exerciseConfigParticipant?.nivel;
+          nivel = String(nivelIndividual || nivelGrupal || '').toLowerCase();
+        } catch(_) {}
+        
+        // Calcular parámetros de confetti según edad (CANTIDADES AUMENTADAS)
+        // Rango 1 (6-7 años): Máxima celebración
+        // Rango 2 (8-9 años): Alta celebración
+        // Rango 3 (10-11 años): Celebración moderada
+        // Rango 4 (12+ años): Celebración sutil
+        let particleCount = 120;
+        let spread = 70;
+        let bursts = 1; // Número de ráfagas de confetti
+        
+        if (edad >= 6 && edad < 8) {
+          // Rango 1: Niños pequeños - ¡Máxima celebración! (AUMENTADO)
+          particleCount = 300; // Era 200
+          spread = 100;        // Era 90
+          bursts = 4;          // Era 3
+        } else if (edad >= 8 && edad < 10) {
+          // Rango 2: Niños medianos - Alta celebración (AUMENTADO)
+          particleCount = 220; // Era 150
+          spread = 90;         // Era 80
+          bursts = 3;          // Era 2
+        } else if (edad >= 10 && edad < 12) {
+          // Rango 3: Pre-adolescentes - Moderada (AUMENTADO)
+          particleCount = 150; // Era 100
+          spread = 80;         // Era 70
+          bursts = 2;          // Era 1
+        } else if (edad >= 12) {
+          // Rango 4: Adolescentes - Sutil (MANTIENE ACTUAL)
+          particleCount = 100; // Era 80
+          spread = 70;         // Era 60
+          bursts = 1;
+        }
+        
+        // BONUS: Multiplicador de desafío si juega en nivel superior
+        // Usar la misma lógica que time-credits.js para calcular el desafío
+        let challengeBonus = 1.0;
+        if (edad >= 6 && nivel) {
+          // Calcular rango de edad
+          let rango = 0;
+          if (edad >= 6 && edad < 8) rango = 1;
+          else if (edad >= 8 && edad < 10) rango = 2;
+          else if (edad >= 10 && edad < 12) rango = 3;
+          else if (edad >= 12) rango = 4;
+          
+          // Determinar nivel numérico
+          let nivelNum = 1;
+          if (nivel.includes('experto') || nivel === '4') nivelNum = 4;
+          else if (nivel.includes('avanzado') || nivel === '3') nivelNum = 3;
+          else if (nivel.includes('intermedio') || nivel === '2') nivelNum = 2;
+          else nivelNum = 1; // básico
+          
+          // Aplicar bonus si está jugando por encima de su nivel esperado (AUMENTADO)
+          // Rango 1 (6-7) jugando Intermedio/Avanzado/Experto = BONUS GRANDE
+          // Rango 2 (8-9) jugando Avanzado/Experto = BONUS ALTO
+          // Rango 3 (10-11) jugando Experto = BONUS MODERADO
+          if (rango === 1 && nivelNum >= 2) {
+            challengeBonus = nivelNum === 4 ? 2.2 : nivelNum === 3 ? 1.9 : 1.5; // Era 1.8, 1.6, 1.3
+          } else if (rango === 2 && nivelNum >= 3) {
+            challengeBonus = nivelNum === 4 ? 1.8 : 1.5; // Era 1.5, 1.3
+          } else if (rango === 3 && nivelNum === 4) {
+            challengeBonus = 1.5; // Era 1.3
+          }
+        }
+        
+        // Aplicar bonus de desafío
+        particleCount = Math.floor(particleCount * challengeBonus);
+        if (challengeBonus > 1.0) {
+          // Si hay bonus, agregar ráfaga extra
+          bursts = Math.min(bursts + 1, 5); // Máximo 5 ráfagas
+        }
+        
+        // Lanzar ráfagas de confetti
+        for (let i = 0; i < bursts; i++) {
+          setTimeout(() => {
+            confetti({ 
+              particleCount: particleCount, 
+              spread: spread, 
+              origin: { y: 0.6 },
+              colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff']
+            });
+          }, i * 150); // 150ms entre ráfagas
+        }
       }
     } catch(_) {}
   }
@@ -37,6 +132,28 @@
       el.textContent = `🔥 ¡${racha} seguidas!`;
       document.body.appendChild(el);
       setTimeout(() => { try { el.remove(); } catch(_) {} }, 3000);
+      
+      // CELEBRACIÓN ESPECIAL: Confetti abundante para TODAS las edades cuando logran racha de 5+
+      if (racha >= 5 && typeof confetti === 'function') {
+        // Configuración fija abundante para racha (sin importar edad)
+        // Usar valores similares a niños pequeños para que sea muy festivo
+        const particleCount = 250; // Abundante para todos
+        const spread = 95;          // Amplia dispersión
+        const bursts = 4;           // 4 ráfagas
+        
+        // Lanzar ráfagas de confetti
+        for (let i = 0; i < bursts; i++) {
+          setTimeout(() => {
+            confetti({ 
+              particleCount: particleCount, 
+              spread: spread, 
+              origin: { y: 0.6 },
+              colors: ['#ff6b00', '#ffd700', '#ff0000', '#ff1493', '#00ff00', '#00bfff'], // Colores cálidos/festivos
+              ticks: 200 // Duración más larga
+            });
+          }, i * 180); // 180ms entre ráfagas
+        }
+      }
     } catch(_) {}
   }
 

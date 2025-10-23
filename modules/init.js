@@ -230,12 +230,15 @@
 
     // Time Credits UI moved to modules/time-credits-ui.js
 
-    // Accessibility: config form input navigation and validation
+    // Accessibility: config form input validation (navegación con Enter manejada por ui-forms.js)
     try {
       const alumno = document.getElementById('alumno');
       if (alumno) {
         alumno.addEventListener('input', () => { try { window.validateFields && validateFields(); } catch(_) {} });
-        alumno.addEventListener('keydown', (event) => { try { window.handleEnterNavigation && handleEnterNavigation(event, 'btnNext'); } catch(_) {} });
+      }
+      const edad = document.getElementById('edad');
+      if (edad) {
+        edad.addEventListener('input', () => { try { window.validateFields && validateFields(); } catch(_) {} });
       }
     } catch(_) {}
 
